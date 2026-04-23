@@ -11,6 +11,7 @@ export const sendOtp = async (email) => {
         email,
         options: {
             shouldCreateUser: true,
+            emailRedirectTo: undefined, // disable magic link redirect
         },
     })
     if (error) return { success: false, error: error.message }
