@@ -54,7 +54,7 @@ export default function SettingsScreen() {
                         {t('settings_hint')}
                     </p>
 
-                    <InputCard label={t('email_label')}>
+                    <InputCard>
                         <Input
                             type="email"
                             value={email}

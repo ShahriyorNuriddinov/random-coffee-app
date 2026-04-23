@@ -13,9 +13,17 @@ export default function PersonalScreen() {
     const { t, i18n } = useTranslation()
     const { setScreen, profile, setProfile, user } = useApp()
 
+    const REGIONS = [
+        { value: 'Hong Kong', labelKey: 'region_hk' },
+        { value: 'Macau', labelKey: 'region_mo' },
+        { value: 'Mainland China', labelKey: 'region_cn' },
+    ]
+
     const [name, setName] = useState(profile.name)
     const [dob, setDob] = useState(profile.dob ? new Date(profile.dob) : null)
     const [gender, setGender] = useState(profile.gender)
+    const [region, setRegion] = useState(profile.region || 'Hong Kong')
+    const [city, setCity] = useState(profile.city || '')
     const [loading, setLoading] = useState(false)
 
     const handleNext = async () => {
@@ -25,13 +33,14 @@ export default function PersonalScreen() {
         if (age < 16) { toast.error(t('err_age')); return }
 
         setLoading(true)
-        const updatedProfile = { ...profile, name: name.trim(), dob: dob.toISOString(), gender }
-        setProfile(updatedProfile)
+        setProfile(p => ({ ...p, name: name.trim(), dob: dob.toISOString(), gender, region, city }))
 
         await saveProfile(user?.id, {
             name: name.trim(),
             dob: dob.toISOString(),
             gender,
+            region,
+            city,
             email: user?.email || '',
         })
 
@@ -47,7 +56,7 @@ export default function PersonalScreen() {
                 <LangSwitcher />
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center px-5">
+            <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-5 py-10">
                 <div className="screen-content w-full">
                     <h1 className="text-[26px] font-extrabold mb-[10px] tracking-tight text-[var(--app-text)]">
                         {t('personal_title')}
@@ -86,9 +95,49 @@ export default function PersonalScreen() {
                         lang={i18n.language}
                     />
 
-                    <p className="text-[12px] text-[var(--app-hint)] mb-6 ml-1 font-medium">
+                    <p className="text-[12px] text-[var(--app-hint)] mb-4 ml-1 font-medium">
                         {t('dob_gift')}
                     </p>
+
+                    {/* Region */}
+                    <div className="w-full mb-4">
+                        <label className="block text-[var(--app-primary)] font-semibold text-[11px] uppercase tracking-[0.3px] mb-2 ml-1">
+                            {t('region_label')}
+                        </label>
+                        <div style={{
+                            background: 'var(--app-card)', borderRadius: 14,
+                            border: '0.5px solid var(--app-border)', overflow: 'hidden',
+                        }}>
+                            {REGIONS.map((r, i) => (
+                                <div
+                                    key={r.value}
+                                    onClick={() => setRegion(r.value)}
+                                    style={{
+                                        display: 'flex', justifyContent: 'space-between',
+                                        alignItems: 'center', padding: '14px 16px',
+                                        cursor: 'pointer', fontSize: 16,
+                                        color: 'var(--app-text)',
+                                        borderBottom: i < REGIONS.length - 1 ? '0.5px solid var(--app-border)' : 'none',
+                                    }}
+                                >
+                                    <span>{t(r.labelKey)}</span>
+                                    <span style={{ color: 'var(--app-primary)', fontWeight: 700, opacity: region === r.value ? 1 : 0 }}>✓</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* City — shown only for Mainland China */}
+                    {region === 'Mainland China' && (
+                        <InputCard label={t('city_label')}>
+                            <Input
+                                type="text"
+                                value={city}
+                                onChange={e => setCity(e.target.value)}
+                                placeholder={t('city_placeholder')}
+                            />
+                        </InputCard>
+                    )}
 
                     <Button onClick={handleNext} disabled={loading}>{loading ? '...' : t('next')}</Button>
                 </div>
@@ -96,4 +145,3 @@ export default function PersonalScreen() {
         </div>
     )
 }
-

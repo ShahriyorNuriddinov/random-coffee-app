@@ -10,7 +10,7 @@ const EMPTY_PROFILE = {
     about: '', gives: '', wants: '',
     balance: '50_50', wechat: '', whatsapp: '',
     showAge: true, datingMode: false, datingGender: 'women',
-    languages: ['EN'], region: 'Hong Kong',
+    languages: ['EN'], region: 'Hong Kong', city: '',
     email: '', avatar: null,
     photos: [null, null, null, null],
 }
@@ -31,6 +31,7 @@ function dbToProfile(db) {
         datingGender: db.dating_gender || 'women',
         languages: db.languages || ['EN'],
         region: db.region || 'Hong Kong',
+        city: db.city || '',
         email: db.email || '',
         avatar: db.avatar_url || null,
         photos: Array.isArray(db.photos) ? db.photos : [null, null, null, null],

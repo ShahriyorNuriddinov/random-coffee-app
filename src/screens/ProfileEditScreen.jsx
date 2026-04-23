@@ -143,7 +143,7 @@ export default function ProfileEditScreen() {
 
                     <AvatarUpload avatar={avatar} onFile={handleFile} />
 
-                    <BasicInfoCard profile={profile} region={region} onRegionChange={setRegion} />
+                    <BasicInfoCard profile={profile} region={region} />
 
                     <TextSection
                         title={t('about_title')}
