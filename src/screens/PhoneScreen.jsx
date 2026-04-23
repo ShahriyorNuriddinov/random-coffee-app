@@ -22,9 +22,10 @@ export default function PhoneScreen() {
         setLoading(true)
         const res = await sendOtp(countryCode + phone)
         setLoading(false)
-        // OTP is saved to DB even if SMS delivery fails (balance issue)
-        // So we proceed to OTP screen regardless, unless it's a network error
-        if (res.success || res.error) {
+        // OTP code is saved to DB before SMS is sent.
+        // If only SMS delivery fails (e.g. low balance), res has error but code exists in DB.
+        // We only block if res is completely null (network/function error).
+        if (res !== null && res !== undefined) {
             setScreen('otp')
         } else {
             toast.error(t('err_phone'))

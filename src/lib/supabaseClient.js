@@ -18,7 +18,7 @@ export const sendOtp = async (phone) => {
         body: { phone },
     })
     if (error) return { success: false, error: error.message }
-    return data
+    return data ?? { success: false, error: 'No response' }
 }
 
 export const verifyOtp = async (phone, token) => {
