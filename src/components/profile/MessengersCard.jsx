@@ -3,31 +3,17 @@ import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/ui/Card'
 
 const DIAL_CODES = [
-    { code: '+852', iso: 'HK', nameKey: 'cc_hk' },
-    { code: '+853', iso: 'MO', nameKey: 'cc_mo' },
-    { code: '+86', iso: 'CN', nameKey: 'cc_cn' },
-    { code: '+1', iso: 'US', nameKey: 'cc_us' },
-    { code: '+44', iso: 'GB', nameKey: 'cc_gb' },
-    { code: '+61', iso: 'AU', nameKey: 'cc_au' },
-    { code: '+65', iso: 'SG', nameKey: 'cc_sg' },
-    { code: '+81', iso: 'JP', nameKey: 'cc_jp' },
-    { code: '+82', iso: 'KR', nameKey: 'cc_kr' },
-    { code: '+91', iso: 'IN', nameKey: 'cc_in' },
-    { code: '+7', iso: 'RU', nameKey: 'cc_ru' },
-    { code: '+998', iso: 'UZ', nameKey: 'cc_uz' },
-    { code: '+49', iso: 'DE', nameKey: 'cc_de' },
-    { code: '+33', iso: 'FR', nameKey: 'cc_fr' },
-    { code: '+34', iso: 'ES', nameKey: 'cc_es' },
-    { code: '+39', iso: 'IT', nameKey: 'cc_it' },
-    { code: '+55', iso: 'BR', nameKey: 'cc_br' },
-    { code: '+971', iso: 'AE', nameKey: 'cc_ae' },
-    { code: '+966', iso: 'SA', nameKey: 'cc_sa' },
-    { code: '+60', iso: 'MY', nameKey: 'cc_my' },
-    { code: '+66', iso: 'TH', nameKey: 'cc_th' },
-    { code: '+84', iso: 'VN', nameKey: 'cc_vn' },
-    { code: '+63', iso: 'PH', nameKey: 'cc_ph' },
-    { code: '+62', iso: 'ID', nameKey: 'cc_id' },
-    { code: '+886', iso: 'TW', nameKey: 'cc_tw' },
+    { code: '+852', iso: 'HK' },
+    { code: '+853', iso: 'MO' },
+    { code: '+86', iso: 'CN' },
+    { code: '+65', iso: 'SG' },
+    { code: '+1', iso: 'US' },
+    { code: '+44', iso: 'GB' },
+    { code: '+7', iso: 'RU' },
+    { code: '+998', iso: 'UZ' },
+    { code: '+81', iso: 'JP' },
+    { code: '+82', iso: 'KR' },
+    { code: '+91', iso: 'IN' },
 ]
 
 export default function MessengersCard({ wechat, whatsapp, onChange }) {
@@ -93,10 +79,13 @@ export default function MessengersCard({ wechat, whatsapp, onChange }) {
                         onChange={handleCodeChange}
                         style={{
                             border: 'none', outline: 'none',
-                            background: 'transparent', fontFamily: 'inherit',
-                            fontSize: 15, fontWeight: 600,
+                            background: 'rgba(0,122,255,0.08)',
+                            fontFamily: 'inherit',
+                            fontSize: 13, fontWeight: 700,
                             color: 'var(--app-primary)', cursor: 'pointer',
                             flexShrink: 0,
+                            borderRadius: 8,
+                            padding: '4px 6px',
                         }}
                     >
                         {DIAL_CODES.map(c => (
