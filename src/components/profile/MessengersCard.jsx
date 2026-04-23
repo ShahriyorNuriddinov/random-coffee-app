@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { createPortal } from 'react-dom'
 import { Card } from '@/components/ui/Card'
 
 const DIAL_CODES = [
@@ -18,23 +19,35 @@ const DIAL_CODES = [
 
 function DialPicker({ value, onChange }) {
     const [open, setOpen] = useState(false)
-    const ref = useRef(null)
+    const [pos, setPos] = useState({ top: 0, left: 0 })
+    const btnRef = useRef(null)
     const selected = DIAL_CODES.find(c => c.code === value) || DIAL_CODES[0]
 
     useEffect(() => {
         const handler = (e) => {
-            if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+            if (btnRef.current && !btnRef.current.contains(e.target) &&
+                !document.getElementById('dial-dropdown')?.contains(e.target)) {
+                setOpen(false)
+            }
         }
         document.addEventListener('mousedown', handler)
         return () => document.removeEventListener('mousedown', handler)
     }, [])
 
+    const handleOpen = () => {
+        if (btnRef.current) {
+            const r = btnRef.current.getBoundingClientRect()
+            setPos({ top: r.bottom + 6, left: r.left })
+        }
+        setOpen(o => !o)
+    }
+
     return (
-        <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-            {/* Trigger pill */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
             <button
+                ref={btnRef}
                 type="button"
-                onClick={() => setOpen(o => !o)}
+                onClick={handleOpen}
                 style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     background: 'rgba(0,122,255,0.08)',
@@ -50,23 +63,19 @@ function DialPicker({ value, onChange }) {
                 <span style={{ fontSize: 8, opacity: 0.6 }}>▼</span>
             </button>
 
-            {/* Dropdown — pastga, fixed pozitsiyada */}
-            {open && (
+            {open && createPortal(
                 <div
+                    id="dial-dropdown"
                     style={{
                         position: 'fixed',
-                        top: ref.current
-                            ? ref.current.getBoundingClientRect().bottom + 6
-                            : 0,
-                        left: ref.current
-                            ? ref.current.getBoundingClientRect().left
-                            : 0,
+                        top: pos.top,
+                        left: pos.left,
                         background: 'var(--app-card)',
                         border: '0.5px solid var(--app-border)',
                         borderRadius: 14,
-                        boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                        boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
                         overflow: 'hidden',
-                        zIndex: 9999,
+                        zIndex: 99999,
                         minWidth: 130,
                     }}
                 >
@@ -93,7 +102,8 @@ function DialPicker({ value, onChange }) {
                             </div>
                         )
                     })}
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )
