@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react'
-import { getProfile } from '@/lib/supabaseClient'
+import { supabase, getProfile } from '@/lib/supabaseClient'
 
 const AppContext = createContext(null)
 
@@ -62,36 +62,35 @@ export function AppProvider({ children }) {
     const [profileWelcomeSeen, setProfileWelcomeSeen] = useState(false)
     const [sessionLoading, setSessionLoading] = useState(true)
 
-    // ── On app start: restore session from Supabase ───────────────
+    // ── On app start: restore session from Supabase Auth ─────────
     useEffect(() => {
         const restore = async () => {
             try {
-                const savedUid = localStorage.getItem(SESSION_KEY)
-                if (!savedUid) { setSessionLoading(false); return }
-
-                const db = await getProfile(savedUid)
-                if (db && db.name) {
-                    setUser({ id: savedUid, phone: db.phone })
-                    setProfile(dbToProfile(db))
-                    setSubscription({
-                        status: db.subscription_status || 'trial',
-                        credits: db.coffee_credits ?? 2,
-                        start: db.subscription_start || null,
-                        end: db.subscription_end || null,
-                    })
-                    setNotifNewMatches(db.notif_new_matches ?? true)
-                    setNotifImportantNews(db.notif_important_news ?? true)
-                    setProfileWelcomeSeen(true)
-                    setScreen('profile')
-                } else if (db) {
-                    setUser({ id: savedUid, phone: db.phone })
-                    setScreen('personal')
-                } else {
-                    localStorage.removeItem(SESSION_KEY)
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
+                    const uid = session.user.id
+                    const phone = session.user.phone
+                    const db = await getProfile(uid)
+                    if (db && db.name) {
+                        setUser({ id: uid, phone })
+                        setProfile(dbToProfile(db))
+                        setSubscription({
+                            status: db.subscription_status || 'trial',
+                            credits: db.coffee_credits ?? 2,
+                            start: db.subscription_start || null,
+                            end: db.subscription_end || null,
+                        })
+                        setNotifNewMatches(db.notif_new_matches ?? true)
+                        setNotifImportantNews(db.notif_important_news ?? true)
+                        setProfileWelcomeSeen(true)
+                        setScreen('profile')
+                    } else {
+                        setUser({ id: uid, phone })
+                        setScreen('personal')
+                    }
                 }
             } catch (e) {
                 console.error('[Session restore]', e)
-                localStorage.removeItem(SESSION_KEY)
             } finally {
                 setSessionLoading(false)
             }
@@ -103,11 +102,10 @@ export function AppProvider({ children }) {
         setUser(userData)
         setPhone(phoneNum || '')
         setCountryCode(code || '+852')
-        localStorage.setItem(SESSION_KEY, userData.id)
     }
 
-    const logoutUser = () => {
-        localStorage.removeItem(SESSION_KEY)
+    const logoutUser = async () => {
+        await supabase.auth.signOut()
         setUser(null)
         setProfile(EMPTY_PROFILE)
         setSubscription({ status: 'trial', credits: 2, start: null, end: null })

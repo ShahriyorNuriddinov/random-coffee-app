@@ -5,7 +5,7 @@ import { useApp } from '@/store/useAppStore'
 import LangSwitcher from '@/components/LangSwitcher'
 import DarkToggle from '@/components/DarkToggle'
 import { Button } from '@/components/ui/button'
-import { verifyOtp, sendOtp, getProfile } from '@/lib/supabaseClient'
+import { verifyOtp, sendOtp, getProfile, saveProfile } from '@/lib/supabaseClient'
 
 export default function OtpScreen() {
     const { t } = useTranslation()
@@ -50,6 +50,8 @@ export default function OtpScreen() {
         setLoading(false)
         if (res?.success) {
             loginUser(res.user, phone, countryCode)
+            // Save phone to profiles table
+            await saveProfile(res.user.id, { phone: countryCode + phone })
             const existingProfile = await getProfile(res.user.id)
             if (existingProfile && existingProfile.name) {
                 setProfile(p => ({
