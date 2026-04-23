@@ -50,18 +50,26 @@ function DialPicker({ value, onChange }) {
                 <span style={{ fontSize: 8, opacity: 0.6 }}>▼</span>
             </button>
 
-            {/* Dropdown — pastga */}
+            {/* Dropdown — pastga, fixed pozitsiyada */}
             {open && (
-                <div style={{
-                    position: 'absolute', top: 'calc(100% + 6px)', left: 0,
-                    background: 'var(--app-card)',
-                    border: '0.5px solid var(--app-border)',
-                    borderRadius: 14,
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                    overflow: 'hidden',
-                    zIndex: 999,
-                    minWidth: 130,
-                }}>
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: ref.current
+                            ? ref.current.getBoundingClientRect().bottom + 6
+                            : 0,
+                        left: ref.current
+                            ? ref.current.getBoundingClientRect().left
+                            : 0,
+                        background: 'var(--app-card)',
+                        border: '0.5px solid var(--app-border)',
+                        borderRadius: 14,
+                        boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                        overflow: 'hidden',
+                        zIndex: 9999,
+                        minWidth: 130,
+                    }}
+                >
                     {DIAL_CODES.map((c, i) => {
                         const isSelected = c.code === value
                         return (
