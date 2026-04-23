@@ -4,7 +4,10 @@ export default function LangSwitcher() {
     const { i18n } = useTranslation()
     const current = i18n.language
 
-    const set = (lang) => i18n.changeLanguage(lang)
+    const set = (lang) => {
+        i18n.changeLanguage(lang)
+        localStorage.setItem('rc_lang', lang)
+    }
 
     return (
         <div className="lang-switcher">

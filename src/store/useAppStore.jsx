@@ -3,8 +3,9 @@ import { getProfile } from '@/lib/supabaseClient'
 
 const AppContext = createContext(null)
 
-// Only store user id — profile always fetched fresh from Supabase
 const SESSION_KEY = 'rc_uid'
+const LANG_KEY = 'rc_lang'
+const DARK_KEY = 'rc_dark'
 
 const EMPTY_PROFILE = {
     name: '', dob: '', gender: 'male',
@@ -40,7 +41,15 @@ function dbToProfile(db) {
 
 export function AppProvider({ children }) {
     const [screen, setScreen] = useState('onboarding')
-    const [darkMode, setDarkMode] = useState(false)
+
+    // ── Dark mode — restore from localStorage immediately ─────────
+    const [darkMode, setDarkMode] = useState(() => {
+        const saved = localStorage.getItem(DARK_KEY)
+        const isDark = saved === 'true'
+        if (isDark) document.documentElement.classList.add('dark')
+        return isDark
+    })
+
     const [phone, setPhone] = useState('')
     const [countryCode, setCountryCode] = useState('+852')
     const [user, setUser] = useState(null)
@@ -53,14 +62,13 @@ export function AppProvider({ children }) {
     const [profileWelcomeSeen, setProfileWelcomeSeen] = useState(false)
     const [sessionLoading, setSessionLoading] = useState(true)
 
-    // ── On app start: check saved uid, load profile from Supabase ─
+    // ── On app start: restore session from Supabase ───────────────
     useEffect(() => {
         const restore = async () => {
             try {
                 const savedUid = localStorage.getItem(SESSION_KEY)
                 if (!savedUid) { setSessionLoading(false); return }
 
-                // Fetch fresh profile from Supabase
                 const db = await getProfile(savedUid)
                 if (db && db.name) {
                     setUser({ id: savedUid, phone: db.phone })
@@ -76,11 +84,9 @@ export function AppProvider({ children }) {
                     setProfileWelcomeSeen(true)
                     setScreen('profile')
                 } else if (db) {
-                    // User exists but profile not complete yet
                     setUser({ id: savedUid, phone: db.phone })
                     setScreen('personal')
                 } else {
-                    // uid saved but no DB record — clear
                     localStorage.removeItem(SESSION_KEY)
                 }
             } catch (e) {
@@ -93,7 +99,6 @@ export function AppProvider({ children }) {
         restore()
     }, [])
 
-    // Save only uid to localStorage on login
     const loginUser = (userData, phoneNum, code) => {
         setUser(userData)
         setPhone(phoneNum || '')
@@ -101,7 +106,6 @@ export function AppProvider({ children }) {
         localStorage.setItem(SESSION_KEY, userData.id)
     }
 
-    // Clear everything on logout
     const logoutUser = () => {
         localStorage.removeItem(SESSION_KEY)
         setUser(null)
@@ -118,6 +122,7 @@ export function AppProvider({ children }) {
             const next = !d
             if (next) document.documentElement.classList.add('dark')
             else document.documentElement.classList.remove('dark')
+            localStorage.setItem(DARK_KEY, String(next))
             return next
         })
     }
