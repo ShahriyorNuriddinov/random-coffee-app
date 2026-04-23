@@ -4,6 +4,7 @@ const COUNTRIES = [
     { code: '+852', flag: '🇭🇰', name: 'HK' },
     { code: '+853', flag: '🇲🇴', name: 'MO' },
     { code: '+86', flag: '🇨🇳', name: 'CN' },
+    { code: '+998', flag: '🇺🇿', name: 'UZ' },
 ]
 
 export function CountrySelect({ value, onChange }) {
