@@ -10,7 +10,7 @@ import { verifyOtp, sendOtp, getProfile } from '@/lib/supabaseClient'
 export default function OtpScreen() {
     const { t } = useTranslation()
     const { setScreen, phone, countryCode, setUser, setProfile, loginUser } = useApp()
-    const [digits, setDigits] = useState(['', '', '', ''])
+    const [digits, setDigits] = useState(['', '', '', '', '', ''])
     const [timer, setTimer] = useState(60)
     const [loading, setLoading] = useState(false)
     const inputs = useRef([])
@@ -33,7 +33,7 @@ export default function OtpScreen() {
     const handleInput = (i, val) => {
         if (!/^[0-9]?$/.test(val)) return
         const next = [...digits]; next[i] = val; setDigits(next)
-        if (val && i < 3) inputs.current[i + 1]?.focus()
+        if (val && i < 5) inputs.current[i + 1]?.focus()
         if (next.every(d => d !== '')) handleVerify(next.join(''))
     }
 
@@ -78,7 +78,7 @@ export default function OtpScreen() {
             }
         } else {
             toast.error(t('err_otp'))
-            setDigits(['', '', '', ''])
+            setDigits(['', '', '', '', '', ''])
             inputs.current[0]?.focus()
         }
     }
@@ -101,13 +101,14 @@ export default function OtpScreen() {
                         {t('otp_hint')}
                     </p>
 
-                    {/* 4 digit boxes */}
-                    <div className="flex justify-center gap-3 mb-5">
+                    {/* 6 digit boxes */}
+                    <div className="flex justify-center gap-2 mb-5">
                         {digits.map((d, i) => (
                             <input
                                 key={i}
                                 ref={el => inputs.current[i] = el}
                                 className="sms-input"
+                                style={{ width: 44, height: 54, fontSize: 24 }}
                                 type="tel"
                                 inputMode="numeric"
                                 maxLength={1}
