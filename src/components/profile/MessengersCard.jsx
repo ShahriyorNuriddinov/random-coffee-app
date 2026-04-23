@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/ui/Card'
 
@@ -16,6 +16,81 @@ const DIAL_CODES = [
     { code: '+91', iso: 'IN' },
 ]
 
+function DialPicker({ value, onChange }) {
+    const [open, setOpen] = useState(false)
+    const ref = useRef(null)
+    const selected = DIAL_CODES.find(c => c.code === value) || DIAL_CODES[0]
+
+    useEffect(() => {
+        const handler = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+        }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [])
+
+    return (
+        <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+            {/* Trigger pill */}
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    background: 'rgba(0,122,255,0.08)',
+                    border: '0.5px solid rgba(0,122,255,0.2)',
+                    borderRadius: 10, padding: '5px 10px',
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 14, fontWeight: 700,
+                    color: 'var(--app-primary)',
+                }}
+            >
+                <span>{selected.iso}</span>
+                <span style={{ opacity: 0.7 }}>{selected.code}</span>
+                <span style={{ fontSize: 8, opacity: 0.6 }}>▼</span>
+            </button>
+
+            {/* Dropdown — pastga */}
+            {open && (
+                <div style={{
+                    position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+                    background: 'var(--app-card)',
+                    border: '0.5px solid var(--app-border)',
+                    borderRadius: 14,
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                    overflow: 'hidden',
+                    zIndex: 999,
+                    minWidth: 130,
+                }}>
+                    {DIAL_CODES.map((c, i) => {
+                        const isSelected = c.code === value
+                        return (
+                            <div
+                                key={c.code}
+                                onClick={() => { onChange(c.code); setOpen(false) }}
+                                style={{
+                                    display: 'flex', alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '11px 14px',
+                                    cursor: 'pointer',
+                                    fontSize: 15, fontWeight: 600,
+                                    color: isSelected ? 'var(--app-primary)' : 'var(--app-text)',
+                                    background: isSelected ? 'rgba(0,122,255,0.06)' : 'transparent',
+                                    borderBottom: i < DIAL_CODES.length - 1
+                                        ? '0.5px solid var(--app-border)' : 'none',
+                                }}
+                            >
+                                <span>{c.iso} <span style={{ color: 'var(--app-hint)', fontWeight: 500 }}>{c.code}</span></span>
+                                {isSelected && <span style={{ color: 'var(--app-primary)', fontSize: 13 }}>✓</span>}
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    )
+}
+
 export default function MessengersCard({ wechat, whatsapp, onChange }) {
     const { t } = useTranslation()
 
@@ -30,8 +105,7 @@ export default function MessengersCard({ wechat, whatsapp, onChange }) {
     const [waCode, setWaCode] = useState(parsed.code)
     const [waNumber, setWaNumber] = useState(parsed.number)
 
-    const handleCodeChange = (e) => {
-        const code = e.target.value
+    const handleCodeChange = (code) => {
         setWaCode(code)
         onChange('whatsapp', waNumber ? `${code} ${waNumber}` : '')
     }
@@ -46,7 +120,7 @@ export default function MessengersCard({ wechat, whatsapp, onChange }) {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="section-title">{t('messengers_title')}</div>
             <Card>
-                {/* WeChat qatori */}
+                {/* WeChat */}
                 <div style={{
                     display: 'flex', alignItems: 'center', padding: '14px 16px',
                     borderBottom: '0.5px solid var(--app-border)', gap: 12,
@@ -67,33 +141,14 @@ export default function MessengersCard({ wechat, whatsapp, onChange }) {
                     />
                 </div>
 
-                {/* WhatsApp qatori: label | select | input */}
+                {/* WhatsApp */}
                 <div style={{
-                    display: 'flex', alignItems: 'center', padding: '14px 16px', gap: 8,
+                    display: 'flex', alignItems: 'center', padding: '14px 16px', gap: 10,
                 }}>
                     <span style={{ fontSize: 16, fontWeight: 600, width: 90, flexShrink: 0, color: 'var(--app-text)' }}>
                         {t('whatsapp_label')}
                     </span>
-                    <select
-                        value={waCode}
-                        onChange={handleCodeChange}
-                        style={{
-                            border: 'none', outline: 'none',
-                            background: 'rgba(0,122,255,0.08)',
-                            fontFamily: 'inherit',
-                            fontSize: 13, fontWeight: 700,
-                            color: 'var(--app-primary)', cursor: 'pointer',
-                            flexShrink: 0,
-                            borderRadius: 8,
-                            padding: '4px 6px',
-                        }}
-                    >
-                        {DIAL_CODES.map(c => (
-                            <option key={c.code} value={c.code}>
-                                {c.iso} {c.code}
-                            </option>
-                        ))}
-                    </select>
+                    <DialPicker value={waCode} onChange={handleCodeChange} />
                     <input
                         type="tel"
                         value={waNumber}
