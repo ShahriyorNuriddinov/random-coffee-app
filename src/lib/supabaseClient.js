@@ -6,19 +6,19 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
 // ─── SMS AUTH ─────────────────────────────────────────────────────────────────
-// Set MOCK_SMS = false once Alibaba Cloud SMS Sender ID is approved
-const MOCK_SMS = true
+// MOCK_SMS = false → Alibaba Cloud SMS via Supabase Edge Function
+const MOCK_SMS = false
 
 export const sendOtp = async (phone) => {
     if (MOCK_SMS) {
         console.log(`[MOCK SMS] OTP sent to ${phone} → use code 1234`)
         return { success: true }
     }
-    // Alibaba Cloud SMS via Supabase Edge Function (deploy separately)
-    // const { data, error } = await supabase.functions.invoke('send-sms-otp', { body: { phone } })
-    const { error } = await supabase.auth.signInWithOtp({ phone })
+    const { data, error } = await supabase.functions.invoke('send-sms-otp', {
+        body: { phone },
+    })
     if (error) return { success: false, error: error.message }
-    return { success: true }
+    return data
 }
 
 export const verifyOtp = async (phone, token) => {
@@ -26,9 +26,11 @@ export const verifyOtp = async (phone, token) => {
         if (token.length === 4) return { success: true, user: { id: `mock_${phone}`, phone } }
         return { success: false, error: 'Invalid code' }
     }
-    const { data, error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' })
+    const { data, error } = await supabase.functions.invoke('verify-sms-otp', {
+        body: { phone, code: token },
+    })
     if (error) return { success: false, error: error.message }
-    return { success: true, user: data.user }
+    return data
 }
 
 export const signOut = async () => {

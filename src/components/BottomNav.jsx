@@ -1,7 +1,6 @@
 import { useApp } from '@/store/useAppStore'
 import { useTranslation } from 'react-i18next'
 
-// Telegram-style clean SVG icons
 const icons = {
     moments: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
