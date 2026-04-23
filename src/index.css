@@ -1,0 +1,400 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Shadcn tokens (light) ── */
+    --background: 0 0% 96%;
+    --foreground: 240 6% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 10%;
+    --primary: 211 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 55%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 4 86% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 211 100% 50%;
+    --radius: 0.875rem;
+
+    /* ── App custom tokens (light) ── */
+    --app-bg: #f4f7f9;
+    --app-card: #ffffff;
+    --app-text: #1c1c1e;
+    --app-hint: #8e8e93;
+    --app-border: rgba(0, 0, 0, 0.10);
+    --app-primary: #007aff;
+    --app-gradient: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+  }
+
+  .dark {
+    /* ── Shadcn tokens (dark) ── */
+    --background: 240 6% 10%;
+    --foreground: 0 0% 98%;
+    --card: 240 4% 16%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 4% 16%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 211 100% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 20%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 20%;
+    --muted-foreground: 220 9% 55%;
+    --accent: 240 4% 20%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 4 86% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: rgba(255, 255, 255, 0.10);
+    --input: rgba(255, 255, 255, 0.10);
+    --ring: 211 100% 56%;
+
+    /* ── App custom tokens (dark) ── */
+    --app-bg: #1c1c1e;
+    --app-card: #2c2c2e;
+    --app-text: #ffffff;
+    --app-hint: #8e8e93;
+    --app-border: rgba(255, 255, 255, 0.10);
+    --app-primary: #0a84ff;
+    --app-gradient: linear-gradient(135deg, #0a84ff 0%, #6e6cf0 100%);
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', sans-serif;
+  }
+}
+
+/* ── Layout ── */
+.app-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  transition: background-color 0.3s, color 0.3s;
+  overflow: hidden;
+}
+
+.screen-content {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ── Gradient text ── */
+.gradient-text {
+  background: var(--app-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Buttons ── */
+.btn-gradient {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--app-gradient);
+  color: #fff;
+  border: none;
+  padding: 16px 0;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 122, 255, 0.25);
+  font-family: inherit;
+  transition: transform 0.15s, box-shadow 0.15s;
+  appearance: none;
+  display: block;
+}
+
+.btn-gradient:active {
+  transform: scale(0.97);
+}
+
+.btn-gradient:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.btn-ghost-primary {
+  width: 100%;
+  background: transparent;
+  color: var(--app-primary);
+  border: none;
+  padding: 10px 0;
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s;
+}
+
+.btn-ghost-primary:active {
+  opacity: 0.6;
+}
+
+/* ── Input card ── */
+.input-card {
+  width: 100%;
+  background: var(--app-card);
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 0.5px solid var(--app-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
+}
+
+.input-card-label {
+  display: block;
+  color: var(--app-primary);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.input-card input,
+.input-card select {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--app-text);
+  background: transparent;
+  font-family: inherit;
+  color-scheme: light dark;
+}
+
+.input-card input::placeholder {
+  color: #c7c7cc;
+}
+
+/* ── SMS OTP inputs ── */
+.sms-input {
+  width: 52px;
+  height: 60px;
+  background-color: var(--app-card);
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  outline: none;
+  color: var(--app-text);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.sms-input:focus {
+  border-color: var(--app-primary);
+  border-width: 1.5px;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+
+/* ── Gender toggle ── */
+.gender-option {
+  flex: 1;
+  background: var(--app-card);
+  border: 0.5px solid var(--app-border);
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--app-text);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.gender-option.active {
+  background-color: var(--app-primary);
+  color: #fff;
+  border-color: var(--app-primary);
+  box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);
+}
+
+/* ── Language switcher ── */
+.lang-switcher {
+  display: flex;
+  background: rgba(120, 120, 128, 0.12);
+  border-radius: 10px;
+  padding: 2px;
+  width: 100px;
+}
+
+.lang-btn {
+  flex: 1;
+  text-align: center;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--app-text);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.lang-btn.active {
+  background-color: var(--app-card);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Animations ── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Profile form ── */
+.profile-card {
+  background: var(--app-card);
+  border-radius: 14px;
+  border: 0.5px solid var(--app-border);
+  overflow: hidden;
+  width: 100%;
+}
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  position: relative;
+  min-height: 24px;
+}
+
+.profile-row:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  left: 16px;
+  height: 0.5px;
+  background-color: var(--app-border);
+}
+
+.profile-row input,
+.profile-row textarea,
+.profile-row select {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--app-text);
+  background: transparent;
+  resize: none;
+}
+
+.profile-row input::placeholder,
+.profile-row textarea::placeholder {
+  color: #c7c7cc;
+}
+
+/* ── iOS Switch ── */
+.ios-switch {
+  position: relative;
+  display: inline-block;
+  width: 51px;
+  height: 31px;
+  flex-shrink: 0;
+}
+
+.ios-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ios-track {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #e5e5ea;
+  transition: .3s;
+  border-radius: 31px;
+}
+
+.ios-track:before {
+  position: absolute;
+  content: "";
+  height: 27px;
+  width: 27px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ios-switch input:checked+.ios-track {
+  background-color: #34c759;
+}
+
+.ios-switch input:checked+.ios-track:before {
+  transform: translateX(20px);
+}
+
+/* ── Section labels ── */
+.section-title {
+  font-size: 13px;
+  color: var(--app-hint);
+  text-transform: uppercase;
+  margin: 0 0 8px 4px;
+  font-weight: 500;
+}
+
+.tip-text {
+  font-size: 12px;
+  color: var(--app-primary);
+  margin: 6px 0 0 4px;
+  line-height: 1.4;
+  font-weight: 500;
+}
