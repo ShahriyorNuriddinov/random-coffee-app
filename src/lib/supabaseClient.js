@@ -23,14 +23,14 @@ export const sendOtp = async (phone) => {
 
 export const verifyOtp = async (phone, token) => {
     if (MOCK_SMS) {
-        if (token.length === 4) return { success: true, user: { id: `mock_${phone}`, phone } }
+        if (token.length === 6) return { success: true, user: { id: `mock_${phone}`, phone } }
         return { success: false, error: 'Invalid code' }
     }
     const { data, error } = await supabase.functions.invoke('verify-sms-otp', {
         body: { phone, code: token },
     })
     if (error) return { success: false, error: error.message }
-    return data
+    return data ?? { success: false, error: 'No response' }
 }
 
 export const signOut = async () => {

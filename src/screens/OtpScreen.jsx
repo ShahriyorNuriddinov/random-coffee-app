@@ -48,7 +48,7 @@ export default function OtpScreen() {
         setLoading(true)
         const res = await verifyOtp(countryCode + phone, code)
         setLoading(false)
-        if (res.success) {
+        if (res?.success) {
             loginUser(res.user, phone, countryCode)
             const existingProfile = await getProfile(res.user.id)
             if (existingProfile && existingProfile.name) {
