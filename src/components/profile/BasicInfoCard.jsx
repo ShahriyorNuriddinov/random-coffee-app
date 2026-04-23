@@ -16,7 +16,7 @@ export default function BasicInfoCard({ profile, region, onRegionChange }) {
 
     return (
         <div>
-            <Card>
+            <Card style={{ overflow: 'visible' }}>
                 <ReadonlyRow label={t('name_field')} value={profile.name} />
                 <ReadonlyRow label={t('dob_field')} value={profile.dob ? new Date(profile.dob).toLocaleDateString() : ''} />
                 <ReadonlyRow label={t('gender_field')} value={profile.gender === 'male' ? t('male') : t('female')} />
