@@ -39,6 +39,7 @@ export default function ProfileEditScreen() {
     const [datingGender, setDatingGender] = useState(profile.datingGender)
     const [languages, setLanguages] = useState(profile.languages)
     const [region, setRegion] = useState(profile.region)
+    const [city, setCity] = useState(profile.city || '')
 
     const handleCloseWelcome = () => {
         setShowWelcome(false)
@@ -92,6 +93,7 @@ export default function ProfileEditScreen() {
             dating_gender: datingGender,
             languages,
             region,
+            city,
             avatar_url: avatarUrl,
             phone: user?.phone,
             name: profile.name,
@@ -106,7 +108,7 @@ export default function ProfileEditScreen() {
             about, gives, wants, balance,
             wechat, whatsapp,
             showAge, datingMode, datingGender,
-            languages, region, avatar,
+            languages, region, city, avatar,
         }))
 
         const result = await saveProfile(user?.id || 'mock', dbData)
@@ -143,7 +145,7 @@ export default function ProfileEditScreen() {
 
                     <AvatarUpload avatar={avatar} onFile={handleFile} />
 
-                    <BasicInfoCard profile={profile} region={region} />
+                    <BasicInfoCard profile={profile} region={region} city={city} onCityChange={setCity} />
 
                     <TextSection
                         title={t('about_title')}

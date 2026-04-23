@@ -46,7 +46,7 @@ export default function PhoneScreen() {
                         {t('auth_hint_email')}
                     </p>
 
-                    <InputCard label={t('email_label')}>
+                    <InputCard>
                         <Input
                             type="email"
                             value={email}

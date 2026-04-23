@@ -55,19 +55,27 @@ export default function MessengersCard({ wechat, whatsapp, onChange }) {
                 </div>
 
                 {/* WhatsApp row with country code picker */}
-                <div style={{
-                    display: 'flex', alignItems: 'center', padding: '14px 16px', gap: 12,
-                }}>
-                    <span style={{ fontSize: 16, fontWeight: 500, width: 85, flexShrink: 0, color: 'var(--app-text)' }}>
-                        {t('whatsapp_label')}
-                    </span>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', padding: '14px 16px',
+                        borderBottom: '0.5px solid var(--app-border)', gap: 12,
+                    }}>
+                        <span style={{ fontSize: 16, fontWeight: 500, width: 85, flexShrink: 0, color: 'var(--app-text)' }}>
+                            {t('whatsapp_label')}
+                        </span>
                         <CountrySelect value={waCode} onChange={handleCodeChange} />
+                    </div>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', padding: '14px 16px', gap: 12,
+                    }}>
+                        <span style={{ fontSize: 15, color: 'var(--app-hint)', width: 85, flexShrink: 0 }}>
+                            {waCode}
+                        </span>
                         <input
                             type="tel"
                             value={waNumber}
                             onChange={handleNumberChange}
-                            placeholder="XXXX XXXX"
+                            placeholder="9123 4567"
                             inputMode="tel"
                             style={{
                                 flex: 1, border: 'none', outline: 'none',
