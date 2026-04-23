@@ -5,23 +5,23 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
-// ─── SMS AUTH (Supabase Auth + Twilio) ───────────────────────────────────────
-export const sendOtp = async (phone) => {
-    const { error } = await supabase.auth.signInWithOtp({ phone })
+// ─── EMAIL AUTH (Supabase Auth OTP) ──────────────────────────────────────────
+export const sendOtp = async (email) => {
+    const { error } = await supabase.auth.signInWithOtp({ email })
     if (error) return { success: false, error: error.message }
     return { success: true }
 }
 
-export const verifyOtp = async (phone, token) => {
+export const verifyOtp = async (email, token) => {
     const { data, error } = await supabase.auth.verifyOtp({
-        phone,
+        email,
         token,
-        type: 'sms',
+        type: 'email',
     })
     if (error) return { success: false, error: error.message }
     return {
         success: true,
-        user: { id: data.user?.id, phone: data.user?.phone },
+        user: { id: data.user?.id, email: data.user?.email },
     }
 }
 

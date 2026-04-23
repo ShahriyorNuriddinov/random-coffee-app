@@ -6,26 +6,27 @@ import LangSwitcher from '@/components/LangSwitcher'
 import DarkToggle from '@/components/DarkToggle'
 import { Button } from '@/components/ui/button'
 import { InputCard, Input } from '@/components/ui/input'
-import { CountrySelect } from '@/components/ui/country-select'
 import { sendOtp } from '@/lib/supabaseClient'
 
 export default function PhoneScreen() {
     const { t } = useTranslation()
-    const { setScreen, phone, setPhone, countryCode, setCountryCode } = useApp()
+    const { setScreen, setPhone } = useApp()
+    const [email, setEmail] = useState('')
     const [loading, setLoading] = useState(false)
 
     const handleNext = async () => {
-        if (phone.replace(/\D/g, '').length < 7) {
-            toast.error(t('err_phone'))
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            toast.error(t('err_email'))
             return
         }
         setLoading(true)
-        const res = await sendOtp(countryCode + phone)
+        const res = await sendOtp(email)
         setLoading(false)
         if (res?.success) {
+            setPhone(email) // store email in phone field for OTP screen
             setScreen('otp')
         } else {
-            toast.error(res?.error || t('err_phone'))
+            toast.error(res?.error || t('err_email'))
         }
     }
 
@@ -42,23 +43,18 @@ export default function PhoneScreen() {
                         {t('auth_title')}
                     </h1>
                     <p style={{ color: 'var(--app-hint)', fontSize: 15, marginBottom: 32, lineHeight: 1.5, fontWeight: 500 }}>
-                        {t('auth_hint')}
+                        {t('auth_hint_email')}
                     </p>
 
-                    <InputCard label={t('phone_label')}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <CountrySelect value={countryCode} onChange={setCountryCode} />
-                            <Input
-                                type="tel"
-                                value={phone}
-                                onChange={e => setPhone(e.target.value)}
-                                placeholder="0000-0000"
-                                inputMode="numeric"
-                                maxLength={12}
-                                style={{ paddingLeft: 8 }}
-                                onKeyDown={e => e.key === 'Enter' && handleNext()}
-                            />
-                        </div>
+                    <InputCard label={t('email_label')}>
+                        <Input
+                            type="email"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            placeholder={t('email_placeholder')}
+                            inputMode="email"
+                            onKeyDown={e => e.key === 'Enter' && handleNext()}
+                        />
                     </InputCard>
 
                     <Button onClick={handleNext} disabled={loading}>
@@ -76,4 +72,3 @@ export default function PhoneScreen() {
         </div>
     )
 }
-

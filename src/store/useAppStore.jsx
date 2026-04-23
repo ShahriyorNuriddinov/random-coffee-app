@@ -3,8 +3,6 @@ import { supabase, getProfile } from '@/lib/supabaseClient'
 
 const AppContext = createContext(null)
 
-const SESSION_KEY = 'rc_uid'
-const LANG_KEY = 'rc_lang'
 const DARK_KEY = 'rc_dark'
 
 const EMPTY_PROFILE = {
@@ -69,10 +67,10 @@ export function AppProvider({ children }) {
                 const { data: { session } } = await supabase.auth.getSession()
                 if (session?.user) {
                     const uid = session.user.id
-                    const phone = session.user.phone
+                    const email = session.user.email
                     const db = await getProfile(uid)
                     if (db && db.name) {
-                        setUser({ id: uid, phone })
+                        setUser({ id: uid, email })
                         setProfile(dbToProfile(db))
                         setSubscription({
                             status: db.subscription_status || 'trial',
@@ -85,7 +83,7 @@ export function AppProvider({ children }) {
                         setProfileWelcomeSeen(true)
                         setScreen('profile')
                     } else {
-                        setUser({ id: uid, phone })
+                        setUser({ id: uid, email })
                         setScreen('personal')
                     }
                 }

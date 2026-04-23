@@ -9,7 +9,7 @@ import { verifyOtp, sendOtp, getProfile, saveProfile } from '@/lib/supabaseClien
 
 export default function OtpScreen() {
     const { t } = useTranslation()
-    const { setScreen, phone, countryCode, setUser, setProfile, loginUser } = useApp()
+    const { setScreen, phone, setUser, setProfile, loginUser } = useApp()
     const [digits, setDigits] = useState(['', '', '', '', '', ''])
     const [timer, setTimer] = useState(60)
     const [loading, setLoading] = useState(false)
@@ -46,12 +46,11 @@ export default function OtpScreen() {
 
     const handleVerify = async (code) => {
         setLoading(true)
-        const res = await verifyOtp(countryCode + phone, code)
+        const res = await verifyOtp(phone, code) // phone field stores email
         setLoading(false)
         if (res?.success) {
-            loginUser(res.user, phone, countryCode)
-            // Save phone to profiles table
-            await saveProfile(res.user.id, { phone: countryCode + phone })
+            loginUser(res.user, phone, '')
+            await saveProfile(res.user.id, { email: phone })
             const existingProfile = await getProfile(res.user.id)
             if (existingProfile && existingProfile.name) {
                 setProfile(p => ({
@@ -127,7 +126,7 @@ export default function OtpScreen() {
                             <>{t('resend_in')} <span>{fmt(timer)}</span></>
                         ) : (
                             <span
-                                onClick={async () => { await sendOtp(countryCode + phone); toast.success(t('toast_otp_sent')); startTimer() }}
+                                onClick={async () => { await sendOtp(phone); toast.success(t('toast_otp_sent')); startTimer() }}
                                 className="text-[var(--app-primary)] font-semibold cursor-pointer"
                             >
                                 {t('resend')}
