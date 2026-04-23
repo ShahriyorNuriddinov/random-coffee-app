@@ -1,120 +1,46 @@
 import { useApp } from '@/store/useAppStore'
 import { useTranslation } from 'react-i18next'
 
-// CSS-based icons matching the HTML version exactly
-function IconMoments() {
-    return (
-        <div style={{ width: 24, height: 24, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <div style={{
-                width: 16, height: 11,
-                border: '2px solid currentColor',
-                borderRadius: 3,
-                position: 'absolute', top: 6, left: 4,
-            }} />
-        </div>
-    )
-}
-
-function IconPeople() {
-    return (
-        <div style={{ width: 24, height: 24, position: 'relative' }}>
-            {/* First user head */}
-            <div style={{
-                width: 6, height: 6,
-                border: '2px solid currentColor', borderRadius: '50%',
-                position: 'absolute', top: 2, left: 3,
-            }} />
-            {/* First user body */}
-            <div style={{
-                width: 10, height: 5,
-                border: '2px solid currentColor',
-                borderRadius: '4px 4px 0 0', borderBottom: 0,
-                position: 'absolute', bottom: 3, left: 1,
-            }} />
-            {/* Second user head */}
-            <div style={{
-                width: 5, height: 5,
-                border: '2px solid currentColor', borderRadius: '50%',
-                position: 'absolute', top: 4, right: 3,
-            }} />
-            {/* Second user body */}
-            <div style={{
-                width: 8, height: 4,
-                border: '2px solid currentColor',
-                borderRadius: '4px 4px 0 0', borderBottom: 0,
-                position: 'absolute', bottom: 5, right: 1,
-            }} />
-        </div>
-    )
-}
-
-function IconMeet() {
-    return (
-        <div style={{ width: 24, height: 24, position: 'relative' }}>
-            {/* Cup body */}
-            <div style={{
-                width: 14, height: 10,
-                border: '2px solid currentColor',
-                borderRadius: '0 0 6px 6px',
-                position: 'absolute', bottom: 4, left: 3,
-            }} />
-            {/* Cup handle */}
-            <div style={{
-                width: 4, height: 6,
-                border: '2px solid currentColor',
-                borderRadius: '0 3px 3px 0', borderLeft: 0,
-                position: 'absolute', bottom: 6, right: 2,
-            }} />
-            {/* Steam */}
-            <div style={{
-                fontSize: 10, color: 'currentColor',
-                position: 'absolute', top: 2, left: 8,
-                lineHeight: 1,
-            }}>~</div>
-        </div>
-    )
-}
-
-function IconFaq() {
-    return (
-        <div style={{ width: 24, height: 24, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'currentColor', lineHeight: 1 }}>?</span>
-        </div>
-    )
-}
-
-function IconProfile() {
-    return (
-        <div style={{ width: 24, height: 24, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {/* Circle outline */}
-            <div style={{
-                width: 18, height: 18,
-                border: '2px solid currentColor', borderRadius: '50%',
-                position: 'absolute',
-            }} />
-            {/* Head dot */}
-            <div style={{
-                width: 6, height: 6,
-                background: 'currentColor', borderRadius: '50%',
-                position: 'absolute', top: 5, left: 9,
-            }} />
-            {/* Shoulders */}
-            <div style={{
-                width: 10, height: 4,
-                background: 'currentColor',
-                borderRadius: '4px 4px 0 0',
-                position: 'absolute', bottom: 3, left: 7,
-            }} />
-        </div>
-    )
-}
-
-const ICON_MAP = {
-    moments: <IconMoments />,
-    people: <IconPeople />,
-    meetings: <IconMeet />,
-    faq: <IconFaq />,
-    profile: <IconProfile />,
+// Telegram-style clean SVG icons
+const icons = {
+    moments: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+    ),
+    people: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="7" r="3" />
+            <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+            <circle cx="17" cy="8" r="2.5" />
+            <path d="M21 20c0-2.8-1.8-5.1-4-5.8" />
+        </svg>
+    ),
+    meetings: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+            <line x1="6" y1="2" x2="6" y2="4" />
+            <line x1="10" y1="2" x2="10" y2="4" />
+            <line x1="14" y1="2" x2="14" y2="4" />
+        </svg>
+    ),
+    faq: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 2.5-2.4 4" />
+            <circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none" />
+        </svg>
+    ),
+    profile: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+        </svg>
+    ),
 }
 
 const tabs = [
@@ -153,14 +79,19 @@ export default function BottomNav({ active }) {
                             flex: 1,
                             background: 'none', border: 'none', cursor: 'pointer',
                             color: isActive ? 'var(--app-primary)' : '#a2a2a7',
-                            fontSize: 10, fontWeight: 600,
+                            fontSize: 10, fontWeight: isActive ? 700 : 500,
                             fontFamily: 'inherit',
                             transition: 'color 0.15s',
                             padding: '2px 0',
-                            textDecoration: 'none',
                         }}
                     >
-                        {ICON_MAP[tab.key]}
+                        <div style={{
+                            width: 24, height: 24,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            strokeWidth: isActive ? 2.2 : 1.8,
+                        }}>
+                            {icons[tab.key]}
+                        </div>
                         <span>{t(tab.labelKey)}</span>
                     </button>
                 )
