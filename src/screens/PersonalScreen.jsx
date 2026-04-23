@@ -7,22 +7,37 @@ import DarkToggle from '@/components/DarkToggle'
 import { Button } from '@/components/ui/button'
 import { InputCard, Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
+import { saveProfile } from '@/lib/supabaseClient'
 
 export default function PersonalScreen() {
     const { t, i18n } = useTranslation()
-    const { setScreen, profile, setProfile } = useApp()
+    const { setScreen, profile, setProfile, user } = useApp()
 
     const [name, setName] = useState(profile.name)
     const [dob, setDob] = useState(profile.dob ? new Date(profile.dob) : null)
     const [gender, setGender] = useState(profile.gender)
+    const [loading, setLoading] = useState(false)
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (name.trim().length < 2) { toast.error(t('err_name')); return }
         if (!dob) { toast.error(t('err_dob')); return }
         const age = (new Date() - dob) / (1000 * 60 * 60 * 24 * 365.25)
         if (age < 16) { toast.error(t('err_age')); return }
-        setProfile(p => ({ ...p, name: name.trim(), dob: dob.toISOString(), gender }))
-        setScreen('settings')
+
+        setLoading(true)
+        const updatedProfile = { ...profile, name: name.trim(), dob: dob.toISOString(), gender }
+        setProfile(updatedProfile)
+
+        await saveProfile(user?.id, {
+            name: name.trim(),
+            dob: dob.toISOString(),
+            gender,
+            email: user?.email || '',
+        })
+
+        setLoading(false)
+        toast.success(t('toast_welcome'))
+        setScreen('profile-edit')
     }
 
     return (
@@ -75,7 +90,7 @@ export default function PersonalScreen() {
                         {t('dob_gift')}
                     </p>
 
-                    <Button onClick={handleNext}>{t('next')}</Button>
+                    <Button onClick={handleNext} disabled={loading}>{loading ? '...' : t('next')}</Button>
                 </div>
             </div>
         </div>

@@ -69,7 +69,7 @@ export default function OtpScreen() {
                     datingGender: existingProfile.dating_gender || 'women',
                     languages: existingProfile.languages || ['EN'],
                     region: existingProfile.region || 'Hong Kong',
-                    email: existingProfile.email || '',
+                    email: existingProfile.email || phone,
                     avatar: existingProfile.avatar_url || null,
                     photos: existingProfile.photos || [null, null, null, null],
                 }))
