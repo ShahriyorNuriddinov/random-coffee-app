@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import { Card, CardRow } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
+import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import { signOut, uploadPhoto, savePhotos, updateNotifications, getReferralCode } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
@@ -86,29 +87,9 @@ export default function ProfileScreen() {
         logoutUser()
     }
 
-    // Demo switcher (for testing — remove in production)
-    const demoSwitcher = (
-        <div style={{ display: 'flex', background: 'rgba(120,120,128,0.12)', borderRadius: 8, padding: 2, gap: 2 }}>
-            {['trial', 'empty', 'active'].map(s => (
-                <div
-                    key={s}
-                    onClick={() => setSubscription(sub => ({ ...sub, status: s, credits: s === 'active' ? 4 : 0 }))}
-                    style={{
-                        padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700,
-                        cursor: 'pointer', color: 'var(--app-text)',
-                        background: subscription.status === s ? 'var(--app-card)' : 'transparent',
-                        boxShadow: subscription.status === s ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
-                    }}
-                >
-                    {s}
-                </div>
-            ))}
-        </div>
-    )
-
     return (
         <div className="app-screen">
-            <ScreenHeader title={t('nav_profile')} right={demoSwitcher} />
+            <ScreenHeader title={t('nav_profile')} />
 
             <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
                 <div className="screen-content" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
@@ -218,7 +199,7 @@ export default function ProfileScreen() {
                     onClose={() => setModal(null)}
                 />
             )}
-            {modal === 'buy' && <BuyModal onClose={() => setModal(null)} />}
+            {modal === 'buy' && <BuyCreditsModal onClose={() => setModal(null)} />}
             {modal === 'gift' && <GiftModal onClose={() => setModal(null)} />}
 
             <BottomNav active="profile" />

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 
 import { useApp } from '@/store/useAppStore'
 import { saveProfile, uploadAvatar } from '@/lib/supabaseClient'
+import { extractTags, scoreProfile, improveProfileText } from '@/lib/aiUtils'
 
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import Modal from '@/components/ui/Modal'
@@ -22,11 +23,10 @@ export default function ProfileEditScreen() {
     const { t } = useTranslation()
     const { profile, setProfile, user, setScreen, profileWelcomeSeen, setProfileWelcomeSeen } = useApp()
 
-    // Show welcome modal only the very first time
     const [showWelcome, setShowWelcome] = useState(!profileWelcomeSeen)
     const [saving, setSaving] = useState(false)
+    const [profileScore, setProfileScore] = useState(null) // { score, tips[] }
 
-    // Form state — initialised from store
     const [avatar, setAvatar] = useState(profile.avatar)
     const [about, setAbout] = useState(profile.about)
     const [gives, setGives] = useState(profile.gives)
@@ -38,9 +38,8 @@ export default function ProfileEditScreen() {
     const [datingMode, setDatingMode] = useState(profile.datingMode)
     const [datingGender, setDatingGender] = useState(profile.datingGender)
     const [languages, setLanguages] = useState(profile.languages)
-    const [region, setRegion] = useState(profile.region)
+    const region = profile.region
     const [city, setCity] = useState(profile.city || '')
-
     const handleCloseWelcome = () => {
         setShowWelcome(false)
         setProfileWelcomeSeen(true)
@@ -57,7 +56,6 @@ export default function ProfileEditScreen() {
         if (field === 'datingGender') setDatingGender(value)
     }
 
-    // Upload avatar: show local preview immediately, then replace with public URL
     const handleFile = async (file) => {
         if (!file) return
         const localUrl = URL.createObjectURL(file)
@@ -77,45 +75,70 @@ export default function ProfileEditScreen() {
 
         setSaving(true)
 
-        // avatar: if still a local blob URL (upload failed/mock), save as-is
-        const avatarUrl = avatar.startsWith('blob:') ? avatar : avatar
+        // ── AI: grammar check + improve text ─────────────────────────────
+        const [improvedAbout, improvedGives, improvedWants] = await Promise.all([
+            improveProfileText(about, 'About Me'),
+            improveProfileText(gives, 'Can Give'),
+            improveProfileText(wants, 'Wants to Get'),
+        ])
+        const finalAbout = improvedAbout || about
+        const finalGives = improvedGives || gives
+        const finalWants = improvedWants || wants
 
-        // Build DB payload — map camelCase → snake_case
+        if (improvedAbout) setAbout(improvedAbout)
+        if (improvedGives) setGives(improvedGives)
+        if (improvedWants) setWants(improvedWants)
+
+        // ── AI tag extraction ─────────────────────────────────────────────
+        const [tags, scoreResult] = await Promise.all([
+            extractTags(finalAbout, finalGives, finalWants),
+            scoreProfile(finalAbout, finalGives, finalWants),
+        ])
+
+        setProfileScore(scoreResult)
+
         const dbData = {
-            about,
-            gives,
-            wants,
-            balance,
-            wechat,
-            whatsapp,
+            about: finalAbout, gives: finalGives, wants: finalWants, balance,
+            wechat, whatsapp,
             show_age: showAge,
             dating_mode: datingMode,
             dating_gender: datingGender,
-            languages,
-            region,
-            city,
-            avatar_url: avatarUrl,
+            languages, region, city,
+            avatar_url: avatar,
             phone: user?.phone,
             name: profile.name,
             dob: profile.dob,
             gender: profile.gender,
             email: profile.email,
+            tags,
+            status: 'active',
         }
 
-        // Update local store
         setProfile(p => ({
             ...p,
-            about, gives, wants, balance,
+            about: finalAbout, gives: finalGives, wants: finalWants, balance,
             wechat, whatsapp,
             showAge, datingMode, datingGender,
-            languages, region, city, avatar,
+            languages, region, city, avatar, tags,
         }))
 
         const result = await saveProfile(user?.id || 'mock', dbData)
         setSaving(false)
 
         if (result.success) {
-            toast.success(t('toast_saved'))
+            // Show profile score if available
+            if (scoreResult?.score !== undefined) {
+                const scoreColor = scoreResult.score >= 70 ? '#34c759' : scoreResult.score >= 40 ? '#ff9500' : '#ff3b30'
+                const scoreMsg = scoreResult.score >= 70
+                    ? `Profile strength: ${scoreResult.score}/100 ✓`
+                    : `Profile strength: ${scoreResult.score}/100 — ${scoreResult.tips?.[0] || 'Add more details'}`
+                toast.success(scoreMsg, {
+                    duration: 4000,
+                    style: { background: scoreColor, color: '#fff', borderRadius: 16, fontWeight: 600 },
+                })
+            } else {
+                toast.success(t('toast_saved'))
+            }
             setScreen('profile')
         } else {
             console.error('[Save failed]', result.error)

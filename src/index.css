@@ -91,8 +91,9 @@
 
 /* ── Layout ── */
 .app-screen {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: var(--app-bg);
@@ -101,11 +102,19 @@
   overflow: hidden;
 }
 
+/* ── Content wrapper for main screens ── */
 .screen-content {
   width: 100%;
-  max-width: 480px;
+  max-width: 860px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
+}
+
+/* ── Center inner content on wide screens ── */
+@media (min-width: 700px) {
+  .app-screen>div:not([style*="position: fixed"]) {
+    max-width: 100%;
+  }
 }
 
 /* ── Gradient text ── */

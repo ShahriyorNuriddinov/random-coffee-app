@@ -8,20 +8,9 @@ import SettingsScreen from '@/screens/SettingsScreen'
 import ProfileEditScreen from '@/screens/ProfileEditScreen'
 import ProfileScreen from '@/screens/ProfileScreen'
 import FaqScreen from '@/screens/FaqScreen'
-import BottomNav from '@/components/BottomNav'
-
-function PlaceholderScreen({ title, navKey }) {
-  return (
-    <div className="app-screen" style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center', color: 'var(--app-hint)' }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>🚧</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--app-text)', marginBottom: 6 }}>{title}</div>
-        <div style={{ fontSize: 14 }}>Coming in Stage 2</div>
-      </div>
-      <BottomNav active={navKey} />
-    </div>
-  )
-}
+import PeopleScreen from '@/screens/PeopleScreen'
+import MeetingsScreen from '@/screens/MeetingsScreen'
+import MomentsScreen from '@/screens/MomentsScreen'
 
 function Router() {
   const { screen } = useApp()
@@ -35,9 +24,9 @@ function Router() {
     'profile-edit': <ProfileEditScreen />,
     profile: <ProfileScreen />,
     faq: <FaqScreen />,
-    moments: <PlaceholderScreen title="Moments" navKey="moments" />,
-    people: <PlaceholderScreen title="People" navKey="people" />,
-    meetings: <PlaceholderScreen title="Meetings" navKey="meetings" />,
+    moments: <MomentsScreen />,
+    people: <PeopleScreen />,
+    meetings: <MeetingsScreen />,
   }
 
   return map[screen] ?? <OnboardingScreen />

@@ -13,6 +13,7 @@ const EMPTY_PROFILE = {
     languages: ['EN'], region: 'Hong Kong', city: '',
     email: '', avatar: null,
     photos: [null, null, null, null],
+    tags: [],
 }
 
 function dbToProfile(db) {
@@ -35,6 +36,7 @@ function dbToProfile(db) {
         email: db.email || '',
         avatar: db.avatar_url || null,
         photos: Array.isArray(db.photos) ? db.photos : [null, null, null, null],
+        tags: Array.isArray(db.tags) ? db.tags : [],
     }
 }
 

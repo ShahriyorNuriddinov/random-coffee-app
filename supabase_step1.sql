@@ -23,7 +23,7 @@ create table if not exists public.profiles (
   dating_gender         text default 'women'
                           check (dating_gender in ('men','women')),
   languages             text[] default array['EN'],
-  region                text default 'Hong Kong',
+  region                text default 'Hong Kong',br
   email                 text,
   email_verified        boolean default false,
   avatar_url            text,

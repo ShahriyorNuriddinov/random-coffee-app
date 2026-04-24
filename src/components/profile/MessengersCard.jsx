@@ -46,7 +46,7 @@ function DialPicker({ value, onChange }) {
         <div style={{ position: 'relative', flexShrink: 0 }}>
             <button
                 ref={btnRef}
-                type="button"
+                type="button" 
                 onClick={handleOpen}
                 style={{
                     display: 'flex', alignItems: 'center', gap: 4,
