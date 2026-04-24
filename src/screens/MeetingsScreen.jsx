@@ -59,7 +59,6 @@ export default function MeetingsScreen() {
             }
 
             const candidates = people.filter(p => !matchedIds.has(p.id))
-            console.log('[Boost] people:', people.length, 'matched:', matchedIds.size, 'candidates:', candidates.length)
 
             if (candidates.length === 0) {
                 toast.error(hasActiveFilters

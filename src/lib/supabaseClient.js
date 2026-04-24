@@ -311,6 +311,9 @@ export const getPeople = async (currentUserId) => {
         .select('id, name, dob, gender, region, city, avatar_url, about, gives, wants, tags, languages, balance')
         .neq('id', currentUserId)
         .not('name', 'is', null)
+        .not('about', 'is', null)
+        // show active profiles OR profiles where status not yet set (legacy)
+        .or('status.eq.active,status.is.null')
     if (error) { console.error('[getPeople]', error.message); return [] }
     return data || []
 }
