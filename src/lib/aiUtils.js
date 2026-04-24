@@ -129,61 +129,8 @@ function extractTagsFallback(about, gives, wants) {
  */
 export async function calcMatchScoresBatch(myProfile = {}, candidates = []) {
     if (!candidates.length) return []
-
-    const { gives: myGives = '', wants: myWants = '', about: myAbout = '' } = myProfile
-
-    // If my profile is empty — use keyword fallback for all
-    if (!myGives && !myWants) {
-        return candidates.map(p => calcMatchScore(myProfile, p))
-    }
-
-    const candidateList = candidates.map((p, i) =>
-        `${i + 1}. About: "${(p.about || 'n/a').slice(0, 80)}" | Offers: "${(p.gives || 'n/a').slice(0, 100)}" | Needs: "${(p.wants || 'n/a').slice(0, 100)}" | Region: ${p.region || 'n/a'}`
-    ).join('\n')
-
-    const prompt = `You are a professional networking matchmaker for Random Coffee app.
-Score how well each candidate matches Person A for a 1-on-1 coffee meeting.
-
-Person A:
-- About: ${(myAbout || 'n/a').slice(0, 150)}
-- Can offer: ${(myGives || 'n/a').slice(0, 150)}
-- Looking for: ${(myWants || 'n/a').slice(0, 150)}
-
-Candidates:
-${candidateList}
-
-SCORING (0-100):
-- 80-100: Both sides clearly benefit (A gives what they need AND they give what A needs)
-- 50-79: One side benefits more, but still useful meeting
-- 20-49: Weak match, some common ground
-- 0-19: Poor match, no clear mutual value
-
-Return ONLY a JSON array of integers in the same order as candidates.
-Example for 4 candidates: [85, 42, 17, 63]`
-
-    const maxTokens = Math.min(50 + candidates.length * 5, 200)
-    const result = await callAI(prompt, maxTokens)
-
-    if (!result) {
-        console.warn('[AI Batch] No result, using keyword fallback')
-        return candidates.map(p => calcMatchScore(myProfile, p))
-    }
-
-    try {
-        const match = result.match(/\[[\d,\s]+\]/)
-        if (!match) {
-            console.warn('[AI Batch] Could not parse scores:', result)
-            return candidates.map(p => calcMatchScore(myProfile, p))
-        }
-        const scores = JSON.parse(match[0])
-        console.log('[AI Batch Match] scores:', scores)
-        return candidates.map((_, i) =>
-            Math.min(100, Math.max(0, Math.round(Number(scores[i]) || 0)))
-        )
-    } catch (e) {
-        console.error('[AI Batch] Parse error:', e)
-        return candidates.map(p => calcMatchScore(myProfile, p))
-    }
+    // Use keyword-based scoring (no AI calls to avoid rate limits)
+    return candidates.map(p => calcMatchScore(myProfile, p))
 }
 
 // ─── Sync keyword-based match score (fallback) ────────────────────────────────
