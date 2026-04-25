@@ -221,12 +221,30 @@ export const unlikeUser = async (fromUserId, toUserId) => {
 }
 
 export const checkMatchExists = async (userId1, userId2) => {
+    // Check if the other person also liked us
+    const { data: mutualLike } = await supabase
+        .from('likes')
+        .select('id')
+        .eq('from_user_id', userId2)
+        .eq('to_user_id', userId1)
+        .maybeSingle()
+
+    if (mutualLike) {
+        // Create match if not exists
+        const u1 = userId1 < userId2 ? userId1 : userId2
+        const u2 = userId1 < userId2 ? userId2 : userId1
+        const { data: existing } = await supabase.from('matches').select('id').eq('user1_id', u1).eq('user2_id', u2).maybeSingle()
+        if (!existing) {
+            await supabase.from('matches').insert({ user1_id: u1, user2_id: u2 })
+            supabase.functions.invoke('send-notification', { body: { type: 'match', from_user_id: userId1, to_user_id: userId2 } }).catch(() => { })
+        }
+        return true
+    }
+
+    // Also check matches table (from boost)
     const u1 = userId1 < userId2 ? userId1 : userId2
     const u2 = userId1 < userId2 ? userId2 : userId1
     const { data } = await supabase.from('matches').select('id').eq('user1_id', u1).eq('user2_id', u2).maybeSingle()
-    if (data) {
-        supabase.functions.invoke('send-notification', { body: { type: 'match', from_user_id: userId1, to_user_id: userId2 } }).catch(() => { })
-    }
     return !!data
 }
 
