@@ -6,7 +6,7 @@ import ScreenHeader from '@/components/ui/ScreenHeader'
 import PersonCard from '@/components/people/PersonCard'
 import PersonProfileSheet from '@/components/people/PersonProfileSheet'
 import PeopleFilterModal from '@/components/people/PeopleFilterModal'
-import { getPeople, getLikedUserIds } from '@/lib/supabaseClient'
+import { getPeople, getLikedUserIds, supabase } from '@/lib/supabaseClient'
 import { calcMatchScoresBatch } from '@/lib/aiUtils'
 import { usePeopleLike } from '@/hooks/usePeopleLike'
 
@@ -73,10 +73,20 @@ export default function PeopleScreen() {
                 try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: scores, ts: Date.now() })) } catch { }
             }
 
+            // Get users who liked ME (they should appear first — mutual interest priority)
+            const { data: likedMeData } = await supabase.from('likes').select('from_user_id').eq('to_user_id', user.id)
+            const likedMeIds = new Set((likedMeData || []).map(r => r.from_user_id))
+
             setPeople(
                 candidates
                     .map((p, i) => ({ ...p, score: Array.isArray(scores) ? (scores[i] ?? 0) : 0 }))
-                    .sort((a, b) => b.score - a.score)
+                    .sort((a, b) => {
+                        // Users who liked me come first (mutual interest)
+                        const aLikedMe = likedMeIds.has(a.id) ? 1 : 0
+                        const bLikedMe = likedMeIds.has(b.id) ? 1 : 0
+                        if (bLikedMe !== aLikedMe) return bLikedMe - aLikedMe
+                        return b.score - a.score
+                    })
             )
         } catch (e) {
             console.error('[PeopleScreen load]', e)

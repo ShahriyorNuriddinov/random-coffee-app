@@ -16,7 +16,7 @@ import { getMeetingHistory, getSubscription } from '@/lib/supabaseClient'
 import { useMeetingBoost } from '@/hooks/useMeetingBoost'
 
 export default function MeetingsScreen() {
-    const { user, setScreen, profile, subscription, setSubscription } = useApp()
+    const { user, setScreen, profile, subscription: _sub, setSubscription } = useApp()
     const { t } = useTranslation()
 
     const [history, setHistory] = useState([])
@@ -100,9 +100,9 @@ export default function MeetingsScreen() {
                         />
                     ))}
 
-                    {!loading && history.some(m => m.status === 'completed') && (
+                    {!loading && history.some(m => m.status === 'completed' || m.status == null) && (
                         <PreviousMeetings
-                            history={history.filter(m => m.status === 'completed')}
+                            history={history.filter(m => m.status === 'completed' || m.status == null)}
                             onPost={() => setShowNewMoment(true)}
                         />
                     )}

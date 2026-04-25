@@ -80,9 +80,9 @@ export default function MomentsScreen() {
 
     useEffect(() => {
         load()
-        // Check if user has any COMPLETED meetings
+        // Check if user has any COMPLETED meetings (or old matches without status)
         if (user?.id) {
-            getMeetingHistory(user.id).then(h => setHasMeetings(h.some(m => m.status === 'completed')))
+            getMeetingHistory(user.id).then(h => setHasMeetings(h.some(m => m.status === 'completed' || m.status == null)))
         }
 
         // Realtime — update reactions without full reload
