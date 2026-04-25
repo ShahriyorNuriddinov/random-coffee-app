@@ -194,7 +194,7 @@ export const toggleBoost = async (userId, active) => {
 export const getPeople = async (currentUserId) => {
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, dob, gender, region, city, avatar_url, about, gives, wants, tags, languages, balance')
+        .select('id, name, dob, gender, region, city, avatar_url, photos, about, gives, wants, tags, languages, balance')
         .neq('id', currentUserId)
         .not('name', 'is', null)
     if (error) return []
