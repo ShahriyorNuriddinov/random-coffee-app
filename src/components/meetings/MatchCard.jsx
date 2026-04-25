@@ -43,7 +43,8 @@ export default function MatchCard({ match, onPost, onFeedback }) {
 
     useEffect(() => {
         if (!partner || !profile?.gives || !profile?.wants) return
-        setMatchReason(null) // reset on lang change
+        if (!partner.gives && !partner.wants) return  // partner profile empty — skip AI
+        setMatchReason(null)
         const load = async () => {
             const reason = await explainMatch(
                 { gives: profile.gives, wants: profile.wants },
