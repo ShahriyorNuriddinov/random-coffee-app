@@ -108,8 +108,19 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
         const { error } = await supabase
             .from('moments').delete()
             .eq('id', moment.id).eq('user_id', user.id)
-        if (error) toast.error('Failed to delete')
-        else { setDeleted(true); onDeleted?.(moment.id); toast.success('Post deleted') }
+        if (error) {
+            toast.error('Failed to delete')
+        } else {
+            // Deduct the credit that was earned for this post
+            const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', user.id).single()
+            if (profile) {
+                const newCredits = Math.max(0, (profile.coffee_credits ?? 0) - 1)
+                await supabase.from('profiles').update({ coffee_credits: newCredits }).eq('id', user.id)
+            }
+            setDeleted(true)
+            onDeleted?.(moment.id)
+            toast.success('Post deleted')
+        }
     }
 
     const handleTranslate = async () => {
