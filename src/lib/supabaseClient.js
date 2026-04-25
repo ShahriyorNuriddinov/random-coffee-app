@@ -259,7 +259,7 @@ export const saveTags = async (userId, tags) => {
 export const getMoments = async (limit = 30) => {
     const { data, error } = await supabase
         .from('moments')
-        .select(`id, text, text_en, text_zh, image_url, likes_count, created_at, author:user_id(id, name, avatar_url, region)`)
+        .select(`id, text, text_en, text_zh, image_url, image_urls, likes_count, created_at, author:user_id(id, name, avatar_url, region)`)
         .order('created_at', { ascending: false })
         .limit(limit)
     if (error) return []
@@ -274,11 +274,11 @@ export const getMoments = async (limit = 30) => {
     return moments
 }
 
-export const postMoment = async (userId, text, imageUrl = null, text_en = null, text_zh = null) => {
+export const postMoment = async (userId, text, imageUrl = null, text_en = null, text_zh = null, imageUrls = null) => {
     const { data, error } = await supabase
         .from('moments')
-        .insert({ user_id: userId, text, image_url: imageUrl, text_en, text_zh })
-        .select(`id, text, text_en, text_zh, image_url, likes_count, created_at, author:user_id(id, name, avatar_url, region)`)
+        .insert({ user_id: userId, text, image_url: imageUrl, image_urls: imageUrls, text_en, text_zh })
+        .select(`id, text, text_en, text_zh, image_url, image_urls, likes_count, created_at, author:user_id(id, name, avatar_url, region)`)
         .single()
     if (error) return null
     return data

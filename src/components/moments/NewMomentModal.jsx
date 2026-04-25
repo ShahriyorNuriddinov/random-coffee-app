@@ -57,8 +57,12 @@ export default function NewMomentModal({ onClose, onPosted }) {
         setLoading(true)
 
         let imageUrl = null
+        let imageUrls = null
         if (images.length > 0) {
-            imageUrl = await uploadMomentImage(user.id, images[0].file)
+            const uploaded = await Promise.all(images.map(img => uploadMomentImage(user.id, img.file)))
+            const validUrls = uploaded.filter(Boolean)
+            imageUrl = validUrls[0] || null
+            imageUrls = validUrls.length > 1 ? validUrls : null
         }
 
         const trimmedText = text.trim()
@@ -75,8 +79,8 @@ export default function NewMomentModal({ onClose, onPosted }) {
         }
         console.log('[moment] lang:', currentLang, '| text_en:', text_en, '| text_zh:', text_zh)
 
-        const result = await postMoment(user.id, trimmedText, imageUrl, text_en, text_zh)
-            || await postMoment(user.id, trimmedText, imageUrl, null, null)
+        const result = await postMoment(user.id, trimmedText, imageUrl, text_en, text_zh, imageUrls)
+            || await postMoment(user.id, trimmedText, imageUrl, null, null, imageUrls)
         setLoading(false)
 
         if (result) {

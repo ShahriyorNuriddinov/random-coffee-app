@@ -4,6 +4,10 @@ import { supabase } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
 import i18n from '@/i18n'
 import toast from 'react-hot-toast'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Pagination } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/pagination'
 
 const QUICK_REACTIONS = ['👍', '❤️', '🔥', '🎉', '👏']
 
@@ -195,15 +199,29 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                             background: 'rgba(0,122,255,0.1)', color: 'var(--app-primary)',
                         }}>Official</span>
                     )}
-                    )}
                 </div>
             </div>
 
-            {moment.image_url && (
-                <div style={{ width: '100%', maxHeight: 250, overflow: 'hidden', borderBottom: '0.5px solid var(--app-border)' }}>
-                    <img src={moment.image_url} alt="" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
-                </div>
-            )}
+            {(moment.image_urls?.length > 0 || moment.image_url) && (() => {
+                const allImgs = moment.image_urls?.length > 0
+                    ? moment.image_urls
+                    : [moment.image_url]
+                return allImgs.length > 1 ? (
+                    <div style={{ borderBottom: '0.5px solid var(--app-border)' }}>
+                        <Swiper modules={[Pagination]} pagination={{ clickable: true }} style={{ maxHeight: 280 }}>
+                            {allImgs.map((url, i) => (
+                                <SwiperSlide key={i}>
+                                    <img src={url} alt="" style={{ width: '100%', maxHeight: 280, objectFit: 'cover', display: 'block' }} />
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    </div>
+                ) : (
+                    <div style={{ width: '100%', maxHeight: 280, overflow: 'hidden', borderBottom: '0.5px solid var(--app-border)' }}>
+                        <img src={allImgs[0]} alt="" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                )
+            })()}
 
             <div style={{ padding: '12px 16px', fontSize: 15, lineHeight: 1.45, color: 'var(--app-text)' }}>
                 {translated && translatedText ? translatedText : moment.text}
