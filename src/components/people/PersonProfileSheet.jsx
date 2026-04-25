@@ -1,15 +1,47 @@
 // ─── PersonProfileSheet — bottom sheet modal (HTML: people.html card expanded) ─
 
 import { useState } from 'react'
+import { translateText } from '@/lib/aiUtils'
+import toast from 'react-hot-toast'
 
 export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
     const tags = Array.isArray(person.tags) ? person.tags : []
     const langs = Array.isArray(person.languages) ? person.languages : []
+    const photos = Array.isArray(person.photos) ? person.photos.filter(Boolean) : []
+    const allPhotos = person.avatar_url ? [person.avatar_url, ...photos.filter(p => p !== person.avatar_url)] : photos
+    const [photoIdx, setPhotoIdx] = useState(0)
+    const [translated, setTranslated] = useState(false)
+    const [translatedData, setTranslatedData] = useState(null)
+    const [translating, setTranslating] = useState(false)
+
     const regionFlag = person.region === 'Macau' ? '🇲🇴'
         : person.region === 'Mainland China' ? '🇨🇳' : '🇭🇰'
 
     const map = { '30_70': [30, 70], '50_50': [50, 50], '70_30': [70, 30] }
     const [fun, ben] = map[person.balance] || [50, 50]
+
+    const handleTranslate = async () => {
+        if (translated) { setTranslated(false); return }
+        if (translatedData) { setTranslated(true); return }
+        setTranslating(true)
+        try {
+            const [about, gives, wants] = await Promise.all([
+                person.about ? translateText(person.about) : null,
+                person.gives ? translateText(person.gives) : null,
+                person.wants ? translateText(person.wants) : null,
+            ])
+            setTranslatedData({ about, gives, wants })
+            setTranslated(true)
+        } catch {
+            toast.error('Translation failed')
+        } finally {
+            setTranslating(false)
+        }
+    }
+
+    const display = translated && translatedData ? translatedData : {
+        about: person.about, gives: person.gives, wants: person.wants
+    }
 
     return (
         <div
@@ -35,39 +67,63 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                     animation: 'slideUp 0.3s cubic-bezier(0.4,0,0.2,1)',
                 }}
             >
-                {/* Hero photo */}
+                {/* Hero photo with gallery */}
                 <div style={{
                     width: '100%', height: 280,
-                    backgroundImage: person.avatar_url ? `url(${person.avatar_url})` : 'none',
+                    backgroundImage: allPhotos[photoIdx] ? `url(${allPhotos[photoIdx]})` : 'none',
                     backgroundSize: 'cover', backgroundPosition: 'center top',
                     backgroundColor: 'rgba(120,120,128,0.1)',
                     borderRadius: '24px 24px 0 0',
                     position: 'relative',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                    {!person.avatar_url && <span style={{ fontSize: 72 }}>👤</span>}
+                    {!allPhotos[photoIdx] && <span style={{ fontSize: 72 }}>👤</span>}
 
-                    {/* Gradient overlay */}
                     <div style={{
                         position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
                         background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)',
-                        borderRadius: '0 0 0 0',
                     }} />
 
-                    {/* Close */}
-                    <button
-                        onClick={onClose}
-                        style={{
-                            position: 'absolute', top: 16, right: 16,
-                            width: 34, height: 34, borderRadius: '50%',
-                            background: 'rgba(0,0,0,0.45)', border: 'none',
-                            color: '#fff', fontSize: 16, cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontFamily: 'inherit',
-                        }}
-                    >
-                        ✕
-                    </button>
+                    {/* Prev/Next arrows */}
+                    {allPhotos.length > 1 && (
+                        <>
+                            <button onClick={() => setPhotoIdx(i => (i - 1 + allPhotos.length) % allPhotos.length)}
+                                style={{
+                                    position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                                    width: 32, height: 32, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.4)', border: 'none',
+                                    color: '#fff', fontSize: 16, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>‹</button>
+                            <button onClick={() => setPhotoIdx(i => (i + 1) % allPhotos.length)}
+                                style={{
+                                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                                    width: 32, height: 32, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.4)', border: 'none',
+                                    color: '#fff', fontSize: 16, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>›</button>
+                            {/* Dots */}
+                            <div style={{ position: 'absolute', bottom: 12, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 5 }}>
+                                {allPhotos.map((_, i) => (
+                                    <div key={i} onClick={() => setPhotoIdx(i)} style={{
+                                        width: i === photoIdx ? 16 : 6, height: 6,
+                                        borderRadius: 3, background: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.5)',
+                                        cursor: 'pointer', transition: 'all 0.2s',
+                                    }} />
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    <button onClick={onClose} style={{
+                        position: 'absolute', top: 16, right: 16,
+                        width: 34, height: 34, borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.45)', border: 'none',
+                        color: '#fff', fontSize: 16, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'inherit',
+                    }}>✕</button>
                 </div>
 
                 <div style={{ padding: '20px 20px 0' }}>
@@ -110,9 +166,21 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                     )}
 
                     {/* About / Gives / Wants */}
-                    {person.about && <SheetSection label="About Me" text={person.about} borderColor="rgba(0,122,255,0.25)" />}
-                    {person.gives && <SheetSection label="Can Give" text={person.gives} borderColor="rgba(52,199,89,0.25)" />}
-                    {person.wants && <SheetSection label="Wants to Get" text={person.wants} borderColor="rgba(255,149,0,0.25)" />}
+                    {display.about && <SheetSection label="About Me" text={display.about} borderColor="rgba(0,122,255,0.25)" />}
+                    {display.gives && <SheetSection label="Can Give" text={display.gives} borderColor="rgba(52,199,89,0.25)" />}
+                    {display.wants && <SheetSection label="Wants to Get" text={display.wants} borderColor="rgba(255,149,0,0.25)" />}
+
+                    {/* Translate button */}
+                    {(person.about || person.gives || person.wants) && (
+                        <button onClick={handleTranslate} disabled={translating} style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            fontSize: 13, fontWeight: 600, color: 'var(--app-primary)',
+                            fontFamily: 'inherit', padding: '0 0 16px',
+                            opacity: translating ? 0.5 : 1,
+                        }}>
+                            {translating ? '...' : translated ? '🔤 Show original' : '🌐 Translate'}
+                        </button>
+                    )}}
 
                     {/* Balance */}
                     {person.balance && (

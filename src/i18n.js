@@ -168,6 +168,23 @@ const resources = {
             interest_sent: 'Interest sent',
             tags_extracted: 'Profile tags updated ✓',
             people_ai_hint: 'Select interesting people. If you both pick each other, our AI will match you instantly. Otherwise, it uses your choices to find the best possible match.',
+            // Meetings
+            meetings_title: 'Meetings',
+            searching_title: 'Looking for your match...',
+            searching_hint: 'Our algorithm picks the best partner for you every Monday. You can speed up the process by using the Boost feature.',
+            boost_btn: '🚀 Boost Search (1 Credit)',
+            boosting_btn: '🔍 Finding match...',
+            boost_hint: 'While we look for a match, you can choose interesting people in the',
+            profile_incomplete: 'Complete your profile for better matches',
+            profile_incomplete_hint: 'Fill in "Can Give" and "Wants to Get" so AI can find the most relevant people for you.',
+            edit_profile_btn: 'Edit Profile →',
+            no_credits_title: 'No Credits Left',
+            no_credits_hint: 'Top up your balance to continue finding matches.',
+            topup_btn: 'Top Up Balance',
+            prev_meetings: 'Previous Meetings',
+            feedback_title: 'How was your meeting?',
+            why_match: 'WHY YOU MATCH',
+            meeting_questions: 'CONVERSATION STARTERS',
         }
     },
     zh: {
@@ -335,6 +352,23 @@ const resources = {
             interest_sent: '已发送兴趣',
             tags_extracted: '个人标签已更新 ✓',
             people_ai_hint: '选择您感兴趣的人。如果双方都选择了对方，我们的AI将立即为您匹配。如果没有即时匹配，AI会根据您的选择去寻找最合适的人选。',
+            // Meetings
+            meetings_title: '约见',
+            searching_title: '正在寻找您的匹配...',
+            searching_hint: '我们的算法每周一为您挑选最佳伙伴。您可以使用加速功能来加快这个过程。',
+            boost_btn: '🚀 加速搜索（1积分）',
+            boosting_btn: '🔍 正在寻找匹配...',
+            boost_hint: '在我们寻找匹配的同时，您可以在',
+            profile_incomplete: '完善资料以获得更好的匹配',
+            profile_incomplete_hint: '填写"我能提供"和"我想寻求"，让AI为您找到最相关的人。',
+            edit_profile_btn: '编辑资料 →',
+            no_credits_title: '积分不足',
+            no_credits_hint: '请充值以继续寻找匹配。',
+            topup_btn: '充值余额',
+            prev_meetings: '历史约见',
+            feedback_title: '您的约见如何？',
+            why_match: '为什么匹配',
+            meeting_questions: '对话开场白',
         }
     }
 }

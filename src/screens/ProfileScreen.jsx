@@ -61,7 +61,10 @@ export default function ProfileScreen() {
         })
     }, [user?.id])
 
-    const sub = SUB_CONFIG[subscription.status] || SUB_CONFIG.trial
+    const effectiveStatus = subscription.status === 'active' && (subscription.credits ?? 0) === 0
+        ? 'empty'
+        : subscription.status
+    const sub = SUB_CONFIG[effectiveStatus] || SUB_CONFIG.trial
     const subDesc = typeof sub.desc === 'function' ? sub.desc(subscription.credits) : sub.desc
 
     const regionFlag = profile.region === 'Macau' ? '🇲🇴'

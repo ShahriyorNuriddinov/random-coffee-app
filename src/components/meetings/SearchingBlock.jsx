@@ -1,5 +1,8 @@
 // HTML: meetings.html → #searching-content
+import { useTranslation } from 'react-i18next'
+
 export default function SearchingBlock({ onPeople, onBoost, boosting, filters }) {
+    const { t } = useTranslation()
     const hasFilters = filters && (
         (filters.regions?.length > 0) ||
         (filters.langs?.length > 0) ||
@@ -20,10 +23,10 @@ export default function SearchingBlock({ onPeople, onBoost, boosting, filters })
                 animation: 'spin 1s linear infinite',
             }} />
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>
-                Looking for your match...
+                {t('searching_title')}
             </div>
             <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.4, marginBottom: 24 }}>
-                Our algorithm picks the best partner for you every Monday. You can speed up the process by using the Boost feature.
+                {t('searching_hint')}
             </div>
 
             {/* Active filter indicator — HTML: .prompt-indicator */}
@@ -59,16 +62,16 @@ export default function SearchingBlock({ onPeople, onBoost, boosting, filters })
                     transition: 'all 0.2s',
                 }}
             >
-                {boosting ? '🔍 Finding match...' : '🚀 Boost Search (1 Credit)'}
+                {boosting ? t('boosting_btn') : t('boost_btn')}
             </button>
 
             <div style={{
                 background: 'rgba(0,0,0,0.03)', padding: 12, borderRadius: 12,
                 fontSize: 13, color: 'var(--app-hint)', lineHeight: 1.4, textAlign: 'left',
             }}>
-                💡 While we look for a match, you can choose interesting people in the{' '}
+                💡 {t('boost_hint')}{' '}
                 <span onClick={onPeople} style={{ color: 'var(--app-primary)', fontWeight: 700, cursor: 'pointer' }}>
-                    PEOPLE
+                    {t('nav_people').toUpperCase()}
                 </span>
                 {' '}section you'd like to meet.
             </div>

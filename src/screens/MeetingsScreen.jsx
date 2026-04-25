@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
 import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
@@ -16,6 +17,7 @@ import toast from 'react-hot-toast'
 
 export default function MeetingsScreen() {
     const { user, subscription, setSubscription, setScreen, profile } = useApp()
+    const { t } = useTranslation()
     const [history, setHistory] = useState([])
     const [loading, setLoading] = useState(true)
     const [boosting, setBoosting] = useState(false)
@@ -129,7 +131,7 @@ export default function MeetingsScreen() {
     return (
         <div className="app-screen">
             <ScreenHeader
-                title="Meetings"
+                title={t('meetings_title')}
                 right={
                     <button
                         onClick={() => setShowSettings(true)}
@@ -172,10 +174,10 @@ export default function MeetingsScreen() {
                             <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
                             <div>
                                 <div style={{ fontWeight: 700, fontSize: 14, color: '#ff9500', marginBottom: 4 }}>
-                                    Complete your profile for better matches
+                                    {t('profile_incomplete')}
                                 </div>
                                 <div style={{ fontSize: 13, color: 'var(--app-hint)', lineHeight: 1.4 }}>
-                                    Fill in "Can Give" and "Wants to Get" so AI can find the most relevant people for you.
+                                    {t('profile_incomplete_hint')}
                                 </div>
                                 <button
                                     onClick={() => setScreen('profile-edit')}
@@ -185,7 +187,7 @@ export default function MeetingsScreen() {
                                         fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                                     }}
                                 >
-                                    Edit Profile →
+                                    {t('edit_profile_btn')}
                                 </button>
                             </div>
                         </div>

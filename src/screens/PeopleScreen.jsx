@@ -8,22 +8,61 @@ import PersonCard from '@/components/people/PersonCard'
 import PersonProfileSheet from '@/components/people/PersonProfileSheet'
 import PeopleFilterModal from '@/components/people/PeopleFilterModal'
 import { getPeople, likeUser, unlikeUser, getLikedUserIds, checkMatchExists } from '@/lib/supabaseClient'
-import { calcMatchScoresBatch } from '@/lib/aiUtils'
+import { calcMatchScoresBatch, translateText } from '@/lib/aiUtils'
 
 export default function PeopleScreen() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { user, profile } = useApp()
     const [people, setPeople] = useState([])
+    const [translatedPeople, setTranslatedPeople] = useState([])
     const [likedIds, setLikedIds] = useState(new Set())
     const [loading, setLoading] = useState(true)
+    const [translating, setTranslating] = useState(false)
     const [selected, setSelected] = useState(null)
     const [showFilter, setShowFilter] = useState(false)
     const [filters, setFilters] = useState({ regions: [], langs: [] })
     const [search, setSearch] = useState('')
+
     useEffect(() => {
         if (!user?.id) return
         load()
     }, [user?.id, profile?.tags?.length])
+
+    // Auto-translate when language changes to zh
+    useEffect(() => {
+        if (people.length === 0) return
+        if (i18n.language === 'zh') {
+            translatePeople(people)
+        } else {
+            setTranslatedPeople([])
+        }
+    }, [i18n.language, people.length])
+
+    const translatePeople = async (list) => {
+        const cacheKey = `translated_people_${list.map(p => p.id).join(',').slice(0, 80)}`
+        try {
+            const cached = sessionStorage.getItem(cacheKey)
+            if (cached) { setTranslatedPeople(JSON.parse(cached)); return }
+        } catch { }
+
+        setTranslating(true)
+        try {
+            const translated = await Promise.all(list.map(async (p) => {
+                const [about, gives, wants] = await Promise.all([
+                    p.about ? translateText(p.about) : null,
+                    p.gives ? translateText(p.gives) : null,
+                    p.wants ? translateText(p.wants) : null,
+                ])
+                return { ...p, about: about || p.about, gives: gives || p.gives, wants: wants || p.wants }
+            }))
+            setTranslatedPeople(translated)
+            try { sessionStorage.setItem(cacheKey, JSON.stringify(translated)) } catch { }
+        } catch { } finally {
+            setTranslating(false)
+        }
+    }
+
+    const displayPeople = i18n.language === 'zh' && translatedPeople.length > 0 ? translatedPeople : people
 
     const load = async () => {
         setLoading(true)
@@ -73,7 +112,7 @@ export default function PeopleScreen() {
 
     // Filter + search logic
     const filtered = useMemo(() => {
-        return people.filter(p => {
+        return displayPeople.filter(p => {
             const q = search.toLowerCase()
             const matchSearch = !q ||
                 p.name?.toLowerCase().includes(q) ||
@@ -89,7 +128,7 @@ export default function PeopleScreen() {
 
             return matchSearch && matchRegion && matchLang
         })
-    }, [people, search, filters])
+    }, [displayPeople, search, filters])
 
     const hasActiveFilters = filters.regions.length > 0 || filters.langs.length > 0
 
@@ -193,7 +232,8 @@ export default function PeopleScreen() {
                             {t('people_ai_hint')}
                         </div>
                         <div style={{ fontSize: 13, color: 'var(--app-hint)', marginLeft: 2 }}>
-                            {filtered.length} {filtered.length === 1 ? 'person' : 'people'} found
+                            {filtered.length} {t('people_found')}
+                            {translating && <span style={{ marginLeft: 8, color: 'var(--app-primary)', fontSize: 12 }}>🌐 {i18n.language === 'zh' ? '翻译中...' : 'Translating...'}</span>}
                         </div>
                         {filtered.map(person => (
                             <PersonCard
