@@ -192,7 +192,7 @@ export default function MomentsScreen() {
                 />
             )}
 
-            {/* No meeting hint modal */}
+            {/* No meeting hint modal — HTML style */}
             {showNoMeetingHint && (
                 <div onClick={() => setShowNoMeetingHint(false)} style={{
                     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
@@ -200,22 +200,34 @@ export default function MomentsScreen() {
                     justifyContent: 'center', zIndex: 100, padding: 24,
                 }}>
                     <div onClick={e => e.stopPropagation()} style={{
-                        background: 'var(--app-card)', borderRadius: 20, padding: 28,
+                        background: 'var(--app-card)', borderRadius: 24, padding: '28px 24px',
                         maxWidth: 360, width: '100%', textAlign: 'center',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
                     }}>
-                        <div style={{ fontSize: 48, marginBottom: 12 }}>☕</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 10 }}>
-                            Moments are for meetings
+                        <div style={{
+                            width: 52, height: 52, borderRadius: 14,
+                            background: 'linear-gradient(135deg, #ffd700, #ffa500)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 26, margin: '0 auto 16px',
+                            boxShadow: '0 4px 12px rgba(255,165,0,0.3)',
+                        }}>🎁</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 10, letterSpacing: -0.3 }}>
+                            Share Your Story
                         </div>
-                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>
-                            After each coffee meeting, you can share your experience here and earn +1 credit. Complete a meeting first!
+                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 16 }}>
+                            After every successful coffee meeting you attend, you will have the opportunity to write a review post about it.
                         </div>
-                        <button onClick={() => setShowNoMeetingHint(false)} style={{
-                            width: '100%', padding: '14px 0', borderRadius: 14, border: 'none',
-                            background: 'linear-gradient(135deg, #007aff, #5856d6)',
-                            color: '#fff', fontSize: 16, fontWeight: 700,
-                            cursor: 'pointer', fontFamily: 'inherit',
-                        }}>Got it</button>
+                        <div style={{
+                            background: 'rgba(0,122,255,0.06)', borderRadius: 12,
+                            padding: '12px 14px', marginBottom: 20,
+                            border: '0.5px solid rgba(0,122,255,0.15)',
+                            fontSize: 13, color: '#0055b3', lineHeight: 1.5, textAlign: 'left',
+                        }}>
+                            🎉 Your post will be published after passing moderation, and you will receive <strong>+1 coffee cup</strong> to your balance!
+                        </div>
+                        <button onClick={() => setShowNoMeetingHint(false)} className="btn-gradient" style={{ borderRadius: 14 }}>
+                            Awesome
+                        </button>
                     </div>
                 </div>
             )}
