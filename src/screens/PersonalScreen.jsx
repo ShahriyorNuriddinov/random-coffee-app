@@ -57,7 +57,7 @@ export default function PersonalScreen() {
                 <LangSwitcher />
             </div>
 
-            <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-5 py-10">
+            <div className="flex-1 overflow-y-auto flex flex-col items-center px-5 pt-16 pb-10">
                 <div className="screen-content w-full">
                     <h1 className="text-[26px] font-extrabold mb-[10px] tracking-tight text-[var(--app-text)]">
                         {t('personal_title')}
@@ -100,35 +100,32 @@ export default function PersonalScreen() {
                         {t('dob_gift')}
                     </p>
 
-                    {/* Region */}
+                    {/* Region — 2x2 grid */}
                     <div className="w-full mb-4">
                         <label className="block text-[var(--app-primary)] font-semibold text-[11px] uppercase tracking-[0.3px] mb-2 ml-1">
                             {t('region_label')}
                         </label>
-                        <div style={{
-                            background: 'var(--app-card)', borderRadius: 14,
-                            border: '0.5px solid var(--app-border)', overflow: 'hidden',
-                        }}>
-                            {REGIONS.map((r, i) => (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            {REGIONS.map((r) => (
                                 <div
                                     key={r.value}
                                     onClick={() => setRegion(r.value)}
                                     style={{
-                                        display: 'flex', justifyContent: 'space-between',
-                                        alignItems: 'center', padding: '14px 16px',
-                                        cursor: 'pointer', fontSize: 16,
-                                        color: 'var(--app-text)',
-                                        borderBottom: i < REGIONS.length - 1 ? '0.5px solid var(--app-border)' : 'none',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        gap: 8, padding: '14px 12px', borderRadius: 14,
+                                        cursor: 'pointer', fontSize: 15, fontWeight: 600,
+                                        background: region === r.value ? 'var(--app-primary)' : 'var(--app-card)',
+                                        color: region === r.value ? '#fff' : 'var(--app-text)',
+                                        border: region === r.value ? 'none' : '0.5px solid var(--app-border)',
+                                        transition: 'all 0.15s',
                                     }}
                                 >
-                                    <span>{r.label}</span>
-                                    <span style={{ color: 'var(--app-primary)', fontWeight: 700, opacity: region === r.value ? 1 : 0 }}>✓</span>
+                                    {r.label}
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* City — shown for all regions */}
                     <InputCard label={t('city_label')}>
                         <Input
                             type="text"
