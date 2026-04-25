@@ -40,42 +40,48 @@ export default function PeopleScreen() {
 
     const load = async () => {
         setLoading(true)
-        const [allPeople, liked] = await Promise.all([
-            getPeople(user.id),
-            getLikedUserIds(user.id),
-        ])
-        setLikedIds(new Set(liked))
-
-        const myProfile = {
-            gives: profile.gives || '',
-            wants: profile.wants || '',
-            about: profile.about || '',
-            tags: Array.isArray(profile.tags) ? profile.tags : [],
-        }
-
-        const candidates = allPeople.filter(p => p.name)
-        const cacheKey = `ai_scores_${user.id}_${candidates.map(p => p.id).join(',').slice(0, 100)}`
-        let scores
         try {
-            const cached = sessionStorage.getItem(cacheKey)
-            if (cached) {
-                const { data, ts } = JSON.parse(cached)
-                if (Date.now() - ts < 30 * 60 * 1000) scores = data
+            const [allPeople, liked] = await Promise.all([
+                getPeople(user.id),
+                getLikedUserIds(user.id),
+            ])
+            setLikedIds(new Set(liked))
+
+            const myProfile = {
+                gives: profile.gives || '',
+                wants: profile.wants || '',
+                about: profile.about || '',
+                tags: Array.isArray(profile.tags) ? profile.tags : [],
             }
-        } catch { }
 
-        if (!scores) {
-            try { scores = await calcMatchScoresBatch(myProfile, candidates) }
-            catch { scores = candidates.map(() => 0) }
-            try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: scores, ts: Date.now() })) } catch { }
+            const candidates = allPeople.filter(p => p.name)
+            const cacheKey = `ai_scores_${user.id}_${candidates.map(p => p.id).join(',').slice(0, 100)}`
+            let scores
+            try {
+                const cached = sessionStorage.getItem(cacheKey)
+                if (cached) {
+                    const { data, ts } = JSON.parse(cached)
+                    if (Date.now() - ts < 30 * 60 * 1000) scores = data
+                }
+            } catch { sessionStorage.removeItem(cacheKey) }
+
+            if (!scores) {
+                try { scores = await calcMatchScoresBatch(myProfile, candidates) }
+                catch { scores = [] }
+                if (!Array.isArray(scores)) scores = []
+                try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: scores, ts: Date.now() })) } catch { }
+            }
+
+            setPeople(
+                candidates
+                    .map((p, i) => ({ ...p, score: Array.isArray(scores) ? (scores[i] ?? 0) : 0 }))
+                    .sort((a, b) => b.score - a.score)
+            )
+        } catch (e) {
+            console.error('[PeopleScreen load]', e)
+        } finally {
+            setLoading(false)
         }
-
-        setPeople(
-            candidates
-                .map((p, i) => ({ ...p, score: Array.isArray(scores) ? (scores[i] ?? 0) : 0 }))
-                .sort((a, b) => b.score - a.score)
-        )
-        setLoading(false)
     }
 
     const hasActiveFilters = filters.regions.length > 0 || filters.langs.length > 0
