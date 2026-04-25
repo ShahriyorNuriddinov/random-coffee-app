@@ -61,6 +61,8 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                     background: 'var(--app-card)',
                     borderRadius: '24px 24px 0 0',
                     width: '100%',
+                    maxWidth: 560,
+                    margin: '0 auto',
                     maxHeight: '90vh',
                     overflowY: 'auto',
                     paddingBottom: 40,
@@ -69,9 +71,9 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
             >
                 {/* Hero photo with gallery */}
                 <div style={{
-                    width: '100%', height: 280,
+                    width: '100%', height: 320,
                     backgroundImage: allPhotos[photoIdx] ? `url(${allPhotos[photoIdx]})` : 'none',
-                    backgroundSize: 'cover', backgroundPosition: 'center top',
+                    backgroundSize: 'cover', backgroundPosition: 'center',
                     backgroundColor: 'rgba(120,120,128,0.1)',
                     borderRadius: '24px 24px 0 0',
                     position: 'relative',
