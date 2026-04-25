@@ -1,7 +1,9 @@
 // HTML: meetings.html → #modal-settings
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function SearchSettingsModal({ filters, onApply, onClose }) {
+    const { t } = useTranslation()
     const [regions, setRegions] = useState(filters?.regions || [])
     const [langs, setLangs] = useState(filters?.langs || [])
     const [prompt, setPrompt] = useState(filters?.prompt || '')
@@ -9,17 +11,10 @@ export default function SearchSettingsModal({ filters, onApply, onClose }) {
     const toggle = (arr, setArr, val) =>
         setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
 
-    const handleApply = () => {
-        onApply?.({ regions, langs, prompt })
-        onClose()
-    }
-
+    const handleApply = () => { onApply?.({ regions, langs, prompt }); onClose() }
     const handleClear = () => {
-        setRegions([])
-        setLangs([])
-        setPrompt('')
-        onApply?.({ regions: [], langs: [], prompt: '' })
-        onClose()
+        setRegions([]); setLangs([]); setPrompt('')
+        onApply?.({ regions: [], langs: [], prompt: '' }); onClose()
     }
 
     const Tag = ({ label, active, onToggle }) => (
@@ -47,37 +42,37 @@ export default function SearchSettingsModal({ filters, onApply, onClose }) {
                 maxHeight: '90vh', overflowY: 'auto',
             }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 20, textAlign: 'center' }}>
-                    Search Settings
+                    {t('search_settings_title')}
                 </div>
 
-                <SectionLabel>Target Location</SectionLabel>
+                <SectionLabel>{t('target_location')}</SectionLabel>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
                     {[
-                        { val: 'Hong Kong', label: '🇭🇰 Hong Kong' },
-                        { val: 'Macau', label: '🇲🇴 Macao' },
-                        { val: 'Mainland China', label: '🇨🇳 Mainland China' },
+                        { val: 'Hong Kong', label: t('region_hk') },
+                        { val: 'Macau', label: t('region_mo') },
+                        { val: 'Mainland China', label: t('region_cn') },
                     ].map(r => (
                         <Tag key={r.val} label={r.label} active={regions.includes(r.val)} onToggle={() => toggle(regions, setRegions, r.val)} />
                     ))}
                 </div>
 
-                <SectionLabel>Languages</SectionLabel>
+                <SectionLabel>{t('langs_title')}</SectionLabel>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
                     {[
-                        { val: 'EN', label: 'English' },
-                        { val: 'CAN', label: 'Cantonese' },
-                        { val: 'ZH', label: 'Mandarin' },
+                        { val: 'EN', label: t('lang_en') },
+                        { val: 'CAN', label: t('lang_canton') },
+                        { val: 'ZH', label: t('lang_zh') },
                     ].map(l => (
                         <Tag key={l.val} label={l.label} active={langs.includes(l.val)} onToggle={() => toggle(langs, setLangs, l.val)} />
                     ))}
                 </div>
 
-                <SectionLabel>Custom Search Request</SectionLabel>
+                <SectionLabel>{t('custom_search')}</SectionLabel>
                 <input
                     type="text"
                     value={prompt}
                     onChange={e => setPrompt(e.target.value)}
-                    placeholder="e.g. Looking for tech co-founder"
+                    placeholder={t('custom_search_placeholder')}
                     style={{
                         width: '100%', padding: 12, borderRadius: 10,
                         border: '1px solid var(--app-border)',
@@ -87,18 +82,15 @@ export default function SearchSettingsModal({ filters, onApply, onClose }) {
                     }}
                 />
 
-                {/* Active filter indicator */}
                 {hasActive && (
                     <div style={{
-                        background: 'rgba(0,122,255,0.05)',
-                        border: '0.5px solid rgba(0,122,255,0.15)',
-                        borderRadius: 12, padding: '10px 12px',
-                        fontSize: 12, color: '#0056b3', marginBottom: 16,
-                        display: 'flex', gap: 8, alignItems: 'flex-start',
+                        background: 'rgba(0,122,255,0.05)', border: '0.5px solid rgba(0,122,255,0.15)',
+                        borderRadius: 12, padding: '10px 12px', fontSize: 12, color: '#0056b3',
+                        marginBottom: 16, display: 'flex', gap: 8, alignItems: 'flex-start',
                     }}>
                         <span>🎯</span>
                         <div>
-                            <strong>Active search request:</strong><br />
+                            <strong>{t('active_search')}</strong><br />
                             {[
                                 regions.length > 0 && `Location: ${regions.join(', ')}`,
                                 langs.length > 0 && `Languages: ${langs.join(', ')}`,
@@ -110,21 +102,21 @@ export default function SearchSettingsModal({ filters, onApply, onClose }) {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <button className="btn-gradient" style={{ borderRadius: 14 }} onClick={handleApply}>
-                        Apply Filters
+                        {t('apply_filters')}
                     </button>
                     <button onClick={handleClear} style={{
                         width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
                         background: 'rgba(120,120,128,0.1)', color: '#ff3b30',
                         fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                     }}>
-                        Turn Off Filters
+                        {t('turn_off_filters')}
                     </button>
                     <button onClick={onClose} style={{
                         width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
                         background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)',
                         fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                     }}>
-                        Cancel
+                        {t('cancel')}
                     </button>
                 </div>
             </div>

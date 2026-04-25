@@ -1,8 +1,7 @@
-// ─── MatchCard — HTML: meetings.html → .card (found-block) ──────────────────
 import { useState, useEffect } from 'react'
 import { useApp } from '@/store/useAppStore'
 import { useTranslation } from 'react-i18next'
-import { explainMatch, generateMeetingQuestions } from '@/lib/aiUtils'
+import { explainMatch, generateMeetingQuestions, translateText } from '@/lib/aiUtils'
 
 export default function MatchCard({ match, onPost, onFeedback }) {
     const { partner, createdAt } = match
@@ -16,6 +15,31 @@ export default function MatchCard({ match, onPost, onFeedback }) {
     const [questions, setQuestions] = useState([])
     const [showQuestions, setShowQuestions] = useState(false)
     const [loadingAI, setLoadingAI] = useState(false)
+    const [translatedPartner, setTranslatedPartner] = useState(null)
+
+    // Auto-translate partner profile when language is zh
+    useEffect(() => {
+        if (!partner) return
+        if (lang !== 'zh') { setTranslatedPartner(null); return }
+        const cacheKey = `match_tr_${partner.id}`
+        try {
+            const cached = sessionStorage.getItem(cacheKey)
+            if (cached) { setTranslatedPartner(JSON.parse(cached)); return }
+        } catch { }
+        const translate = async () => {
+            const [about, gives, wants] = await Promise.all([
+                partner.about ? translateText(partner.about) : null,
+                partner.gives ? translateText(partner.gives) : null,
+                partner.wants ? translateText(partner.wants) : null,
+            ])
+            const result = { ...partner, about: about || partner.about, gives: gives || partner.gives, wants: wants || partner.wants }
+            setTranslatedPartner(result)
+            try { sessionStorage.setItem(cacheKey, JSON.stringify(result)) } catch { }
+        }
+        translate()
+    }, [partner?.id, lang])
+
+    const displayPartner = (lang === 'zh' && translatedPartner) ? translatedPartner : partner
 
     useEffect(() => {
         if (!partner || !profile?.gives || !profile?.wants) return
@@ -135,10 +159,10 @@ export default function MatchCard({ match, onPost, onFeedback }) {
             )}
 
             {/* About */}
-            {partner.about && (
+            {displayPartner.about && (
                 <InfoSection
                     label={lang === 'zh' ? '关于我' : 'About me'}
-                    text={partner.about}
+                    text={displayPartner.about}
                     borderColor="rgba(0,122,255,0.2)"
                     expanded={showAbout}
                     onToggle={() => setShowAbout(v => !v)}
@@ -146,10 +170,10 @@ export default function MatchCard({ match, onPost, onFeedback }) {
             )}
 
             {/* Gives */}
-            {partner.gives && (
+            {displayPartner.gives && (
                 <InfoSection
                     label={lang === 'zh' ? '能提供' : 'Can give'}
-                    text={partner.gives}
+                    text={displayPartner.gives}
                     borderColor="rgba(52,199,89,0.2)"
                     expanded={showGives}
                     onToggle={() => setShowGives(v => !v)}
@@ -157,10 +181,10 @@ export default function MatchCard({ match, onPost, onFeedback }) {
             )}
 
             {/* Wants */}
-            {partner.wants && (
+            {displayPartner.wants && (
                 <InfoSection
                     label={lang === 'zh' ? '想获得' : 'Wants to get'}
-                    text={partner.wants}
+                    text={displayPartner.wants}
                     borderColor="rgba(255,149,0,0.2)"
                     expanded={showWants}
                     onToggle={() => setShowWants(v => !v)}

@@ -16,6 +16,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
 import { supabase, confirmPayment } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
@@ -39,6 +40,7 @@ const PLANS = [
 ]
 
 export default function BuyCreditsModal({ onClose }) {
+    const { t } = useTranslation()
     const { user, setSubscription } = useApp()
     const [selected, setSelected] = useState(0)
     const [loading, setLoading] = useState(false)
@@ -151,10 +153,10 @@ export default function BuyCreditsModal({ onClose }) {
                 {step === 'select' && (
                     <>
                         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>
-                            Get Coffee Credits ☕
+                            {t('buy_credits_title')}
                         </div>
                         <p style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 16 }}>
-                            1 credit = 1 AI-matched meeting per week
+                            {t('buy_credits_hint')}
                         </p>
 
                         {/* Plan selector */}
@@ -182,7 +184,7 @@ export default function BuyCreditsModal({ onClose }) {
                                                 background: 'rgba(52,199,89,0.15)', color: '#34c759',
                                                 fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 8,
                                             }}>
-                                                {p.badge}
+                                                {t('best_value')}
                                             </span>
                                         )}
                                         <span style={{
@@ -210,84 +212,47 @@ export default function BuyCreditsModal({ onClose }) {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <button
-                                className="btn-gradient"
-                                style={{ borderRadius: 14 }}
-                                onClick={handlePay}
-                                disabled={loading}
-                            >
-                                Pay {plan.price}
+                            <button className="btn-gradient" style={{ borderRadius: 14 }} onClick={handlePay} disabled={loading}>
+                                {t('pay_btn')} {plan.price}
                             </button>
                             <button onClick={onClose} style={{
                                 width: '100%', padding: '13px 0', borderRadius: 14,
                                 border: 'none', background: 'rgba(120,120,128,0.1)',
                                 color: 'var(--app-text)', fontSize: 15, fontWeight: 700,
                                 cursor: 'pointer', fontFamily: 'inherit',
-                            }}>
-                                Cancel
-                            </button>
+                            }}>{t('cancel')}</button>
                         </div>
                     </>
                 )}
 
-                {/* ── Processing ── */}
                 {step === 'processing' && (
                     <>
-                        <div style={{
-                            width: 48, height: 48, borderRadius: '50%',
-                            border: '3px solid rgba(0,122,255,0.15)',
-                            borderTop: '3px solid var(--app-primary)',
-                            margin: '0 auto 20px',
-                            animation: 'spin 1s linear infinite',
-                        }} />
-                        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>
-                            Processing payment...
-                        </div>
-                        <div style={{ fontSize: 14, color: 'var(--app-hint)' }}>
-                            Please wait, do not close this window.
-                        </div>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid rgba(0,122,255,0.15)', borderTop: '3px solid var(--app-primary)', margin: '0 auto 20px', animation: 'spin 1s linear infinite' }} />
+                        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>{t('processing')}</div>
+                        <div style={{ fontSize: 14, color: 'var(--app-hint)' }}>{t('processing_hint')}</div>
                         <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
                     </>
                 )}
 
-                {/* ── Success ── */}
                 {step === 'success' && (
                     <>
                         <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>
-                            Payment Successful!
-                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>{t('payment_success')}</div>
                         <div style={{ fontSize: 14, color: 'var(--app-hint)', marginBottom: 24, lineHeight: 1.5 }}>
-                            {plan.credits} coffee credits added to your account.
+                            {plan.credits} {t('payment_success_hint')}
                         </div>
-                        <button className="btn-gradient" style={{ borderRadius: 14 }} onClick={onClose}>
-                            Start Matching 🚀
-                        </button>
+                        <button className="btn-gradient" style={{ borderRadius: 14 }} onClick={onClose}>{t('start_matching')}</button>
                     </>
                 )}
 
-                {/* ── Error ── */}
                 {step === 'error' && (
                     <>
                         <div style={{ fontSize: 56, marginBottom: 16 }}>😔</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>
-                            Payment Failed
-                        </div>
-                        <div style={{ fontSize: 14, color: 'var(--app-hint)', marginBottom: 24, lineHeight: 1.5 }}>
-                            {errorMsg || 'Something went wrong. Please try again.'}
-                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>{t('payment_failed')}</div>
+                        <div style={{ fontSize: 14, color: 'var(--app-hint)', marginBottom: 24, lineHeight: 1.5 }}>{errorMsg}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <button className="btn-gradient" style={{ borderRadius: 14 }} onClick={() => setStep('select')}>
-                                Try Again
-                            </button>
-                            <button onClick={onClose} style={{
-                                width: '100%', padding: '13px 0', borderRadius: 14,
-                                border: 'none', background: 'rgba(120,120,128,0.1)',
-                                color: 'var(--app-text)', fontSize: 15, fontWeight: 700,
-                                cursor: 'pointer', fontFamily: 'inherit',
-                            }}>
-                                Cancel
-                            </button>
+                            <button className="btn-gradient" style={{ borderRadius: 14 }} onClick={() => setStep('select')}>{t('try_again')}</button>
+                            <button onClick={onClose} style={{ width: '100%', padding: '13px 0', borderRadius: 14, border: 'none', background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{t('cancel')}</button>
                         </div>
                     </>
                 )}

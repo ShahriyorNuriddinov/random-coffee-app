@@ -1,10 +1,12 @@
 // HTML: meetings.html → #modal-feedback
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
 export default function FeedbackModal({ onClose, onPost, matchId }) {
+    const { t } = useTranslation()
     const { user } = useApp()
     const [step, setStep] = useState('initial')
     const [rating, setRating] = useState(null)
@@ -49,7 +51,7 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
     const handleSaveFail = async () => {
         await saveFeedback({ status: 'fail', reason: failReason })
         onClose()
-        toast.success('Feedback sent. Thank you!')
+        toast.success(t('send') + ' ✓')
     }
 
     const RadioBtn = ({ label, active, onClick }) => (
@@ -83,15 +85,15 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
                 {step === 'initial' && (
                     <>
                         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 16 }}>
-                            How did the meeting go?
+                            {t('feedback_went')}
                         </div>
-                        <RadioBtn label="The meeting took place 🤝" onClick={() => setStep('success')} />
-                        <RadioBtn label="Something went wrong / Cancelled ❌" onClick={() => setStep('fail')} />
+                        <RadioBtn label={t('feedback_took_place')} onClick={() => setStep('success')} />
+                        <RadioBtn label={t('feedback_cancelled')} onClick={() => setStep('fail')} />
                         <button onClick={onClose} style={{
                             width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
                             background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)',
                             fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8,
-                        }}>Cancel</button>
+                        }}>{t('cancel')}</button>
                     </>
                 )}
 
@@ -99,7 +101,7 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
                 {step === 'success' && (
                     <>
                         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 12 }}>
-                            Rate the meeting
+                            {t('rate_meeting')}
                         </div>
                         <div style={{ textAlign: 'left', marginBottom: 12 }}>
                             {RATINGS.map(r => (
@@ -108,12 +110,12 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
                         </div>
                         <div style={{ textAlign: 'left', marginTop: 12 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, color: 'var(--app-hint)' }}>
-                                Add a note (optional)
+                                {t('add_note')}
                             </div>
                             <textarea
                                 value={note}
                                 onChange={e => setNote(e.target.value)}
-                                placeholder="Write down your thoughts about the meeting..."
+                                placeholder={t('note_placeholder')}
                                 rows={3}
                                 style={{
                                     width: '100%', padding: 12, borderRadius: 10,
@@ -124,22 +126,18 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
                                 }}
                             />
                             <div style={{ fontSize: 11, color: 'var(--app-hint)', marginTop: 6 }}>
-                                This note will only be visible to you.
+                                {t('note_private')}
                             </div>
                         </div>
-                        <button
-                            className="btn-gradient"
-                            style={{ borderRadius: 14, marginTop: 12 }}
-                            onClick={handleSaveSuccess}
-                            disabled={saving}
-                        >
-                            {saving ? '...' : 'Save'}
+                        <button className="btn-gradient" style={{ borderRadius: 14, marginTop: 12 }}
+                            onClick={handleSaveSuccess} disabled={saving}>
+                            {saving ? '...' : t('save')}
                         </button>
                         <button onClick={onClose} style={{
                             width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
                             background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)',
                             fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8,
-                        }}>Cancel</button>
+                        }}>{t('cancel')}</button>
                     </>
                 )}
 
@@ -147,7 +145,7 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
                 {step === 'fail' && (
                     <>
                         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 12 }}>
-                            What went wrong?
+                            {t('what_went_wrong')}
                         </div>
                         <div style={{ textAlign: 'left' }}>
                             {FAIL_REASONS.map(r => (
@@ -155,21 +153,17 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
                             ))}
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--app-hint)', margin: '12px 0', textAlign: 'center' }}>
-                            No one will see your answers. We use this to improve AI matching.
+                            {t('feedback_private')}
                         </div>
-                        <button
-                            className="btn-gradient"
-                            style={{ borderRadius: 14 }}
-                            onClick={handleSaveFail}
-                            disabled={saving || !failReason}
-                        >
-                            {saving ? '...' : 'Send'}
+                        <button className="btn-gradient" style={{ borderRadius: 14 }}
+                            onClick={handleSaveFail} disabled={saving || !failReason}>
+                            {saving ? '...' : t('send')}
                         </button>
                         <button onClick={onClose} style={{
                             width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
                             background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)',
                             fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8,
-                        }}>Cancel</button>
+                        }}>{t('cancel')}</button>
                     </>
                 )}
 
@@ -178,20 +172,20 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
                     <>
                         <div style={{ fontSize: 40, marginBottom: 10 }}>🎉</div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>
-                            Meeting Confirmed!
+                            {t('meeting_confirmed')}
                         </div>
                         <div style={{ fontSize: 13, color: 'var(--app-hint)', lineHeight: 1.4, marginBottom: 20 }}>
-                            Share your experience in Moments and earn +1 ☕!
+                            {t('meeting_confirmed_hint')}
                         </div>
                         <button className="btn-gradient" style={{ borderRadius: 14, marginBottom: 8 }}
                             onClick={() => { onClose(); onPost?.() }}>
-                            Write a Post (+1 ☕)
+                            {t('write_post')}
                         </button>
                         <button onClick={onClose} style={{
                             width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
                             background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)',
                             fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                        }}>Skip</button>
+                        }}>{t('skip')}</button>
                     </>
                 )}
             </div>

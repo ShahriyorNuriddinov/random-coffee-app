@@ -1,11 +1,13 @@
 // ─── NewMomentModal — HTML shablon: moments.html → #addPostModal ─────────────
 
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
 import { postMoment, uploadMomentImage, supabase } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
 export default function NewMomentModal({ onClose, onPosted }) {
+    const { t } = useTranslation()
     const { user, subscription, setSubscription } = useApp()
     const [text, setText] = useState('')
     const [imageFile, setImageFile] = useState(null)
@@ -86,24 +88,23 @@ export default function NewMomentModal({ onClose, onPosted }) {
                 </div>
 
                 <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 8, color: 'var(--app-text)', letterSpacing: -0.4 }}>
-                    Share Your Story
+                    {t('share_story')}
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20, textAlign: 'left' }}>
-                    Share your coffee meeting experience.
+                    {t('share_story_hint')}
                     <div style={{
                         background: 'rgba(0,122,255,0.06)', borderRadius: 10,
                         padding: '10px 12px', border: '0.5px solid rgba(0,122,255,0.1)',
                         marginTop: 10, fontWeight: 500, color: '#0055b3',
                     }}>
-                        🎉 Your post earns you <strong>+1 coffee cup</strong> after moderation!
+                        {t('post_credit_hint')}
                     </div>
                 </div>
 
-                {/* Text input */}
                 <textarea
                     value={text}
                     onChange={e => setText(e.target.value)}
-                    placeholder="How was your meeting? Share your experience..."
+                    placeholder={t('write_something')}
                     rows={4}
                     style={{
                         width: '100%', padding: 12, borderRadius: 12,
@@ -138,43 +139,31 @@ export default function NewMomentModal({ onClose, onPosted }) {
                     </div>
                 )}
 
-                {/* Add photo */}
                 {!imagePreview && (
-                    <button
-                        onClick={() => fileRef.current.click()}
-                        style={{
-                            width: '100%', padding: '11px 0', borderRadius: 12,
-                            border: '0.5px dashed var(--app-border)',
-                            background: 'transparent', color: 'var(--app-hint)',
-                            fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                            fontFamily: 'inherit', marginBottom: 12,
-                        }}
-                    >
-                        📷 Add Photo
+                    <button onClick={() => fileRef.current.click()} style={{
+                        width: '100%', padding: '11px 0', borderRadius: 12,
+                        border: '0.5px dashed var(--app-border)',
+                        background: 'transparent', color: 'var(--app-hint)',
+                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                        fontFamily: 'inherit', marginBottom: 12,
+                    }}>
+                        {t('add_photo')}
                     </button>
                 )}
                 <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
 
-                {/* Post button */}
-                <button
-                    onClick={handlePost}
-                    disabled={loading || !text.trim()}
-                    className="btn-gradient"
-                    style={{ borderRadius: 14, marginBottom: 8 }}
-                >
-                    {loading ? '...' : 'Post'}
+                <button onClick={handlePost} disabled={loading || !text.trim()}
+                    className="btn-gradient" style={{ borderRadius: 14, marginBottom: 8 }}>
+                    {loading ? '...' : t('post_btn')}
                 </button>
 
-                <button
-                    onClick={onClose}
-                    style={{
-                        width: '100%', padding: '13px 0', borderRadius: 14,
-                        border: 'none', background: 'rgba(120,120,128,0.1)',
-                        color: 'var(--app-text)', fontSize: 15, fontWeight: 600,
-                        cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                >
-                    Cancel
+                <button onClick={onClose} style={{
+                    width: '100%', padding: '13px 0', borderRadius: 14,
+                    border: 'none', background: 'rgba(120,120,128,0.1)',
+                    color: 'var(--app-text)', fontSize: 15, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                    {t('cancel')}
                 </button>
             </div>
         </div>

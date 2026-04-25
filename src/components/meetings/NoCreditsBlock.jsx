@@ -1,5 +1,8 @@
 // HTML: meetings.html → #no-cups-content
+import { useTranslation } from 'react-i18next'
+
 export default function NoCreditsBlock({ onTopUp }) {
+    const { t } = useTranslation()
     return (
         <div style={{
             background: 'var(--app-card)', borderRadius: 20,
@@ -8,10 +11,10 @@ export default function NoCreditsBlock({ onTopUp }) {
         }}>
             <div style={{ fontSize: 50, marginBottom: 16 }}>😔</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>
-                No Cups Left!
+                {t('no_cups_title')}
             </div>
             <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.4, marginBottom: 20 }}>
-                We have paused your search. Please top up your balance to continue using the service and discovering new connections.
+                {t('no_cups_hint')}
             </div>
             <button onClick={onTopUp} style={{
                 width: '100%', padding: 14, borderRadius: 14, border: 'none',
@@ -19,7 +22,7 @@ export default function NoCreditsBlock({ onTopUp }) {
                 color: '#fff', fontSize: 14, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'inherit',
             }}>
-                Top Up Balance
+                {t('topup_balance')}
             </button>
         </div>
     )
