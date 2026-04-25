@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n'
 import { useApp } from '@/store/useAppStore'
 import { postMoment, uploadMomentImage, supabase } from '@/lib/supabaseClient'
+import { translateText } from '@/lib/aiUtils'
 import toast from 'react-hot-toast'
 
 // Compress image to max 800px and ~200KB
@@ -58,7 +60,21 @@ export default function NewMomentModal({ onClose, onPosted }) {
             imageUrl = await uploadMomentImage(user.id, images[0].file)
         }
 
-        const result = await postMoment(user.id, text.trim(), imageUrl)
+        const trimmedText = text.trim()
+        const currentLang = i18n.language // 'en' or 'zh'
+
+        let text_en = null
+        let text_zh = null
+        if (currentLang === 'zh') {
+            text_zh = trimmedText
+            text_en = await translateText(trimmedText, 'en').catch((e) => { console.error('[translate zh→en]', e); return null })
+        } else {
+            text_en = trimmedText
+            text_zh = await translateText(trimmedText, 'zh').catch((e) => { console.error('[translate en→zh]', e); return null })
+        }
+        console.log('[moment] lang:', currentLang, '| text_en:', text_en, '| text_zh:', text_zh)
+
+        const result = await postMoment(user.id, trimmedText, imageUrl, text_en, text_zh)
         setLoading(false)
 
         if (result) {

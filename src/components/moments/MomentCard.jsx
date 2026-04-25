@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useApp } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
+import i18n from '@/i18n'
 import toast from 'react-hot-toast'
 
 const QUICK_REACTIONS = ['👍', '❤️', '🔥', '🎉', '👏']
@@ -26,6 +27,12 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
     const author = moment.author || {}
     const isOwn = user?.id && author.id === user.id
     const isOfficial = author.name === 'Random Coffee Team' || author.name === 'MaGollz Team'
+
+    // Show translated text if available in DB, else fall back to AI translate on demand
+    const currentLang = i18n.language // 'en' or 'zh'
+    const dbTranslation = currentLang === 'zh' ? moment.text_zh : moment.text_en
+    // If DB already has translation for current lang and it differs from original text, show it directly
+    const autoTranslated = dbTranslation && dbTranslation !== moment.text ? dbTranslation : null
 
     const timeAgo = (dateStr) => {
         const diff = Date.now() - new Date(dateStr).getTime()
@@ -107,10 +114,13 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
 
     const handleTranslate = async () => {
         if (translated) { setTranslated(false); return }
+        // Use pre-translated text from DB if available
+        if (autoTranslated) { setTranslatedText(autoTranslated); setTranslated(true); return }
         if (translatedText) { setTranslated(true); return }
         setTranslating(true)
         try {
-            const result = await translateText(moment.text, 'zh')
+            const targetLang = currentLang === 'zh' ? 'en' : 'zh'
+            const result = await translateText(moment.text, targetLang)
             if (result) {
                 setTranslatedText(result)
                 setTranslated(true)

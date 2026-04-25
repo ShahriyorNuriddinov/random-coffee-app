@@ -90,7 +90,10 @@ export default function MomentsScreen() {
             })
             .subscribe()
 
-        return () => { supabase.removeChannel(channel) }
+        // Fallback polling every 15s in case realtime is not enabled on moment_likes
+        const pollInterval = setInterval(() => reloadReactions(), 15000)
+
+        return () => { supabase.removeChannel(channel); clearInterval(pollInterval) }
     }, [user?.id])
 
     const load = async () => {

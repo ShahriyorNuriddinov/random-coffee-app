@@ -268,11 +268,11 @@ export const getMoments = async (limit = 30) => {
     return moments
 }
 
-export const postMoment = async (userId, text, imageUrl = null) => {
+export const postMoment = async (userId, text, imageUrl = null, text_en = null, text_zh = null) => {
     const { data, error } = await supabase
         .from('moments')
-        .insert({ user_id: userId, text, image_url: imageUrl })
-        .select(`id, text, image_url, likes_count, created_at, author:user_id(id, name, avatar_url, region)`)
+        .insert({ user_id: userId, text, image_url: imageUrl, text_en, text_zh })
+        .select(`id, text, text_en, text_zh, image_url, likes_count, created_at, author:user_id(id, name, avatar_url, region)`)
         .single()
     if (error) return null
     return data
