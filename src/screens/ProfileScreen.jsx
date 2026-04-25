@@ -28,7 +28,10 @@ export default function ProfileScreen() {
     const effectiveStatus = subscription.status === 'active' && (subscription.credits ?? 0) === 0 ? 'empty' : subscription.status
     const sub = SUB_CONFIG[effectiveStatus] || SUB_CONFIG.trial
     const subDesc = typeof sub.desc === 'function' ? sub.desc(subscription.credits) : sub.desc
-    const regionFlag = profile.region === 'Macau' ? '🇲🇴' : profile.region === 'Mainland China' ? '🇨🇳' : '🇭🇰'
+    const regionFlag = profile.region === 'Macau' ? '🇲🇴'
+        : profile.region === 'Mainland' ? '🇨🇳'
+            : profile.region === 'Other' ? '🌍'
+                : '🇭🇰'
 
     const handleToggleNotif = async (type) => {
         const newMatches = type === 'matches' ? !notifNewMatches : notifNewMatches
@@ -47,7 +50,12 @@ export default function ProfileScreen() {
                 <div className="screen-content" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
 
                     <PhotoGrid
-                        photos={profile.photos}
+                        photos={(() => {
+                            const p = Array.isArray(profile.photos) ? [...profile.photos, null, null, null, null].slice(0, 4) : [null, null, null, null]
+                            // If photos[0] is empty but avatar exists, show avatar there
+                            if (!p[0] && profile.avatar) p[0] = profile.avatar
+                            return p
+                        })()}
                         userId={user?.id}
                         onPhotosChange={(photos) => setProfile(p => ({ ...p, photos }))}
                     />

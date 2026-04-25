@@ -69,7 +69,9 @@ export default function MatchCard({ match, onPost, onFeedback }) {
     if (!partner) return null
 
     const regionFlag = partner.region === 'Macau' ? '🇲🇴'
-        : partner.region === 'Mainland China' ? '🇨🇳' : '🇭🇰'
+        : partner.region === 'Mainland' ? '🇨🇳'
+            : partner.region === 'Other' ? '�'
+                : '🇭🇰'
 
     const dateStr = new Date(createdAt).toLocaleDateString('en-GB', {
         day: 'numeric', month: 'short', year: 'numeric',

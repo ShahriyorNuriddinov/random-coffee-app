@@ -63,15 +63,13 @@ export default function ProfileEditScreen() {
         const publicUrl = await uploadAvatar(user?.id || 'mock', file)
         if (publicUrl) {
             setAvatar(publicUrl)
-            // Also set as first photo if photos array is empty
-            const currentPhotos = Array.isArray(profile.photos) ? profile.photos : [null, null, null, null]
-            if (!currentPhotos[0]) {
-                const updatedPhotos = [...currentPhotos]
-                updatedPhotos[0] = publicUrl
-                setProfile(p => ({ ...p, photos: updatedPhotos }))
-                const { savePhotos } = await import('@/lib/supabaseClient')
-                await savePhotos(user?.id || 'mock', updatedPhotos)
-            }
+            // Always set avatar as first photo slot
+            const currentPhotos = Array.isArray(profile.photos) ? [...profile.photos] : [null, null, null, null]
+            const updatedPhotos = [...currentPhotos]
+            updatedPhotos[0] = publicUrl
+            setProfile(p => ({ ...p, avatar: publicUrl, photos: updatedPhotos }))
+            const { savePhotos } = await import('@/lib/supabaseClient')
+            await savePhotos(user?.id || 'mock', updatedPhotos)
         }
     }
 

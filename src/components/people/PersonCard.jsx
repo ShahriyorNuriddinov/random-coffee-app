@@ -3,7 +3,9 @@ import { useState } from 'react'
 
 export default function PersonCard({ person, liked, onLike, onOpen }) {
     const regionFlag = person.region === 'Macau' ? '🇲🇴'
-        : person.region === 'Mainland China' ? '🇨🇳' : '🇭🇰'
+        : person.region === 'Mainland' ? '🇨🇳'
+            : person.region === 'Other' ? '🌍'
+                : '🇭🇰'
 
     const tags = Array.isArray(person.tags) ? person.tags.slice(0, 3) : []
     const langs = Array.isArray(person.languages) ? person.languages : []

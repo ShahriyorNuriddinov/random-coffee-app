@@ -35,6 +35,7 @@ export default function NewMomentModal({ onClose, onPosted }) {
     const [images, setImages] = useState([]) // max 4
     const [loading, setLoading] = useState(false)
     const fileRef = useRef()
+    const currentLang = i18n.language // 'en' or 'zh'
 
     const handleImage = async (e) => {
         const files = Array.from(e.target.files || [])
@@ -61,7 +62,7 @@ export default function NewMomentModal({ onClose, onPosted }) {
         }
 
         const trimmedText = text.trim()
-        const currentLang = i18n.language // 'en' or 'zh'
+        // currentLang already declared at component level
 
         let text_en = null
         let text_zh = null
@@ -112,7 +113,9 @@ export default function NewMomentModal({ onClose, onPosted }) {
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 16, textAlign: 'left', width: '100%' }}>
                     <div style={{ background: 'rgba(0,122,255,0.06)', borderRadius: 10, padding: '10px 12px', border: '0.5px solid rgba(0,122,255,0.1)', fontWeight: 500, color: '#0055b3' }}>
-                        ☕ Share your coffee meeting experience. Each post earns you <strong>+1 credit</strong>!
+                        ☕ {currentLang === 'zh'
+                            ? '每次完成咖啡约见后，您可以在这里分享体验并获得 +1 积分！'
+                            : 'After each coffee meeting you can share your experience here and earn +1 credit!'}
                     </div>
                 </div>
 

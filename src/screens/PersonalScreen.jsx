@@ -14,10 +14,10 @@ export default function PersonalScreen() {
     const { setScreen, profile, setProfile, user } = useApp()
 
     const REGIONS = [
-        { value: 'Hong Kong', labelKey: 'region_hk' },
-        { value: 'Macau', labelKey: 'region_mo' },
-        { value: 'Mainland', labelKey: 'region_cn' },
-        { value: 'Other', labelKey: 'region_other' },
+        { value: 'Hong Kong', label: '🇭🇰 HK' },
+        { value: 'Macau', label: '🇲🇴 Macau' },
+        { value: 'Mainland', label: '🇨🇳 Mainland' },
+        { value: 'Other', label: '🌍 Other' },
     ]
 
     const [name, setName] = useState(profile.name)
@@ -121,7 +121,7 @@ export default function PersonalScreen() {
                                         borderBottom: i < REGIONS.length - 1 ? '0.5px solid var(--app-border)' : 'none',
                                     }}
                                 >
-                                    <span>{t(r.labelKey)}</span>
+                                    <span>{r.label}</span>
                                     <span style={{ color: 'var(--app-primary)', fontWeight: 700, opacity: region === r.value ? 1 : 0 }}>✓</span>
                                 </div>
                             ))}

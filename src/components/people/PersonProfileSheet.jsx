@@ -25,7 +25,9 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
     const [translating, setTranslating] = useState(false)
 
     const regionFlag = person.region === 'Macau' ? '🇲🇴'
-        : person.region === 'Mainland China' ? '🇨🇳' : '🇭🇰'
+        : person.region === 'Mainland' ? '🇨🇳'
+            : person.region === 'Other' ? '🌍'
+                : '🇭🇰'
 
     const map = { '30_70': [30, 70], '50_50': [50, 50], '70_30': [70, 30] }
     const [fun, ben] = map[person.balance] || [50, 50]
