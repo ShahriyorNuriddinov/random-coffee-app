@@ -105,6 +105,27 @@ export function AppProvider({ children }) {
         if (!user?.id) return
         userRef.current = user
 
+        // Listen for profile changes (credits, subscription_status)
+        const profileChannel = supabase
+            .channel('profile_rt_' + user.id)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'profiles',
+                filter: `id=eq.${user.id}`,
+            }, (payload) => {
+                const db = payload.new
+                if (db.coffee_credits !== undefined) {
+                    setSubscription({
+                        status: db.subscription_status || 'trial',
+                        credits: db.coffee_credits ?? 0,
+                        start: db.subscription_start || null,
+                        end: db.subscription_end || null,
+                    })
+                }
+            })
+            .subscribe()
+
         const channel = supabase
             .channel('matches_rt_' + user.id)
             .on('postgres_changes', {
@@ -117,7 +138,6 @@ export function AppProvider({ children }) {
                 if (!uid) return
                 if (m.user1_id !== uid && m.user2_id !== uid) return
 
-                // Get partner info
                 const partnerId = m.user1_id === uid ? m.user2_id : m.user1_id
                 const { data: partner } = await supabase
                     .from('profiles').select('name').eq('id', partnerId).maybeSingle()
@@ -133,7 +153,7 @@ export function AppProvider({ children }) {
             })
             .subscribe()
 
-        return () => { supabase.removeChannel(channel) }
+        return () => { supabase.removeChannel(profileChannel); supabase.removeChannel(channel) }
     }, [user?.id])
 
     const loginUser = (userData, phoneNum, code) => {
