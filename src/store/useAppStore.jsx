@@ -67,47 +67,10 @@ export function AppProvider({ children }) {
 
     // ── On app start: restore session from Supabase Auth ─────────
     useEffect(() => {
-        let settled = false
-
-        const settle = () => {
-            if (!settled) {
-                settled = true
-                setSessionLoading(false)
-            }
-        }
-
-        // Listen for auth state changes first
-        const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'INITIAL_SESSION') {
-                try {
-                    if (session?.user) {
-                        const uid = session.user.id
-                        const email = session.user.email
-                        const db = await getProfile(uid)
-                        if (db && db.name) {
-                            const u = { id: uid, email }
-                            setUser(u)
-                            userRef.current = u
-                            setProfile(dbToProfile(db))
-                            setSubscription({
-                                status: db.subscription_status || 'trial',
-                                credits: db.coffee_credits ?? 2,
-                                start: db.subscription_start || null,
-                                end: db.subscription_end || null,
-                            })
-                            setNotifNewMatches(db.notif_new_matches ?? true)
-                            setNotifImportantNews(db.notif_important_news ?? true)
-                            setProfileWelcomeSeen(true)
-                            setScreen('profile')
-                        } else {
-                            setUser({ id: uid, email })
-                            setScreen('personal')
-                        }
-                    }
-                } catch { /* silent */ }
-                finally { settle() }
-            } else if (event === 'SIGNED_IN' && session?.user) {
-                try {
+        const restore = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
                     const uid = session.user.id
                     const email = session.user.email
                     const db = await getProfile(uid)
@@ -122,26 +85,19 @@ export function AppProvider({ children }) {
                             start: db.subscription_start || null,
                             end: db.subscription_end || null,
                         })
+                        setNotifNewMatches(db.notif_new_matches ?? true)
+                        setNotifImportantNews(db.notif_important_news ?? true)
                         setProfileWelcomeSeen(true)
                         setScreen('profile')
+                    } else {
+                        setUser({ id: uid, email })
+                        setScreen('personal')
                     }
-                } catch { /* silent */ }
-                finally { settle() }
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null)
-                userRef.current = null
-                setScreen('onboarding')
-                settle()
-            }
-        })
-
-        // Fallback: if onAuthStateChange never fires, unblock after 3s
-        const fallback = setTimeout(settle, 3000)
-
-        return () => {
-            authSub?.unsubscribe()
-            clearTimeout(fallback)
+                }
+            } catch { /* silent */ }
+            finally { setSessionLoading(false) }
         }
+        restore()
     }, [])
 
     // ── Real-time: notify when new match arrives ──────────────────
