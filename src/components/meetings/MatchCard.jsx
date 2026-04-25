@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '@/store/useAppStore'
 import { useTranslation } from 'react-i18next'
 import { explainMatch, generateMeetingQuestions, translateProfile } from '@/lib/aiUtils'
@@ -15,39 +15,42 @@ export default function MatchCard({ match, onPost, onFeedback }) {
     const [questions, setQuestions] = useState([])
     const [showQuestions, setShowQuestions] = useState(false)
     const [loadingAI, setLoadingAI] = useState(false)
-    const [translatedPartner, setTranslatedPartner] = useState(null)
+    const [aiTranslated, setAiTranslated] = useState(null)
 
-    // Auto-translate partner profile when language is zh
-    useEffect(() => {
-        if (!partner) return
-        if (lang !== 'zh') { setTranslatedPartner(null); return }
-
-        // Use DB translations first
+    // displayPartner: use DB _zh fields directly, no async needed
+    const displayPartner = useMemo(() => {
+        if (!partner) return partner
+        if (lang !== 'zh') return partner
+        // DB has translations
         if (partner.about_zh || partner.gives_zh || partner.wants_zh) {
-            setTranslatedPartner({
+            return {
                 ...partner,
                 about: partner.about_zh || partner.about,
                 gives: partner.gives_zh || partner.gives,
                 wants: partner.wants_zh || partner.wants,
-            })
-            return
+            }
         }
+        // AI translated fallback
+        if (aiTranslated) return aiTranslated
+        return partner
+    }, [partner, lang, aiTranslated])
 
-        // Fallback: AI translation
+    // Only call AI if DB translations missing
+    useEffect(() => {
+        if (!partner || lang !== 'zh') { setAiTranslated(null); return }
+        if (partner.about_zh || partner.gives_zh || partner.wants_zh) return // DB has it
         const cacheKey = `match_tr_${partner.id}`
         try {
             const cached = sessionStorage.getItem(cacheKey)
-            if (cached) { setTranslatedPartner(JSON.parse(cached)); return }
+            if (cached) { setAiTranslated(JSON.parse(cached)); return }
         } catch { }
-        const translate = async () => {
-            const result = await translateProfile(partner, 'zh')
-            setTranslatedPartner(result)
-            try { sessionStorage.setItem(cacheKey, JSON.stringify(result)) } catch { }
-        }
-        translate()
+        translateProfile(partner, 'zh').then(result => {
+            if (result) {
+                setAiTranslated(result)
+                try { sessionStorage.setItem(cacheKey, JSON.stringify(result)) } catch { }
+            }
+        })
     }, [partner?.id, lang])
-
-    const displayPartner = (lang === 'zh' && translatedPartner) ? translatedPartner : partner
 
     if (!partner) return null
 
