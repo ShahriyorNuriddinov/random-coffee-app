@@ -235,13 +235,17 @@ function PhotoGrid({ photos, userId, onPhotosChange }) {
             const file = e.target.files[0]
             if (!file) return
             const localUrl = URL.createObjectURL(file)
-            const next = [...normalized]
+            // Use fresh normalized array
+            const fresh = Array.isArray(photos)
+                ? [...photos, null, null, null, null].slice(0, 4)
+                : [null, null, null, null]
+            const next = [...fresh]
             next[index] = localUrl
             onPhotosChange(next)
             if (userId) {
                 const publicUrl = await uploadPhoto(userId, file, index)
                 if (publicUrl) {
-                    const updated = [...normalized]
+                    const updated = [...fresh]
                     updated[index] = publicUrl
                     onPhotosChange(updated)
                     await savePhotos(userId, updated)

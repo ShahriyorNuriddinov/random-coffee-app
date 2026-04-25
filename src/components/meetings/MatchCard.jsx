@@ -28,9 +28,9 @@ export default function MatchCard({ match, onPost, onFeedback }) {
         } catch { }
         const translate = async () => {
             const [about, gives, wants] = await Promise.all([
-                partner.about ? translateText(partner.about) : null,
-                partner.gives ? translateText(partner.gives) : null,
-                partner.wants ? translateText(partner.wants) : null,
+                partner.about ? translateText(partner.about, 'zh') : null,
+                partner.gives ? translateText(partner.gives, 'zh') : null,
+                partner.wants ? translateText(partner.wants, 'zh') : null,
             ])
             const result = { ...partner, about: about || partner.about, gives: gives || partner.gives, wants: wants || partner.wants }
             setTranslatedPartner(result)

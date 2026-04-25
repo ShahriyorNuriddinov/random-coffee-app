@@ -49,9 +49,9 @@ export default function PeopleScreen() {
         try {
             const translated = await Promise.all(list.map(async (p) => {
                 const [about, gives, wants] = await Promise.all([
-                    p.about ? translateText(p.about) : null,
-                    p.gives ? translateText(p.gives) : null,
-                    p.wants ? translateText(p.wants) : null,
+                    p.about ? translateText(p.about, 'zh') : null,
+                    p.gives ? translateText(p.gives, 'zh') : null,
+                    p.wants ? translateText(p.wants, 'zh') : null,
                 ])
                 return { ...p, about: about || p.about, gives: gives || p.gives, wants: wants || p.wants }
             }))

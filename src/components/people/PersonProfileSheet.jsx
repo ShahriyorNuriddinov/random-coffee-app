@@ -1,6 +1,7 @@
 // ─── PersonProfileSheet — bottom sheet modal ─────────────────────────────────
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Pagination, Navigation } from 'swiper/modules'
 import 'swiper/css'
@@ -10,6 +11,8 @@ import { translateText } from '@/lib/aiUtils'
 import toast from 'react-hot-toast'
 
 export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
+    const { i18n } = useTranslation()
+    const targetLang = i18n.language === 'zh' ? 'zh' : 'en'
     const tags = Array.isArray(person.tags) ? person.tags : []
     const langs = Array.isArray(person.languages) ? person.languages : []
     const photos = Array.isArray(person.photos) ? person.photos.filter(Boolean) : []
@@ -33,9 +36,9 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
         setTranslating(true)
         try {
             const [about, gives, wants] = await Promise.all([
-                person.about ? translateText(person.about) : null,
-                person.gives ? translateText(person.gives) : null,
-                person.wants ? translateText(person.wants) : null,
+                person.about ? translateText(person.about, targetLang) : null,
+                person.gives ? translateText(person.gives, targetLang) : null,
+                person.wants ? translateText(person.wants, targetLang) : null,
             ])
             setTranslatedData({ about, gives, wants })
             setTranslated(true)

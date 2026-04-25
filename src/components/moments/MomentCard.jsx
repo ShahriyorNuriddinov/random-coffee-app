@@ -110,7 +110,7 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
         if (translatedText) { setTranslated(true); return }
         setTranslating(true)
         try {
-            const result = await translateText(moment.text)
+            const result = await translateText(moment.text, 'zh')
             if (result) {
                 setTranslatedText(result)
                 setTranslated(true)

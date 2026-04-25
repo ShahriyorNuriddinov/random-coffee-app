@@ -94,9 +94,12 @@ Wants: ${wants}`
 }
 
 // ─── Translation ──────────────────────────────────────────────────────────────
-export async function translateText(text) {
-    const prompt = `Translate to English (if already English, translate to Chinese). Return ONLY the translation:\n\n${text}`
-    return await callAI(prompt, 200)
+export async function translateText(text, targetLang = 'zh') {
+    const instruction = targetLang === 'zh'
+        ? 'Translate the following text to Simplified Chinese. Return ONLY the translation, no explanation.'
+        : 'Translate the following text to English. Return ONLY the translation, no explanation.'
+    const prompt = `${instruction}\n\n${text}`
+    return await callAI(prompt, 300)
 }
 
 // ─── Fallback keyword extraction ──────────────────────────────────────────────

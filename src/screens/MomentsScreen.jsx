@@ -36,7 +36,7 @@ export default function MomentsScreen() {
         } catch { }
 
         const translated = await Promise.all(list.map(async (m) => {
-            const text = await translateText(m.text)
+            const text = await translateText(m.text, 'zh')
             return { ...m, text: text || m.text }
         }))
         setDisplayMoments(translated)
