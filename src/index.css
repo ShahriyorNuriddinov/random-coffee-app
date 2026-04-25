@@ -77,6 +77,7 @@
   body,
   #root {
     height: 100%;
+    height: 100dvh;
     width: 100%;
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
@@ -93,7 +94,9 @@
 .app-screen {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--app-bg);
@@ -412,31 +415,37 @@
 .swiper {
   width: 100%;
 }
+
 .swiper-slide {
   overflow: hidden;
 }
+
 .swiper-button-next,
 .swiper-button-prev {
   width: 32px !important;
   height: 32px !important;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0, 0, 0, 0.45);
   border-radius: 50%;
   color: #fff !important;
 }
+
 .swiper-button-next::after,
 .swiper-button-prev::after {
   font-size: 14px !important;
   font-weight: 700;
 }
+
 .swiper-pagination-bullet {
-  background: rgba(255,255,255,0.6) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
   opacity: 1 !important;
 }
+
 .swiper-pagination-bullet-active {
   background: #fff !important;
   width: 16px !important;
   border-radius: 4px !important;
 }
+
 /* Hide scrollbar inside swiper */
 .swiper-wrapper {
   scrollbar-width: none;
