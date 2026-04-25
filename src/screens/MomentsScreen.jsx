@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import MomentCard from '@/components/moments/MomentCard'
 import NewMomentModal from '@/components/moments/NewMomentModal'
-import { getMoments, getUserMomentReaction, getMeetingHistory, supabase } from '@/lib/supabaseClient'
+import { getMoments, getUserMomentReaction, getUserMomentReactions, getMeetingHistory, supabase } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
 export default function MomentsScreen() {
     const { t, i18n } = useTranslation()
@@ -54,25 +54,28 @@ export default function MomentsScreen() {
     const reloadReactions = async (data) => {
         const momentList = data || momentsRef.current
         if (!user?.id || !momentList || !Array.isArray(momentList) || momentList.length === 0) return
+
+        const momentIds = momentList.map(m => m.id)
+        const { data: allLikes } = await supabase
+            .from('moment_likes')
+            .select('moment_id, emoji, user_id')
+            .in('moment_id', momentIds)
+
+        const reactionCounts = {}
         const userR = {}
-        const updatedMoments = [...momentList]
-        for (let i = 0; i < momentList.length; i++) {
-            const m = momentList[i]
-            const { data: likes } = await supabase
-                .from('moment_likes')
-                .select('emoji')
-                .eq('moment_id', m.id)
-            const counts = {}
-            if (likes) likes.forEach(r => { counts[r.emoji] = (counts[r.emoji] || 0) + 1 })
-            updatedMoments[i] = { ...m, reactions: counts }
-            const { data: myLike } = await supabase
-                .from('moment_likes')
-                .select('emoji')
-                .eq('user_id', user.id)
-                .eq('moment_id', m.id)
-                .maybeSingle()
-            if (myLike?.emoji) userR[m.id] = myLike.emoji
+        if (allLikes) {
+            for (const r of allLikes) {
+                if (!reactionCounts[r.moment_id]) reactionCounts[r.moment_id] = {}
+                reactionCounts[r.moment_id][r.emoji] = (reactionCounts[r.moment_id][r.emoji] || 0) + 1
+                if (r.user_id === user.id) userR[r.moment_id] = r.emoji
+            }
         }
+
+        const updatedMoments = momentList.map(m => ({
+            ...m,
+            reactions: reactionCounts[m.id] || {},
+        }))
+
         momentsRef.current = updatedMoments
         setMoments(updatedMoments)
         setUserReactions(userR)
@@ -110,12 +113,8 @@ export default function MomentsScreen() {
         setMoments(data)
         setDisplayMoments(data)
 
-        if (user?.id) {
-            const userR = {}
-            for (const m of data) {
-                const emoji = await getUserMomentReaction(user.id, m.id)
-                if (emoji) userR[m.id] = emoji
-            }
+        if (user?.id && data.length > 0) {
+            const userR = await getUserMomentReactions(user.id, data.map(m => m.id))
             setUserReactions(userR)
         }
         setLoading(false)

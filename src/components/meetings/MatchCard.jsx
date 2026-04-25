@@ -52,11 +52,9 @@ export default function MatchCard({ match, onPost, onFeedback }) {
         })
     }, [partner?.id, lang])
 
-    if (!partner) return null
-
     useEffect(() => {
         if (!partner || !profile?.gives || !profile?.wants) return
-        if (!partner.gives && !partner.wants) return  // partner profile empty — skip AI
+        if (!partner.gives && !partner.wants) return
         setMatchReason(null)
         const load = async () => {
             const reason = await explainMatch(
@@ -70,6 +68,7 @@ export default function MatchCard({ match, onPost, onFeedback }) {
     }, [partner?.id, lang])
 
     const handleLoadQuestions = async () => {
+        if (!partner) return
         if (questions.length > 0) { setShowQuestions(v => !v); return }
         setLoadingAI(true)
         const qs = await generateMeetingQuestions(

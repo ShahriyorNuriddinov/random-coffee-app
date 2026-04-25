@@ -1,7 +1,9 @@
 // ─── PeopleFilterModal — HTML: people.html → #modal-filter ──────────────────
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function PeopleFilterModal({ filters, onApply, onClose }) {
+    const { t } = useTranslation()
     const [regions, setRegions] = useState(filters.regions || [])
     const [langs, setLangs] = useState(filters.langs || [])
 
@@ -24,20 +26,20 @@ export default function PeopleFilterModal({ filters, onApply, onClose }) {
             }}>
                 {/* .modal-header */}
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 16 }}>
-                    Filters
+                    {t('filters_title')}
                 </div>
 
                 {/* Target Location */}
                 <div style={{ marginBottom: 16, textAlign: 'left' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--app-hint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                        Target Location
+                        {t('target_location')}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {[
-                            { val: 'Hong Kong', label: '🇭🇰 HK' },
-                            { val: 'Macau', label: '🇲🇴 Macau' },
-                            { val: 'Mainland', label: '🇨🇳 Mainland' },
-                            { val: 'Other', label: '🌍 Other' },
+                            { val: 'Hong Kong', label: t('region_hk') },
+                            { val: 'Macau', label: t('region_mo') },
+                            { val: 'Mainland', label: t('region_cn') },
+                            { val: 'Other', label: t('region_other') },
                         ].map(r => (
                             <SelectableTag
                                 key={r.val}
@@ -52,14 +54,14 @@ export default function PeopleFilterModal({ filters, onApply, onClose }) {
                 {/* Languages */}
                 <div style={{ marginBottom: 20, textAlign: 'left' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--app-hint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                        Languages
+                        {t('langs_title')}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {[
-                            { val: 'EN', label: 'English' },
-                            { val: 'ZH', label: 'Chinese' },
-                            { val: 'CAN', label: 'Cantonese' },
-                            { val: 'RU', label: 'Russian' },
+                            { val: 'EN', label: t('lang_en') },
+                            { val: 'ZH', label: t('lang_zh') },
+                            { val: 'CAN', label: t('lang_canton') },
+                            { val: 'RU', label: t('lang_ru') },
                         ].map(l => (
                             <SelectableTag
                                 key={l.val}
@@ -74,21 +76,21 @@ export default function PeopleFilterModal({ filters, onApply, onClose }) {
                 {/* .modal-actions */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <button className="btn-gradient" style={{ borderRadius: 14 }} onClick={handleApply}>
-                        Apply Filters
+                        {t('apply_filters')}
                     </button>
                     <button onClick={handleClear} style={{
                         width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
                         background: 'rgba(120,120,128,0.06)', color: '#ff3b30',
                         fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                     }}>
-                        Clear Filters
+                        {t('clear_filters')}
                     </button>
                     <button onClick={onClose} style={{
                         width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
                         background: 'rgba(120,120,128,0.06)', color: 'var(--app-text)',
                         fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                     }}>
-                        Cancel
+                        {t('cancel')}
                     </button>
                 </div>
             </div>

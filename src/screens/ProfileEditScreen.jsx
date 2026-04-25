@@ -68,7 +68,6 @@ export default function ProfileEditScreen() {
             const updatedPhotos = [...currentPhotos]
             updatedPhotos[0] = publicUrl
             setProfile(p => ({ ...p, avatar: publicUrl, photos: updatedPhotos }))
-            const { savePhotos } = await import('@/lib/supabaseClient')
             await savePhotos(user?.id || 'mock', updatedPhotos)
         }
     }

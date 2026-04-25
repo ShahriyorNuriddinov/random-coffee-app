@@ -56,7 +56,9 @@ export default function PeopleScreen() {
             }
 
             const candidates = allPeople.filter(p => p.name)
-            const cacheKey = `ai_scores_${user.id}_${candidates.map(p => p.id).join(',').slice(0, 100)}`
+            const ids = candidates.map(p => p.id).sort().join(',')
+            const hash = ids.length > 50 ? `${ids.length}_${ids.slice(0, 40)}_${ids.slice(-40)}` : ids
+            const cacheKey = `ai_scores_${user.id}_${hash}`
             let scores
             try {
                 const cached = sessionStorage.getItem(cacheKey)
@@ -133,10 +135,10 @@ export default function PeopleScreen() {
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
                     <div style={{ background: 'var(--app-card)', borderRadius: 20, padding: 28, textAlign: 'center', maxWidth: 320, width: '100%', border: '0.5px solid var(--app-border)' }}>
                         <div style={{ fontSize: 48, marginBottom: 12 }}>☕</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>No Credits Left</div>
-                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>Top up your balance to browse people and find new matches.</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>{t('no_credits_title')}</div>
+                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>{t('no_credits_people_hint')}</div>
                         <button onClick={() => setShowBuyCredits(true)} style={{ width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #007aff, #5856d6)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                            Top Up Balance
+                            {t('topup_balance')}
                         </button>
                     </div>
                 </div>
@@ -144,7 +146,7 @@ export default function PeopleScreen() {
                 <>
                     <div style={{ padding: '12px 16px 0', background: 'var(--app-card)', borderBottom: '0.5px solid var(--app-border)' }}>
                         <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                            placeholder="Search by name, bio, location..."
+                            placeholder={t('search_placeholder')}
                             style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: '0.5px solid var(--app-border)', background: 'var(--app-bg)', fontSize: 15, color: 'var(--app-text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 12 }}
                         />
                     </div>

@@ -231,6 +231,21 @@ const resources = {
             share_story_hint: 'Share your coffee meeting experience.',
             post_credit_hint: '🎉 Your post earns you +1 coffee cup after moderation!',
             write_something: 'How was your meeting? Share your experience...',
+            // Added missing i18n keys
+            boost_hint_suffix: "section you'd like to meet.",
+            history_success: 'Success \u2713',
+            history_note: 'Note',
+            history_matched_with: 'You matched with',
+            hide_note: 'Hide Note',
+            show_note: 'Show Note',
+            filters_title: 'Filters',
+            clear_filters: 'Clear Filters',
+            cancel_interest: 'Cancel \u2715',
+            send_interest_short: 'Interest',
+            no_credits_title: 'No Credits Left',
+            no_credits_people_hint: 'Top up your balance to browse people and find new matches.',
+            search_placeholder: 'Search by name, bio, location...',
+            no_credits_hint: 'Top up your balance to continue finding matches.',
         }
     },
     zh: {
@@ -461,6 +476,21 @@ const resources = {
             share_story_hint: '分享您的咖啡约见体验。',
             post_credit_hint: '🎉 您的帖子审核后将为您赚取+1咖啡杯！',
             write_something: '约见怎么样？分享您的体验...',
+            // Added missing i18n keys
+            boost_hint_suffix: '中选择您想认识的人。',
+            history_success: '成功 \u2713',
+            history_note: '备注',
+            history_matched_with: '您与以下人配对',
+            hide_note: '隐藏备注',
+            show_note: '显示备注',
+            filters_title: '筛选',
+            clear_filters: '清除筛选',
+            cancel_interest: '取消 \u2715',
+            send_interest_short: '感兴趣',
+            no_credits_title: '积分不足',
+            no_credits_people_hint: '请充值以浏览更多人并找到新的配对。',
+            search_placeholder: '按姓名、简介、位置搜索...',
+            no_credits_hint: '请充值以继续寻找配对。',
         }
     }
 }
