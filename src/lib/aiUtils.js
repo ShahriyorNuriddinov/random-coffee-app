@@ -1,11 +1,43 @@
 /**
- * AI Utilities — Groq (primary) + OpenAI (fallback)
+ * AI Utilities — Edge Function (secure) → Groq → OpenAI (fallbacks)
+ *
+ * Priority:
+ * 1. Supabase Edge Function (api keys stay on server — secure)
+ * 2. Direct Groq API (fallback while Edge Function is not deployed)
+ * 3. Direct OpenAI API (last resort fallback)
+ *
+ * Once the Edge Function is deployed, remove VITE_GROQ_API_KEY and
+ * VITE_OPENAI_API_KEY from .env to eliminate client-side key exposure.
  */
+
+import { supabase } from './supabaseClient'
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY
 const OPENAI_KEY = import.meta.env.VITE_OPENAI_API_KEY
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
-// ─── Groq API call ────────────────────────────────────────────────────────────
+// ─── Edge Function call (secure — keys on server) ────────────────────────────
+async function callEdgeFunction(prompt, maxTokens = 300) {
+    if (!SUPABASE_URL) return null
+    try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ prompt, maxTokens }),
+        })
+        if (!res.ok) return null
+        const json = await res.json()
+        return json.result || null
+    } catch {
+        return null
+    }
+}
+
+// ─── Groq API call (fallback — exposed in frontend bundle) ───────────────────
 async function callGroq(prompt, maxTokens = 300) {
     if (!GROQ_KEY) return null
     try {
@@ -32,7 +64,7 @@ async function callGroq(prompt, maxTokens = 300) {
     }
 }
 
-// ─── OpenAI API call (fallback) ───────────────────────────────────────────────
+// ─── OpenAI API call (last resort fallback) ──────────────────────────────────
 async function callOpenAI(prompt, maxTokens = 200) {
     if (!OPENAI_KEY || OPENAI_KEY === 'sk-your-openai-key-here') return null
     try {
@@ -57,8 +89,13 @@ async function callOpenAI(prompt, maxTokens = 200) {
 }
 
 async function callAI(prompt, maxTokens = 300) {
+    // 1. Try Edge Function first (secure)
+    const edgeResult = await callEdgeFunction(prompt, maxTokens)
+    if (edgeResult) return edgeResult
+    // 2. Fallback to direct Groq
     const groqResult = await callGroq(prompt, maxTokens)
     if (groqResult) return groqResult
+    // 3. Last resort: OpenAI
     return await callOpenAI(prompt, maxTokens)
 }
 
