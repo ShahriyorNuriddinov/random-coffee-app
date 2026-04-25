@@ -111,6 +111,18 @@ export default function PeopleScreen() {
 
     return (
         <div className="app-screen">
+            {!hasCredits && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                    <div style={{ background: 'var(--app-card)', borderRadius: 20, padding: 28, textAlign: 'center', maxWidth: 320, width: '100%' }}>
+                        <div style={{ fontSize: 48, marginBottom: 12 }}>☕</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>No Credits Left</div>
+                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>Top up your balance to browse people and find new matches.</div>
+                        <button onClick={() => setShowBuyCredits(true)} style={{ width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #007aff, #5856d6)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            Top Up Balance
+                        </button>
+                    </div>
+                </div>
+            )}
             <ScreenHeader
                 title={t('nav_people')}
                 right={
