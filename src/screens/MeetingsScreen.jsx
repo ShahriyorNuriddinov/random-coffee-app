@@ -99,13 +99,6 @@ export default function MeetingsScreen() {
                             onFeedback={() => { setFeedbackMatchId(m.matchId); setShowFeedback(true) }}
                         />
                     ))}
-
-                    {!loading && history.some(m => m.status === 'completed' || m.status == null) && (
-                        <PreviousMeetings
-                            history={history.filter(m => m.status === 'completed' || m.status == null)}
-                            onPost={() => setShowNewMoment(true)}
-                        />
-                    )}
                 </div>
             </div>
 
