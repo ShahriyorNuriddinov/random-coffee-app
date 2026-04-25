@@ -82,7 +82,7 @@ export default function BuyCreditsModal({ onClose }) {
             if (typeof window.Airwallex === 'undefined') {
                 // Fallback: open Airwallex hosted checkout in new tab
                 // In production, use embedded checkout instead
-                toast.error('Payment SDK not loaded. Please refresh and try again.')
+                toast.error(t('toast_payment_sdk'))
                 setStep('error')
                 setErrorMsg('Payment SDK not loaded')
                 setLoading(false)

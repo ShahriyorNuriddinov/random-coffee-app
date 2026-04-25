@@ -1,19 +1,21 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 
 export function RefModal({ referralCode, onClose }) {
+    const { t } = useTranslation()
     const link = referralCode ? `https://randomcoffee.app/ref/${referralCode}` : 'Loading...'
     const handleCopy = () => {
         if (!referralCode) return
         navigator.clipboard?.writeText(link)
-        toast.success('Link copied!')
+        toast.success(t('toast_link_copied'))
         onClose()
     }
     return (
-        <Modal title="Invite Friends, Get Free Credits!" onClose={onClose}>
+        <Modal title={t('ref_title')} onClose={onClose}>
             <p style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 16 }}>
-                Share your unique link. When a friend signs up and activates a subscription, both of you get +1 free coffee credit!
+                {t('ref_desc')}
             </p>
             <input readOnly value={link} style={{
                 width: '100%', padding: 12, borderRadius: 10,
@@ -21,12 +23,13 @@ export function RefModal({ referralCode, onClose }) {
                 color: 'var(--app-text)', fontSize: 13, boxSizing: 'border-box',
                 marginBottom: 12, fontFamily: 'inherit',
             }} />
-            <button className="btn-gradient" onClick={handleCopy}>Copy Link</button>
+            <button className="btn-gradient" onClick={handleCopy}>{t('ref_copy')}</button>
         </Modal>
     )
 }
 
 export function GiftModal({ onClose }) {
+    const { t } = useTranslation()
     const [giftPhone, setGiftPhone] = useState('')
     const [selected, setSelected] = useState(0)
     const plans = [
@@ -34,12 +37,12 @@ export function GiftModal({ onClose }) {
         { price: 'HK$1,999', credits: 50, desc: '~1 year of networking' },
     ]
     return (
-        <Modal title="Gift Coffee Credits" onClose={onClose}>
+        <Modal title={t('gift_title')} onClose={onClose}>
             <p style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 16 }}>
-                Enter your friend's phone number and choose a package.
+                {t('gift_desc')}
             </p>
             <input type="tel" value={giftPhone} onChange={e => setGiftPhone(e.target.value)}
-                placeholder="Friend's phone number" style={{
+                placeholder={t('gift_phone_placeholder')} style={{
                     width: '100%', padding: 12, borderRadius: 10,
                     border: '1px solid var(--app-border)', background: 'var(--app-bg)',
                     color: 'var(--app-text)', fontSize: 15, boxSizing: 'border-box',
@@ -65,7 +68,7 @@ export function GiftModal({ onClose }) {
                     </span>
                 </div>
             ))}
-            <button className="btn-gradient" style={{ marginTop: 8 }} onClick={onClose}>Continue to Payment</button>
+            <button className="btn-gradient" style={{ marginTop: 8 }} onClick={onClose}>{t('gift_continue')}</button>
         </Modal>
     )
 }
