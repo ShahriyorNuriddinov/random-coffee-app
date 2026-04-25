@@ -195,34 +195,6 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                             background: 'rgba(0,122,255,0.1)', color: 'var(--app-primary)',
                         }}>Official</span>
                     )}
-                    {isOwn && (
-                        <div style={{ position: 'relative' }}>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setShowMenu(m => !m) }}
-                                style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    padding: '4px 8px', fontSize: 18,
-                                    color: 'var(--app-hint)', fontFamily: 'inherit', lineHeight: 1,
-                                }}
-                            >···</button>
-                            {showMenu && (
-                                <>
-                                    <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setShowMenu(false)} />
-                                    <div style={{
-                                        position: 'absolute', top: '100%', right: 0,
-                                        background: 'var(--app-card)', border: '0.5px solid var(--app-border)',
-                                        borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                                        overflow: 'hidden', zIndex: 20, minWidth: 140,
-                                    }}>
-                                        <button onClick={handleDelete} style={{
-                                            width: '100%', padding: '13px 16px', background: 'none', border: 'none',
-                                            textAlign: 'left', cursor: 'pointer', fontSize: 15, fontWeight: 600,
-                                            color: '#ff3b30', fontFamily: 'inherit',
-                                        }}>🗑 Delete</button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
                     )}
                 </div>
             </div>
