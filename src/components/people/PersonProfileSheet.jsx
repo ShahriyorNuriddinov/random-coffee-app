@@ -34,6 +34,16 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
 
     const handleTranslate = async () => {
         if (translated) { setTranslated(false); return }
+        // Use DB translations first
+        if (person.about_zh || person.gives_zh || person.wants_zh) {
+            setTranslatedData({
+                about: person.about_zh || person.about,
+                gives: person.gives_zh || person.gives,
+                wants: person.wants_zh || person.wants,
+            })
+            setTranslated(true)
+            return
+        }
         if (translatedData) { setTranslated(true); return }
         setTranslating(true)
         try {
@@ -51,9 +61,11 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
         }
     }
 
-    const display = translated && translatedData ? translatedData : {
-        about: person.about, gives: person.gives, wants: person.wants,
-    }
+    const display = translated && translatedData
+        ? translatedData
+        : (targetLang === 'zh' && (person.about_zh || person.gives_zh || person.wants_zh))
+            ? { about: person.about_zh || person.about, gives: person.gives_zh || person.gives, wants: person.wants_zh || person.wants }
+            : { about: person.about, gives: person.gives, wants: person.wants }
 
     return (
         <div

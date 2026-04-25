@@ -21,6 +21,19 @@ export default function MatchCard({ match, onPost, onFeedback }) {
     useEffect(() => {
         if (!partner) return
         if (lang !== 'zh') { setTranslatedPartner(null); return }
+
+        // Use DB translations first
+        if (partner.about_zh || partner.gives_zh || partner.wants_zh) {
+            setTranslatedPartner({
+                ...partner,
+                about: partner.about_zh || partner.about,
+                gives: partner.gives_zh || partner.gives,
+                wants: partner.wants_zh || partner.wants,
+            })
+            return
+        }
+
+        // Fallback: AI translation
         const cacheKey = `match_tr_${partner.id}`
         try {
             const cached = sessionStorage.getItem(cacheKey)
