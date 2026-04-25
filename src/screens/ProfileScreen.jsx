@@ -34,7 +34,9 @@ export default function ProfileScreen() {
         })
     }, [user?.id])
 
-    const effectiveStatus = subscription.status === 'active' && (subscription.credits ?? 0) === 0 ? 'empty' : subscription.status
+    const effectiveStatus = (subscription.credits ?? 0) === 0 ? 'empty'
+        : subscription.status === 'trial' ? 'trial'
+            : 'active'
     const sub = SUB_CONFIG[effectiveStatus] || SUB_CONFIG.trial
     const subDesc = typeof sub.desc === 'function' ? sub.desc(subscription.credits) : sub.desc
     const regionFlag = profile.region === 'Macau' ? '🇲🇴'
