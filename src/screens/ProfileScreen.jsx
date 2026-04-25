@@ -213,29 +213,27 @@ export default function ProfileScreen() {
 // ─── Photo Grid ───────────────────────────────────────────────────────────────
 
 function PhotoGrid({ photos, userId, onPhotosChange }) {
-    const inputRefs = useRef([])
+    const [activeIdx, setActiveIdx] = useState(0)
 
     // Normalize: always 4 elements, nulls for missing
     const normalized = Array.isArray(photos)
         ? [...photos, null, null, null, null].slice(0, 4)
         : [null, null, null, null]
 
+    const filled = normalized.filter(Boolean)
+    const hasPhotos = filled.length > 0
+
     const handlePick = (index) => {
-        // Create hidden file input and trigger it
         const input = document.createElement('input')
         input.type = 'file'
         input.accept = 'image/*'
         input.onchange = async (e) => {
             const file = e.target.files[0]
             if (!file) return
-
-            // Show local preview immediately
             const localUrl = URL.createObjectURL(file)
             const next = [...normalized]
             next[index] = localUrl
             onPhotosChange(next)
-
-            // Upload to Supabase storage
             if (userId) {
                 const publicUrl = await uploadPhoto(userId, file, index)
                 if (publicUrl) {
@@ -254,52 +252,78 @@ function PhotoGrid({ photos, userId, onPhotosChange }) {
         const next = [...normalized]
         next[index] = null
         onPhotosChange(next)
-        if (userId) {
-            await savePhotos(userId, next)
-        }
+        if (userId) await savePhotos(userId, next)
     }
 
+    // If has photos — show swiper on top + small grid below
+    if (hasPhotos) {
+        return (
+            <div>
+                {/* Swiper */}
+                <div style={{ position: 'relative', width: '100%', borderRadius: 16, overflow: 'hidden', marginBottom: 10 }}>
+                    <div style={{
+                        width: '100%', paddingTop: '75%',
+                        backgroundImage: `url(${filled[activeIdx % filled.length]})`,
+                        backgroundSize: 'cover', backgroundPosition: 'center',
+                        backgroundColor: 'rgba(120,120,128,0.08)',
+                    }} />
+                    {/* Prev/Next */}
+                    {filled.length > 1 && (
+                        <>
+                            <button onClick={() => setActiveIdx(i => (i - 1 + filled.length) % filled.length)}
+                                style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+                            <button onClick={() => setActiveIdx(i => (i + 1) % filled.length)}
+                                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+                            {/* Dots */}
+                            <div style={{ position: 'absolute', bottom: 10, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 5 }}>
+                                {filled.map((_, i) => (
+                                    <div key={i} onClick={() => setActiveIdx(i)} style={{ width: i === activeIdx % filled.length ? 16 : 6, height: 6, borderRadius: 3, background: i === activeIdx % filled.length ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all 0.2s' }} />
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+                {/* Small grid for all 4 slots */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+                    {normalized.map((photo, i) => (
+                        <div key={i} onClick={() => photo ? setActiveIdx(filled.indexOf(photo)) : handlePick(i)}
+                            style={{
+                                aspectRatio: '1/1', borderRadius: 10,
+                                backgroundImage: photo ? `url(${photo})` : 'none',
+                                backgroundSize: 'cover', backgroundPosition: 'center',
+                                backgroundColor: 'rgba(120,120,128,0.08)',
+                                border: photo ? (filled[activeIdx % filled.length] === photo ? '2px solid var(--app-primary)' : '2px solid transparent') : '1px dashed rgba(120,120,128,0.25)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                            }}
+                        >
+                            {!photo && <span style={{ fontSize: 18, color: 'rgba(120,120,128,0.4)' }}>+</span>}
+                            {photo && (
+                                <div onClick={(e) => handleRemove(i, e)} style={{
+                                    position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 11, color: '#fff', cursor: 'pointer', fontWeight: 700,
+                                }}>×</div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    // No photos — show 4 empty upload slots
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
             {normalized.map((photo, i) => (
-                <div
-                    key={i}
-                    onClick={() => handlePick(i)}
-                    style={{
-                        aspectRatio: '1/1',
-                        borderRadius: 12,
-                        backgroundImage: photo ? `url(${photo})` : 'none',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        backgroundColor: 'rgba(120,120,128,0.08)',
-                        border: '1px dashed rgba(120,120,128,0.25)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        transition: 'opacity 0.15s',
-                    }}
-                >
-                    {!photo && (
-                        <span style={{ fontSize: 22, color: 'rgba(120,120,128,0.4)', lineHeight: 1 }}>+</span>
-                    )}
-                    {photo && (
-                        <div
-                            onClick={(e) => handleRemove(i, e)}
-                            style={{
-                                position: 'absolute', top: 4, right: 4,
-                                width: 22, height: 22, borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.6)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 14, color: '#fff', cursor: 'pointer',
-                                lineHeight: 1, fontWeight: 700,
-                            }}
-                        >
-                            ×
-                        </div>
-                    )}
+                <div key={i} onClick={() => handlePick(i)} style={{
+                    aspectRatio: '1/1', borderRadius: 12,
+                    backgroundColor: 'rgba(120,120,128,0.08)',
+                    border: '1px dashed rgba(120,120,128,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer',
+                }}>
+                    <span style={{ fontSize: 22, color: 'rgba(120,120,128,0.4)' }}>+</span>
                 </div>
             ))}
         </div>
