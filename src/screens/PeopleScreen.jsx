@@ -79,7 +79,7 @@ export default function PeopleScreen() {
             tags: Array.isArray(profile.tags) ? profile.tags : [],
         }
 
-        const candidates = allPeople.filter(p => p.name && p.about)
+        const candidates = allPeople.filter(p => p.name)
 
         // Check cache first (valid for 30 min per session)
         const cacheKey = `ai_scores_${user.id}_${candidates.map(p => p.id).join(',').slice(0, 100)}`
@@ -90,7 +90,6 @@ export default function PeopleScreen() {
                 const { data, ts } = JSON.parse(cached)
                 if (Date.now() - ts < 30 * 60 * 1000) {
                     scores = data
-                    console.log('[AI Cache] Using cached scores')
                 }
             }
         } catch { }

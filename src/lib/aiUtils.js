@@ -23,13 +23,11 @@ async function callGroq(prompt, maxTokens = 300) {
             }),
         })
         if (!res.ok) {
-            console.error('[Groq] HTTP', res.status)
             return null
         }
         const json = await res.json()
         return json.choices?.[0]?.message?.content?.trim() || null
     } catch (e) {
-        console.error('[Groq]', e)
         return null
     }
 }
@@ -54,7 +52,6 @@ async function callOpenAI(prompt, maxTokens = 200) {
         const json = await res.json()
         return json.choices?.[0]?.message?.content?.trim() || null
     } catch (e) {
-        console.error('[OpenAI]', e)
         return null
     }
 }
@@ -138,26 +135,31 @@ export async function calcMatchScoresBatch(myProfile = {}, candidates = [], cust
     }
 
     const candidateList = candidates.map((p, i) =>
-        `${i + 1}. About: "${(p.about || 'n/a').slice(0, 80)}" | Offers: "${(p.gives || 'n/a').slice(0, 100)}" | Needs: "${(p.wants || 'n/a').slice(0, 100)}" | Region: ${p.region || 'n/a'}`
+        `${i + 1}. About: "${(p.about || 'n/a').slice(0, 100)}" | Offers: "${(p.gives || 'n/a').slice(0, 120)}" | Needs: "${(p.wants || 'n/a').slice(0, 120)}"`
     ).join('\n')
 
-    const prompt = `You are a professional networking matchmaker for Random Coffee app.
-Score how well each candidate matches Person A for a 1-on-1 coffee meeting.
+    const prompt = `SYSTEM: You are a smart matching engine for professional coffee meetings.
+Your task is to score how well each candidate matches Person A for a 1-on-1 meeting.
+
+RULES:
+- Do NOT give random scores. Base score ONLY on real overlap and mutual value exchange.
+- If there is low synergy, do not force a high score.
+- Focus on "mutual benefit": what A gives B AND what B gives A.
+- Be realistic, not optimistic.${customPrompt ? `\n- Special request from Person A: "${customPrompt.slice(0, 200)}" — heavily prioritize this.` : ''}
+
+SCORING (0-100):
+- 80-100: Strong mutual benefit — A gives what B needs AND B gives what A needs
+- 50-79: One side benefits more, but still a useful meeting
+- 20-49: Weak match, some common ground
+- 0-19: Poor match, no clear mutual value
 
 Person A:
 - About: ${(myAbout || 'n/a').slice(0, 150)}
-- Can offer: ${(myGives || 'n/a').slice(0, 150)}
-- Looking for: ${(myWants || 'n/a').slice(0, 150)}${customPrompt ? `\n- Special request: ${customPrompt.slice(0, 200)}` : ''}
+- Can Offer: ${(myGives || 'n/a').slice(0, 150)}
+- Looking For: ${(myWants || 'n/a').slice(0, 150)}
 
 Candidates:
 ${candidateList}
-
-SCORING (0-100):
-- 80-100: Both sides clearly benefit (A gives what they need AND they give what A needs)
-- 50-79: One side benefits more, but still useful meeting
-- 20-49: Weak match, some common ground
-- 0-19: Poor match, no clear mutual value
-${customPrompt ? '- Heavily prioritize candidates matching the special request.' : ''}
 
 Return ONLY a JSON array of integers in the same order as candidates.
 Example for 4 candidates: [85, 42, 17, 63]`
@@ -166,14 +168,12 @@ Example for 4 candidates: [85, 42, 17, 63]`
     const result = await callAI(prompt, maxTokens)
 
     if (!result) {
-        console.warn('[AI Batch] No result, using keyword fallback')
         return candidates.map(p => calcMatchScore(myProfile, p))
     }
 
     try {
         const match = result.match(/\[[\d,\s]+\]/)
         if (!match) {
-            console.warn('[AI Batch] Could not parse scores:', result)
             return candidates.map(p => calcMatchScore(myProfile, p))
         }
         const scores = JSON.parse(match[0])
@@ -181,7 +181,6 @@ Example for 4 candidates: [85, 42, 17, 63]`
             Math.min(100, Math.max(0, Math.round(Number(scores[i]) || 0)))
         )
     } catch (e) {
-        console.error('[AI Batch] Parse error:', e)
         return candidates.map(p => calcMatchScore(myProfile, p))
     }
 }
@@ -217,20 +216,28 @@ export function calcMatchScore(myProfile = {}, theirProfile = {}) {
  */
 export async function explainMatch(myProfile = {}, theirProfile = {}, lang = 'en') {
     const langInstruction = lang === 'zh'
-        ? 'IMPORTANT: You MUST write the entire explanation in Simplified Chinese only. Do not use any English.'
-        : 'Write the explanation in English.'
+        ? 'IMPORTANT: Write the entire response in Simplified Chinese only. Do not use any English.'
+        : 'Write the response in English.'
 
-    const prompt = `You are a networking matchmaker. In 1-2 sentences, explain why these two people would have a valuable coffee meeting. Be specific and focus on mutual value exchange. ${langInstruction}
+    const prompt = `SYSTEM: You are a smart matching engine for professional coffee meetings.
+Analyze these two people and explain why their meeting would be valuable.
+${langInstruction}
 
-Person A offers: ${myProfile.gives || 'n/a'}
-Person A needs: ${myProfile.wants || 'n/a'}
+Person A:
+- About: ${(myProfile.about || 'n/a').slice(0, 150)}
+- Can Offer: ${(myProfile.gives || 'n/a').slice(0, 150)}
+- Looking For: ${(myProfile.wants || 'n/a').slice(0, 150)}
 
-Person B offers: ${theirProfile.gives || 'n/a'}
-Person B needs: ${theirProfile.wants || 'n/a'}
+Person B:
+- About: ${(theirProfile.about || 'n/a').slice(0, 150)}
+- Can Offer: ${(theirProfile.gives || 'n/a').slice(0, 150)}
+- Looking For: ${(theirProfile.wants || 'n/a').slice(0, 150)}
 
-Return ONLY the explanation sentence(s), no labels or formatting.`
+Write 1-2 sentences explaining the mutual value exchange. Be specific and realistic.
+Focus on: what A gives B AND what B gives A.
+Return ONLY the explanation, no labels or formatting.`
 
-    return await callAI(prompt, 150)
+    return await callAI(prompt, 180)
 }
 
 // ─── Meeting Conversation Starters ───────────────────────────────────────────

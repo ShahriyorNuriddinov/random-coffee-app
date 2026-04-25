@@ -32,10 +32,10 @@ export default function MeetingsScreen() {
 
     useEffect(() => {
         if (!user?.id) { setLoading(false); return }
-        getMeetingHistory(user.id).then(data => {
-            setHistory(data)
-            setLoading(false)
-        })
+        getMeetingHistory(user.id)
+            .then(data => setHistory(data))
+            .catch(() => setHistory([]))
+            .finally(() => setLoading(false))
     }, [user?.id])
 
     const hasCredits = subscription.status === 'trial' || (subscription.credits ?? 0) > 0
@@ -121,7 +121,6 @@ export default function MeetingsScreen() {
             })
             setShowBoostModal(true)
         } catch (e) {
-            console.error(e)
             toast.error('Something went wrong. Try again.')
         } finally {
             setBoosting(false)

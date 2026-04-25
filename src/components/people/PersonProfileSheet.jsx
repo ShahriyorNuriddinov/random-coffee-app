@@ -180,7 +180,7 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                         }}>
                             {translating ? '...' : translated ? '🔤 Show original' : '🌐 Translate'}
                         </button>
-                    )}}
+                    )}
 
                     {/* Balance */}
                     {person.balance && (

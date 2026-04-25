@@ -95,7 +95,7 @@ export function AppProvider({ children }) {
                     }
                 }
             } catch (e) {
-                console.error('[Session restore]', e)
+                // session restore failed silently
             } finally {
                 setSessionLoading(false)
             }
@@ -147,7 +147,9 @@ export function AppProvider({ children }) {
 
     const logoutUser = async () => {
         await supabase.auth.signOut()
+        supabase.removeAllChannels()
         setUser(null)
+        userRef.current = null
         setProfile(EMPTY_PROFILE)
         setSubscription({ status: 'trial', credits: 2, start: null, end: null })
         setNotifNewMatches(true)
