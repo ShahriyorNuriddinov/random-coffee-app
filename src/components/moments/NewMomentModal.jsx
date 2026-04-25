@@ -52,7 +52,7 @@ export default function NewMomentModal({ onClose, onPosted }) {
     }
 
     const handlePost = async () => {
-        if (!text.trim()) { toast.error('Write something first'); return }
+        if (!text.trim()) { toast.error(t('toast_write_first')); return }
         if (!user?.id) return
         setLoading(true)
 
@@ -88,11 +88,11 @@ export default function NewMomentModal({ onClose, onPosted }) {
             const newStatus = newCredits > 0 ? 'active' : 'empty'
             setSubscription(s => ({ ...s, credits: newCredits, status: newStatus }))
             await supabase.from('profiles').update({ coffee_credits: newCredits, subscription_status: newStatus }).eq('id', user.id)
-            toast.success('Posted! +1 credit earned ☕')
+            toast.success(t('toast_posted'))
             onPosted?.(result)
             onClose()
         } else {
-            toast.error('Failed to post. Try again.')
+            toast.error(t('toast_post_failed'))
         }
     }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
 import { getMeetingHistory, getPeople, supabase } from '@/lib/supabaseClient'
 import { calcMatchScoresBatch } from '@/lib/aiUtils'
@@ -6,6 +7,7 @@ import toast from 'react-hot-toast'
 
 export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveFilters, onBuyCredits, onMatchFound }) {
     const { user, subscription, setSubscription, profile } = useApp()
+    const { t } = useTranslation()
     const [boosting, setBoosting] = useState(false)
 
     const hasCredits = (subscription.credits ?? 0) > 0
@@ -19,7 +21,7 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
 
         // Block if profile incomplete
         if (!isProfileComplete) {
-            toast.error('Please complete your profile first (photo, about, gives, wants)')
+            toast.error(t('toast_profile_incomplete'))
             return
         }
 
@@ -44,8 +46,8 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
 
             if (candidates.length === 0) {
                 toast.error(hasActiveFilters
-                    ? 'No people match your filters. Try changing Search Settings.'
-                    : 'No new people to match with yet!')
+                    ? t('toast_no_filter_match')
+                    : t('toast_no_people'))
                 return
             }
 
@@ -69,7 +71,7 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
             }
 
             if (!partner) {
-                toast.error('No match found. Try again.')
+                toast.error(t('toast_no_match'))
                 return
             }
 
@@ -94,7 +96,7 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
             const updated = await getMeetingHistory(user.id)
             setHistory(updated)
 
-            toast.success(`🎉 Match found: ${partner.name}!`, {
+            toast.success(t('toast_match_found', { name: partner.name }), {
                 duration: 4000,
                 style: {
                     background: 'linear-gradient(135deg, #007aff, #5856d6)',
@@ -104,7 +106,7 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
             })
             onMatchFound()
         } catch {
-            toast.error('Something went wrong. Try again.')
+            toast.error(t('toast_error_generic'))
         } finally {
             setBoosting(false)
         }

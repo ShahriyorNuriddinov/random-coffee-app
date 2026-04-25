@@ -11,7 +11,7 @@ import { translateProfile } from '@/lib/aiUtils'
 import toast from 'react-hot-toast'
 
 export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
-    const { i18n } = useTranslation()
+    const { t, i18n } = useTranslation()
     const targetLang = i18n.language === 'zh' ? 'zh' : 'en'
     const tags = Array.isArray(person.tags) ? person.tags : []
     const langs = Array.isArray(person.languages) ? person.languages : []
@@ -56,10 +56,10 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                 })
                 setTranslated(true)
             } else {
-                toast.error('Translation failed')
+                toast.error(t('toast_translate_error'))
             }
         } catch {
-            toast.error('Translation failed')
+            toast.error(t('toast_translate_error'))
         } finally {
             setTranslating(false)
         }
