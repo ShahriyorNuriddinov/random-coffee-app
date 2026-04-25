@@ -1,6 +1,11 @@
-// ─── PersonProfileSheet — bottom sheet modal (HTML: people.html card expanded) ─
+// ─── PersonProfileSheet — bottom sheet modal ─────────────────────────────────
 
 import { useState } from 'react'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Pagination, Navigation } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/pagination'
+import 'swiper/css/navigation'
 import { translateText } from '@/lib/aiUtils'
 import toast from 'react-hot-toast'
 
@@ -8,8 +13,10 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
     const tags = Array.isArray(person.tags) ? person.tags : []
     const langs = Array.isArray(person.languages) ? person.languages : []
     const photos = Array.isArray(person.photos) ? person.photos.filter(Boolean) : []
-    const allPhotos = person.avatar_url ? [person.avatar_url, ...photos.filter(p => p !== person.avatar_url)] : photos
-    const [photoIdx, setPhotoIdx] = useState(0)
+    const allPhotos = person.avatar_url
+        ? [person.avatar_url, ...photos.filter(p => p !== person.avatar_url)]
+        : photos
+
     const [translated, setTranslated] = useState(false)
     const [translatedData, setTranslatedData] = useState(null)
     const [translating, setTranslating] = useState(false)
@@ -40,7 +47,7 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
     }
 
     const display = translated && translatedData ? translatedData : {
-        about: person.about, gives: person.gives, wants: person.wants
+        about: person.about, gives: person.gives, wants: person.wants,
     }
 
     return (
@@ -52,7 +59,7 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                 backdropFilter: 'blur(6px)',
                 WebkitBackdropFilter: 'blur(6px)',
                 zIndex: 200,
-                display: 'flex', alignItems: 'flex-end',
+                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
             }}
         >
             <div
@@ -61,65 +68,50 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                     background: 'var(--app-card)',
                     borderRadius: '24px 24px 0 0',
                     width: '100%',
-                    maxWidth: 560,
-                    margin: '0 auto',
-                    maxHeight: '90vh',
+                    maxWidth: 520,
+                    maxHeight: '92vh',
                     overflowY: 'auto',
+                    overflowX: 'hidden',
                     paddingBottom: 40,
                     animation: 'slideUp 0.3s cubic-bezier(0.4,0,0.2,1)',
                 }}
             >
-                {/* Hero photo with gallery */}
-                <div style={{
-                    width: '100%', height: 320,
-                    backgroundImage: allPhotos[photoIdx] ? `url(${allPhotos[photoIdx]})` : 'none',
-                    backgroundSize: 'cover', backgroundPosition: 'center',
-                    backgroundColor: 'rgba(120,120,128,0.1)',
-                    borderRadius: '24px 24px 0 0',
-                    position: 'relative',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                    {!allPhotos[photoIdx] && <span style={{ fontSize: 72 }}>👤</span>}
-
+                {/* Hero photo with Swiper */}
+                <div style={{ position: 'relative', borderRadius: '24px 24px 0 0', overflow: 'hidden' }}>
+                    {allPhotos.length > 0 ? (
+                        <Swiper
+                            modules={[Pagination, Navigation]}
+                            pagination={{ clickable: true }}
+                            navigation
+                            style={{ height: 320 }}
+                        >
+                            {allPhotos.map((photo, i) => (
+                                <SwiperSlide key={i}>
+                                    <div style={{
+                                        width: '100%', height: 320,
+                                        backgroundImage: `url(${photo})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                    }} />
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    ) : (
+                        <div style={{
+                            width: '100%', height: 320,
+                            backgroundColor: 'rgba(120,120,128,0.1)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <span style={{ fontSize: 72 }}>👤</span>
+                        </div>
+                    )}
                     <div style={{
                         position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
                         background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)',
+                        pointerEvents: 'none', zIndex: 10,
                     }} />
-
-                    {/* Prev/Next arrows */}
-                    {allPhotos.length > 1 && (
-                        <>
-                            <button onClick={() => setPhotoIdx(i => (i - 1 + allPhotos.length) % allPhotos.length)}
-                                style={{
-                                    position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-                                    width: 32, height: 32, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.4)', border: 'none',
-                                    color: '#fff', fontSize: 16, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>‹</button>
-                            <button onClick={() => setPhotoIdx(i => (i + 1) % allPhotos.length)}
-                                style={{
-                                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                                    width: 32, height: 32, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.4)', border: 'none',
-                                    color: '#fff', fontSize: 16, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>›</button>
-                            {/* Dots */}
-                            <div style={{ position: 'absolute', bottom: 12, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 5 }}>
-                                {allPhotos.map((_, i) => (
-                                    <div key={i} onClick={() => setPhotoIdx(i)} style={{
-                                        width: i === photoIdx ? 16 : 6, height: 6,
-                                        borderRadius: 3, background: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.5)',
-                                        cursor: 'pointer', transition: 'all 0.2s',
-                                    }} />
-                                ))}
-                            </div>
-                        </>
-                    )}
-
                     <button onClick={onClose} style={{
-                        position: 'absolute', top: 16, right: 16,
+                        position: 'absolute', top: 16, right: 16, zIndex: 20,
                         width: 34, height: 34, borderRadius: '50%',
                         background: 'rgba(0,0,0,0.45)', border: 'none',
                         color: '#fff', fontSize: 16, cursor: 'pointer',
@@ -129,7 +121,6 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                 </div>
 
                 <div style={{ padding: '20px 20px 0' }}>
-
                     {/* Name + geo */}
                     <div style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--app-text)', letterSpacing: -0.5, marginBottom: 4 }}>
@@ -144,9 +135,7 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                                     background: 'rgba(0,0,0,0.04)',
                                     padding: '2px 7px', borderRadius: 6,
                                     fontSize: 11, fontWeight: 600, color: '#555',
-                                }}>
-                                    {l}
-                                </span>
+                                }}>{l}</span>
                             ))}
                         </div>
                     </div>
@@ -160,9 +149,7 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                                     background: 'rgba(0,122,255,0.1)',
                                     color: 'var(--app-primary)',
                                     padding: '4px 10px', borderRadius: 10,
-                                }}>
-                                    {tag}
-                                </span>
+                                }}>{tag}</span>
                             ))}
                         </div>
                     )}
@@ -187,10 +174,7 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                     {/* Balance */}
                     {person.balance && (
                         <div style={{ marginBottom: 20 }}>
-                            <div style={{
-                                fontSize: 11, fontWeight: 700, color: 'var(--app-hint)',
-                                textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
-                            }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--app-hint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
                                 Meeting Balance
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--app-text)', marginBottom: 8 }}>
@@ -205,21 +189,15 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                     )}
 
                     {/* Interest button */}
-                    <button
-                        onClick={onLike}
-                        style={{
-                            width: '100%', padding: '16px 0', borderRadius: 16,
-                            border: 'none', cursor: 'pointer',
-                            background: liked
-                                ? 'rgba(255,59,48,0.08)'
-                                : 'linear-gradient(135deg, #007aff 0%, #5856d6 100%)',
-                            color: liked ? '#ff3b30' : '#fff',
-                            fontSize: 17, fontWeight: 700,
-                            fontFamily: 'inherit',
-                            boxShadow: liked ? 'none' : '0 6px 16px rgba(0,122,255,0.2)',
-                            transition: 'all 0.2s',
-                        }}
-                    >
+                    <button onClick={onLike} style={{
+                        width: '100%', padding: '16px 0', borderRadius: 16,
+                        border: 'none', cursor: 'pointer',
+                        background: liked ? 'rgba(255,59,48,0.08)' : 'linear-gradient(135deg, #007aff 0%, #5856d6 100%)',
+                        color: liked ? '#ff3b30' : '#fff',
+                        fontSize: 17, fontWeight: 700, fontFamily: 'inherit',
+                        boxShadow: liked ? 'none' : '0 6px 16px rgba(0,122,255,0.2)',
+                        transition: 'all 0.2s',
+                    }}>
                         {liked ? '✕ Cancel Request' : '🤍 Send Interest'}
                     </button>
                 </div>
@@ -238,13 +216,9 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
 function SheetSection({ label, text, borderColor }) {
     const [expanded, setExpanded] = useState(false)
     const isLong = text.length > 150
-
     return (
         <div style={{ marginBottom: 18, paddingLeft: 12, borderLeft: `2px solid ${borderColor}` }}>
-            <div style={{
-                fontSize: 11, fontWeight: 700, color: 'var(--app-hint)',
-                textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4,
-            }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--app-hint)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
                 {label}
             </div>
             <div style={{
@@ -257,14 +231,11 @@ function SheetSection({ label, text, borderColor }) {
                 {text}
             </div>
             {isLong && (
-                <button
-                    onClick={() => setExpanded(e => !e)}
-                    style={{
-                        background: 'none', border: 'none', padding: '4px 0 0',
-                        fontSize: 12, fontWeight: 700, color: 'var(--app-primary)',
-                        cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                >
+                <button onClick={() => setExpanded(e => !e)} style={{
+                    background: 'none', border: 'none', padding: '4px 0 0',
+                    fontSize: 12, fontWeight: 700, color: 'var(--app-primary)',
+                    cursor: 'pointer', fontFamily: 'inherit',
+                }}>
                     {expanded ? 'Show less' : 'Read more'}
                 </button>
             )}

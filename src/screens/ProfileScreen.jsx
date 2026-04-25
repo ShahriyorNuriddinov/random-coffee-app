@@ -8,6 +8,11 @@ import Modal from '@/components/ui/Modal'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import { signOut, uploadPhoto, savePhotos, updateNotifications, getReferralCode } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Pagination, Navigation } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/pagination'
+import 'swiper/css/navigation'
 
 // ─── Subscription config ──────────────────────────────────────────────────────
 const SUB_CONFIG = {
@@ -213,7 +218,6 @@ export default function ProfileScreen() {
 // ─── Photo Grid ───────────────────────────────────────────────────────────────
 
 function PhotoGrid({ photos, userId, onPhotosChange }) {
-    const [activeIdx, setActiveIdx] = useState(0)
 
     // Normalize: always 4 elements, nulls for missing
     const normalized = Array.isArray(photos)
@@ -255,44 +259,41 @@ function PhotoGrid({ photos, userId, onPhotosChange }) {
         if (userId) await savePhotos(userId, next)
     }
 
-    // If has photos — show swiper on top + small grid below
+    // If has photos — show Swiper on top + small grid below
     if (hasPhotos) {
         return (
             <div>
                 {/* Swiper */}
-                <div style={{ position: 'relative', width: '100%', borderRadius: 16, overflow: 'hidden', marginBottom: 10 }}>
-                    <div style={{
-                        width: '100%', paddingTop: '75%',
-                        backgroundImage: `url(${filled[activeIdx % filled.length]})`,
-                        backgroundSize: 'cover', backgroundPosition: 'center',
-                        backgroundColor: 'rgba(120,120,128,0.08)',
-                    }} />
-                    {/* Prev/Next */}
-                    {filled.length > 1 && (
-                        <>
-                            <button onClick={() => setActiveIdx(i => (i - 1 + filled.length) % filled.length)}
-                                style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
-                            <button onClick={() => setActiveIdx(i => (i + 1) % filled.length)}
-                                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
-                            {/* Dots */}
-                            <div style={{ position: 'absolute', bottom: 10, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 5 }}>
-                                {filled.map((_, i) => (
-                                    <div key={i} onClick={() => setActiveIdx(i)} style={{ width: i === activeIdx % filled.length ? 16 : 6, height: 6, borderRadius: 3, background: i === activeIdx % filled.length ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all 0.2s' }} />
-                                ))}
-                            </div>
-                        </>
-                    )}
+                <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 10 }}>
+                    <Swiper
+                        modules={[Pagination, Navigation]}
+                        pagination={{ clickable: true }}
+                        navigation
+                        style={{ borderRadius: 16 }}
+                    >
+                        {filled.map((photo, i) => (
+                            <SwiperSlide key={i}>
+                                <div style={{
+                                    width: '100%', paddingTop: '75%',
+                                    backgroundImage: `url(${photo})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    backgroundColor: 'rgba(120,120,128,0.08)',
+                                }} />
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
                 </div>
                 {/* Small grid for all 4 slots */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                     {normalized.map((photo, i) => (
-                        <div key={i} onClick={() => photo ? setActiveIdx(filled.indexOf(photo)) : handlePick(i)}
+                        <div key={i} onClick={() => handlePick(i)}
                             style={{
                                 aspectRatio: '1/1', borderRadius: 10,
                                 backgroundImage: photo ? `url(${photo})` : 'none',
                                 backgroundSize: 'cover', backgroundPosition: 'center',
                                 backgroundColor: 'rgba(120,120,128,0.08)',
-                                border: photo ? (filled[activeIdx % filled.length] === photo ? '2px solid var(--app-primary)' : '2px solid transparent') : '1px dashed rgba(120,120,128,0.25)',
+                                border: photo ? '2px solid transparent' : '1px dashed rgba(120,120,128,0.25)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 cursor: 'pointer', position: 'relative', overflow: 'hidden',
                             }}

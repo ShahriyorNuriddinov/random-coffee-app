@@ -407,3 +407,37 @@
   line-height: 1.4;
   font-weight: 500;
 }
+
+/* ── Swiper custom styles ── */
+.swiper {
+  width: 100%;
+}
+.swiper-slide {
+  overflow: hidden;
+}
+.swiper-button-next,
+.swiper-button-prev {
+  width: 32px !important;
+  height: 32px !important;
+  background: rgba(0,0,0,0.45);
+  border-radius: 50%;
+  color: #fff !important;
+}
+.swiper-button-next::after,
+.swiper-button-prev::after {
+  font-size: 14px !important;
+  font-weight: 700;
+}
+.swiper-pagination-bullet {
+  background: rgba(255,255,255,0.6) !important;
+  opacity: 1 !important;
+}
+.swiper-pagination-bullet-active {
+  background: #fff !important;
+  width: 16px !important;
+  border-radius: 4px !important;
+}
+/* Hide scrollbar inside swiper */
+.swiper-wrapper {
+  scrollbar-width: none;
+}
