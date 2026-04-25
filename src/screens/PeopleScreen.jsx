@@ -21,7 +21,7 @@ export default function PeopleScreen() {
     const [showFilter, setShowFilter] = useState(false)
     const [filters, setFilters] = useState({ regions: [], langs: [] })
     const [search, setSearch] = useState('')
-    da
+
     useEffect(() => {
         if (!user?.id) return
         load()
