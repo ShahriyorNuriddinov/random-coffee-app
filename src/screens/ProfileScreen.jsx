@@ -7,7 +7,7 @@ import { Card, CardRow } from '@/components/ui/Card'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import PhotoGrid from '@/components/profile/PhotoGrid'
 import { RefModal, GiftModal } from '@/components/profile/ProfileModals'
-import { signOut, updateNotifications, getReferralCode } from '@/lib/supabaseClient'
+import { signOut, updateNotifications, getReferralCode, getSubscription } from '@/lib/supabaseClient'
 const SUB_CONFIG = {
     trial: { border: '1.5px solid #ff9500', background: 'rgba(255,149,0,0.08)', titleColor: '#ff9500', title: 'Trial Period Active', desc: 'Enjoy 2 free coffee credits!', btnLabel: 'Upgrade', btnBg: '#ff9500' },
     empty: { border: '1.5px solid #ff3b30', background: 'rgba(255,59,48,0.08)', titleColor: '#ff3b30', title: 'No Credits Left', desc: 'Top up your balance.', btnLabel: 'Buy Credits', btnBg: '#ff3b30' },
@@ -16,13 +16,22 @@ const SUB_CONFIG = {
 
 export default function ProfileScreen() {
     const { t } = useTranslation()
-    const { setScreen, profile, setProfile, user, subscription, notifNewMatches, setNotifNewMatches, notifImportantNews, setNotifImportantNews, logoutUser } = useApp()
+    const { setScreen, profile, setProfile, user, subscription, setSubscription, notifNewMatches, setNotifNewMatches, notifImportantNews, setNotifImportantNews, logoutUser } = useApp()
     const [modal, setModal] = useState(null)
     const [referralCode, setReferralCode] = useState(null)
 
     useEffect(() => {
         if (!user?.id) return
         getReferralCode(user.id).then(d => { if (d?.referral_code) setReferralCode(d.referral_code) })
+        // Always fetch fresh credits from DB
+        getSubscription(user.id).then(data => {
+            if (data) setSubscription({
+                status: data.subscription_status || 'trial',
+                credits: data.coffee_credits ?? 0,
+                start: data.subscription_start || null,
+                end: data.subscription_end || null,
+            })
+        })
     }, [user?.id])
 
     const effectiveStatus = subscription.status === 'active' && (subscription.credits ?? 0) === 0 ? 'empty' : subscription.status
