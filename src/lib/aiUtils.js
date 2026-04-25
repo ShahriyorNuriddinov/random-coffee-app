@@ -127,13 +127,13 @@ function extractTagsFallback(about, gives, wants) {
  * @param {object[]} candidates - array of { gives, wants, about }
  * @returns {number[]} - scores array in same order as candidates
  */
-export async function calcMatchScoresBatch(myProfile = {}, candidates = []) {
+export async function calcMatchScoresBatch(myProfile = {}, candidates = [], customPrompt = '') {
     if (!candidates.length) return []
 
     const { gives: myGives = '', wants: myWants = '', about: myAbout = '' } = myProfile
 
     // If my profile is empty — use keyword fallback for all
-    if (!myGives && !myWants) {
+    if (!myGives && !myWants && !customPrompt) {
         return candidates.map(p => calcMatchScore(myProfile, p))
     }
 
@@ -147,7 +147,7 @@ Score how well each candidate matches Person A for a 1-on-1 coffee meeting.
 Person A:
 - About: ${(myAbout || 'n/a').slice(0, 150)}
 - Can offer: ${(myGives || 'n/a').slice(0, 150)}
-- Looking for: ${(myWants || 'n/a').slice(0, 150)}
+- Looking for: ${(myWants || 'n/a').slice(0, 150)}${customPrompt ? `\n- Special request: ${customPrompt.slice(0, 200)}` : ''}
 
 Candidates:
 ${candidateList}
@@ -157,6 +157,7 @@ SCORING (0-100):
 - 50-79: One side benefits more, but still useful meeting
 - 20-49: Weak match, some common ground
 - 0-19: Poor match, no clear mutual value
+${customPrompt ? '- Heavily prioritize candidates matching the special request.' : ''}
 
 Return ONLY a JSON array of integers in the same order as candidates.
 Example for 4 candidates: [85, 42, 17, 63]`

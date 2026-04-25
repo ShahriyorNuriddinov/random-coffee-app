@@ -2,11 +2,11 @@
 
 import { useState, useRef } from 'react'
 import { useApp } from '@/store/useAppStore'
-import { postMoment, uploadMomentImage } from '@/lib/supabaseClient'
+import { postMoment, uploadMomentImage, supabase } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
 export default function NewMomentModal({ onClose, onPosted }) {
-    const { user } = useApp()
+    const { user, subscription, setSubscription } = useApp()
     const [text, setText] = useState('')
     const [imageFile, setImageFile] = useState(null)
     const [imagePreview, setImagePreview] = useState(null)
@@ -31,10 +31,16 @@ export default function NewMomentModal({ onClose, onPosted }) {
         }
 
         const result = await postMoment(user.id, text.trim(), imageUrl)
+
         setLoading(false)
 
         if (result) {
-            toast.success('Posted! 🎉')
+            // +1 credit reward for posting
+            const newCredits = (subscription.credits ?? 0) + 1
+            setSubscription(s => ({ ...s, credits: newCredits }))
+            await supabase.from('profiles').update({ coffee_credits: newCredits }).eq('id', user.id)
+
+            toast.success('Posted! +1 credit earned ☕')
             onPosted?.(result)
             onClose()
         } else {

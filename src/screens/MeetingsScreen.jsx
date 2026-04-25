@@ -76,11 +76,10 @@ export default function MeetingsScreen() {
             }
 
             let partner
-            if (myProfile.gives || myProfile.wants) {
-                const scores = await calcMatchScoresBatch(myProfile, candidates)
+            if (myProfile.gives || myProfile.wants || searchFilters.prompt?.trim()) {
+                const scores = await calcMatchScoresBatch(myProfile, candidates, searchFilters.prompt?.trim() || '')
                 const bestIdx = scores.indexOf(Math.max(...scores))
                 partner = candidates[bestIdx]
-                console.log(`[Boost] AI picked: ${partner.name} (score: ${scores[bestIdx]})`)
             } else {
                 // No profile data — pick first candidate
                 partner = candidates[0]
