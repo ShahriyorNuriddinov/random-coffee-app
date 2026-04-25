@@ -8,7 +8,7 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
     const { user, subscription, setSubscription, profile } = useApp()
     const [boosting, setBoosting] = useState(false)
 
-    const hasCredits = !subscription.status || subscription.status === 'trial' || subscription.status === 'active' || (subscription.credits ?? 0) > 0
+    const hasCredits = (subscription.credits ?? 0) > 0
 
     // Profile completeness check
     const isProfileComplete = !!(profile.about?.trim() && profile.gives?.trim() && profile.wants?.trim() && profile.avatar)

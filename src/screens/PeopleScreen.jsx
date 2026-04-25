@@ -13,7 +13,7 @@ import { usePeopleLike } from '@/hooks/usePeopleLike'
 export default function PeopleScreen() {
     const { t, i18n } = useTranslation()
     const { user, profile, subscription } = useApp()
-    const hasCredits = !subscription.status || subscription.status === 'trial' || subscription.status === 'active' || (subscription.credits ?? 0) > 0
+    const hasCredits = (subscription.credits ?? 0) > 0
     const [people, setPeople] = useState([])
     const { likedIds, setLikedIds, handleLike } = usePeopleLike()
     const [loading, setLoading] = useState(true)
