@@ -111,7 +111,7 @@ export async function translateText(text, targetLang = 'zh') {
 // Translate multiple fields in ONE request to avoid rate limits
 export async function translateProfile(profile, targetLang = 'zh') {
     const { about, gives, wants } = profile
-    if (!about && !gives && !wants) return profile
+    if (!about && !gives && !wants) return null
 
     const instruction = targetLang === 'zh'
         ? 'Translate each section to Simplified Chinese. Return ONLY a JSON object.'
@@ -125,20 +125,21 @@ Input:
 Return ONLY valid JSON with same keys, translated values.`
 
     const result = await callAI(prompt, 400)
-    if (!result) return profile
+    if (!result) return null
 
     try {
         const match = result.match(/\{[\s\S]*\}/)
-        if (!match) return profile
+        if (!match) return null
         const parsed = JSON.parse(match[0])
+        // Validate: translated text should differ from original
+        if (parsed.about === about && parsed.gives === gives) return null
         return {
-            ...profile,
-            about: parsed.about || about,
-            gives: parsed.gives || gives,
-            wants: parsed.wants || wants,
+            about: parsed.about || null,
+            gives: parsed.gives || null,
+            wants: parsed.wants || null,
         }
     } catch {
-        return profile
+        return null
     }
 }
 

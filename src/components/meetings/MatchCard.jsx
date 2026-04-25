@@ -46,8 +46,8 @@ export default function MatchCard({ match, onPost, onFeedback }) {
         } catch { }
         translateProfile(partner, 'zh').then(result => {
             if (result) {
-                setAiTranslated(result)
-                try { sessionStorage.setItem(cacheKey, JSON.stringify(result)) } catch { }
+                setAiTranslated({ ...partner, ...result })
+                try { sessionStorage.setItem(cacheKey, JSON.stringify({ ...partner, ...result })) } catch { }
             }
         })
     }, [partner?.id, lang])

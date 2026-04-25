@@ -149,16 +149,15 @@ export default function ProfileEditScreen() {
                     }
 
                     if (hasChinese) {
-                        // User wrote in Chinese → save English translation
+                        // User wrote in Chinese → save Chinese in _zh, English in main
                         updateData.about_zh = finalAbout
                         updateData.gives_zh = finalGives
                         updateData.wants_zh = finalWants
-                        // Store English in main fields, Chinese in _zh fields
                         updateData.about = translated?.about || finalAbout
                         updateData.gives = translated?.gives || finalGives
                         updateData.wants = translated?.wants || finalWants
                     } else {
-                        // User wrote in English → save Chinese translation
+                        // User wrote in English → save Chinese translation in _zh
                         updateData.about_zh = translated?.about || null
                         updateData.gives_zh = translated?.gives || null
                         updateData.wants_zh = translated?.wants || null
