@@ -10,14 +10,26 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
 
     const hasCredits = !subscription.status || subscription.status === 'trial' || subscription.status === 'active' || (subscription.credits ?? 0) > 0
 
+    // Profile completeness check
+    const isProfileComplete = !!(profile.about?.trim() && profile.gives?.trim() && profile.wants?.trim() && profile.avatar)
+
     const handleBoost = async () => {
         if (!user?.id) return
         if (!hasCredits) { onBuyCredits(); return }
+
+        // Block if profile incomplete
+        if (!isProfileComplete) {
+            toast.error('Please complete your profile first (photo, about, gives, wants)')
+            return
+        }
 
         setBoosting(true)
         try {
             let people = await getPeople(user.id)
             const matchedIds = new Set(history.map(m => m.partner?.id))
+
+            // Only match with users who have complete profiles
+            people = people.filter(p => p.about?.trim() && p.gives?.trim() && p.wants?.trim() && p.avatar_url)
 
             if (searchFilters.regions.length > 0) {
                 people = people.filter(p => searchFilters.regions.includes(p.region))
@@ -70,16 +82,14 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
                 await supabase.from('matches').insert({ user1_id: u1, user2_id: u2 })
             }
 
-            // Deduct credit
-            if (subscription.status !== 'trial') {
-                const newCredits = Math.max(0, (subscription.credits || 0) - 1)
-                const newStatus = newCredits === 0 ? 'empty' : 'active'
-                setSubscription(s => ({ ...s, credits: newCredits, status: newStatus }))
-                await supabase.from('profiles').update({
-                    coffee_credits: newCredits,
-                    subscription_status: newStatus,
-                }).eq('id', user.id)
-            }
+            // Deduct credit — always (including trial)
+            const newCredits = Math.max(0, (subscription.credits ?? 2) - 1)
+            const newStatus = newCredits === 0 ? 'empty' : (subscription.status === 'trial' ? 'trial' : 'active')
+            setSubscription(s => ({ ...s, credits: newCredits, status: newStatus }))
+            await supabase.from('profiles').update({
+                coffee_credits: newCredits,
+                subscription_status: newStatus,
+            }).eq('id', user.id)
 
             const updated = await getMeetingHistory(user.id)
             setHistory(updated)

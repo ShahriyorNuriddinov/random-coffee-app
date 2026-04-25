@@ -12,11 +12,11 @@ import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import SearchSettingsModal from '@/components/meetings/SearchSettingsModal'
 import BoostModal from '@/components/meetings/BoostModal'
 import NewMomentModal from '@/components/moments/NewMomentModal'
-import { getMeetingHistory } from '@/lib/supabaseClient'
+import { getMeetingHistory, getSubscription } from '@/lib/supabaseClient'
 import { useMeetingBoost } from '@/hooks/useMeetingBoost'
 
 export default function MeetingsScreen() {
-    const { user, setScreen, profile } = useApp()
+    const { user, setScreen, profile, subscription, setSubscription } = useApp()
     const { t } = useTranslation()
 
     const [history, setHistory] = useState([])
@@ -36,6 +36,21 @@ export default function MeetingsScreen() {
         onBuyCredits: () => setShowBuyCredits(true),
         onMatchFound: () => setShowBoostModal(true),
     })
+
+    // Reload subscription from DB on mount to get fresh credits
+    useEffect(() => {
+        if (!user?.id) return
+        getSubscription(user.id).then(data => {
+            if (data) {
+                setSubscription({
+                    status: data.subscription_status || 'trial',
+                    credits: data.coffee_credits ?? 2,
+                    start: data.subscription_start || null,
+                    end: data.subscription_end || null,
+                })
+            }
+        })
+    }, [user?.id])
 
     const loadHistory = () => {
         if (!user?.id) { setLoading(false); return }

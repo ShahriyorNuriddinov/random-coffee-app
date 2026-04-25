@@ -101,6 +101,35 @@ export function AppProvider({ children }) {
             }
         }
         restore()
+
+        // Listen for auth state changes (token refresh, sign in/out)
+        const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                const uid = session.user.id
+                const email = session.user.email
+                const db = await getProfile(uid)
+                if (db && db.name) {
+                    const u = { id: uid, email }
+                    setUser(u)
+                    userRef.current = u
+                    setProfile(dbToProfile(db))
+                    setSubscription({
+                        status: db.subscription_status || 'trial',
+                        credits: db.coffee_credits ?? 2,
+                        start: db.subscription_start || null,
+                        end: db.subscription_end || null,
+                    })
+                    setProfileWelcomeSeen(true)
+                    setScreen('profile')
+                }
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                userRef.current = null
+                setScreen('onboarding')
+            }
+        })
+
+        return () => { authSub?.unsubscribe() }
     }, [])
 
     // ── Real-time: notify when new match arrives ──────────────────
