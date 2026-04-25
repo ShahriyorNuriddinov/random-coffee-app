@@ -96,10 +96,16 @@ Wants: ${wants}`
 // ─── Translation ──────────────────────────────────────────────────────────────
 export async function translateText(text, targetLang = 'zh') {
     const instruction = targetLang === 'zh'
-        ? 'Translate the following text to Simplified Chinese. Return ONLY the translation, no explanation.'
-        : 'Translate the following text to English. Return ONLY the translation, no explanation.'
+        ? 'Translate the following text to Simplified Chinese. Return ONLY the translation, no explanation, no prefix.'
+        : 'Translate the following text to English. Return ONLY the translation, no explanation, no prefix.'
     const prompt = `${instruction}\n\n${text}`
-    return await callAI(prompt, 300)
+    const result = await callAI(prompt, 300)
+    if (!result) return null
+    // Strip common AI prefixes like "Translation:", "翻译:", etc.
+    return result
+        .replace(/^(Translation|Translate|翻译|译文)\s*:\s*/i, '')
+        .replace(/^["']|["']$/g, '')
+        .trim()
 }
 
 // Translate multiple fields in ONE request to avoid rate limits
