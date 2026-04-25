@@ -9,6 +9,7 @@ import PeopleFilterModal from '@/components/people/PeopleFilterModal'
 import { getPeople, getLikedUserIds, supabase } from '@/lib/supabaseClient'
 import { calcMatchScoresBatch } from '@/lib/aiUtils'
 import { usePeopleLike } from '@/hooks/usePeopleLike'
+import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 
 export default function PeopleScreen() {
     const { t, i18n } = useTranslation()
@@ -24,7 +25,6 @@ export default function PeopleScreen() {
 
     useEffect(() => {
         if (!user?.id) return
-        if (!hasCredits) return  // #14: no credits — don't load
         load()
     }, [user?.id, profile?.tags?.length])
 
@@ -107,17 +107,10 @@ export default function PeopleScreen() {
         })
     }, [displayPeople, search, filters])
 
+    const [showBuyCredits, setShowBuyCredits] = useState(false)
+
     return (
         <div className="app-screen">
-            {!hasCredits && (
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                    <div style={{ background: 'var(--app-card)', borderRadius: 20, padding: 28, textAlign: 'center', maxWidth: 320 }}>
-                        <div style={{ fontSize: 48, marginBottom: 12 }}>☕</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>No Credits Left</div>
-                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>Top up your balance to browse people and find new matches.</div>
-                    </div>
-                </div>
-            )}
             <ScreenHeader
                 title={t('nav_people')}
                 right={
@@ -153,14 +146,19 @@ export default function PeopleScreen() {
                             {filtered.length} {t('people_found')}
                         </div>
                         {filtered.map(person => (
-                            <PersonCard key={person.id} person={person} liked={likedIds.has(person.id)} onLike={() => handleLike(person)} onOpen={() => setSelected(person)} />
+                            <PersonCard key={person.id} person={person} liked={likedIds.has(person.id)}
+                                onLike={() => hasCredits ? handleLike(person) : setShowBuyCredits(true)}
+                                onOpen={() => setSelected(person)} />
                         ))}
                     </div>
                 )}
             </div>
 
-            {selected && <PersonProfileSheet person={selected} liked={likedIds.has(selected.id)} onLike={() => { handleLike(selected); setSelected(null) }} onClose={() => setSelected(null)} />}
+            {selected && <PersonProfileSheet person={selected} liked={likedIds.has(selected.id)}
+                onLike={() => { hasCredits ? handleLike(selected) : setShowBuyCredits(true); setSelected(null) }}
+                onClose={() => setSelected(null)} />}
             {showFilter && <PeopleFilterModal filters={filters} onApply={setFilters} onClose={() => setShowFilter(false)} />}
+            {showBuyCredits && <BuyCreditsModal onClose={() => setShowBuyCredits(false)} />}
             <BottomNav active="people" />
         </div>
     )
