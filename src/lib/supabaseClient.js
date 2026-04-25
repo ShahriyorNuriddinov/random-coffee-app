@@ -56,12 +56,8 @@ export const uploadAvatar = async (userId, file) => {
     const path = `avatars/${userId}.${ext}`
     const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
     if (error) {
-        return new Promise((resolve) => {
-            const reader = new FileReader()
-            reader.onload = (e) => resolve(e.target.result)
-            reader.onerror = () => resolve(null)
-            reader.readAsDataURL(file)
-        })
+        console.error('[uploadAvatar] Storage upload failed:', error.message)
+        return null
     }
     const { data } = supabase.storage.from('avatars').getPublicUrl(path)
     return data.publicUrl
@@ -74,12 +70,8 @@ export const uploadPhoto = async (userId, file, index) => {
     const path = `photos/${userId}/photo_${index}.${ext}`
     const { error } = await supabase.storage.from('photos').upload(path, file, { upsert: true })
     if (error) {
-        return new Promise((resolve) => {
-            const reader = new FileReader()
-            reader.onload = (e) => resolve(e.target.result)
-            reader.onerror = () => resolve(null)
-            reader.readAsDataURL(file)
-        })
+        console.error('[uploadPhoto] Storage upload failed:', error.message)
+        return null
     }
     const { data } = supabase.storage.from('photos').getPublicUrl(path)
     return data.publicUrl
@@ -283,11 +275,23 @@ export const getMoments = async (limit = 30) => {
     if (error) return []
 
     const moments = data || []
+    if (moments.length === 0) return moments
+
+    const momentIds = moments.map(m => m.id)
+    const { data: allReactions } = await supabase
+        .from('moment_likes')
+        .select('moment_id, emoji')
+        .in('moment_id', momentIds)
+
+    const reactionMap = {}
+    if (allReactions) {
+        for (const r of allReactions) {
+            if (!reactionMap[r.moment_id]) reactionMap[r.moment_id] = {}
+            reactionMap[r.moment_id][r.emoji] = (reactionMap[r.moment_id][r.emoji] || 0) + 1
+        }
+    }
     for (const m of moments) {
-        const { data: reactions } = await supabase.from('moment_likes').select('emoji').eq('moment_id', m.id)
-        const counts = {}
-        if (reactions) reactions.forEach(r => { counts[r.emoji] = (counts[r.emoji] || 0) + 1 })
-        m.reactions = counts
+        m.reactions = reactionMap[m.id] || {}
     }
     return moments
 }
@@ -315,6 +319,18 @@ export const getUserMomentReaction = async (userId, momentId) => {
     return data?.emoji || null
 }
 
+export const getUserMomentReactions = async (userId, momentIds) => {
+    if (!momentIds.length) return {}
+    const { data } = await supabase
+        .from('moment_likes')
+        .select('moment_id, emoji')
+        .eq('user_id', userId)
+        .in('moment_id', momentIds)
+    const map = {}
+    if (data) data.forEach(r => { map[r.moment_id] = r.emoji })
+    return map
+}
+
 export const getLikedMomentIds = async (userId) => {
     const { data } = await supabase.from('moment_likes').select('moment_id').eq('user_id', userId)
     return (data || []).map(r => r.moment_id)
@@ -325,12 +341,8 @@ export const uploadMomentImage = async (userId, file) => {
     const path = `moments/${userId}/${Date.now()}.${ext}`
     const { error } = await supabase.storage.from('moments').upload(path, file, { upsert: false })
     if (error) {
-        return new Promise((resolve) => {
-            const reader = new FileReader()
-            reader.onload = (e) => resolve(e.target.result)
-            reader.onerror = () => resolve(null)
-            reader.readAsDataURL(file)
-        })
+        console.error('[uploadMomentImage] Storage upload failed:', error.message)
+        return null
     }
     const { data } = supabase.storage.from('moments').getPublicUrl(path)
     return data.publicUrl

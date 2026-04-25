@@ -17,7 +17,7 @@ export default function BoostModal({ onClose }) {
             <div
                 onClick={e => e.stopPropagation()}
                 style={{
-                    background: '#fff',
+                    background: 'var(--app-card)',
                     borderRadius: 24,
                     padding: '36px 28px 28px',
                     maxWidth: 380, width: '100%',
@@ -28,7 +28,7 @@ export default function BoostModal({ onClose }) {
                 {/* Lightning icon */}
                 <div style={{ fontSize: 52, marginBottom: 16, lineHeight: 1 }}>⚡</div>
 
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#1c1c1e', marginBottom: 12, letterSpacing: -0.5 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--app-text)', marginBottom: 12, letterSpacing: -0.5 }}>
                     {t('boost_activated')}
                 </div>
                 <p style={{ fontSize: 15, color: '#8e8e93', lineHeight: 1.55, marginBottom: 28, fontWeight: 400 }}>

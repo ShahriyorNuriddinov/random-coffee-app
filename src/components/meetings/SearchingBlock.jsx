@@ -73,7 +73,7 @@ export default function SearchingBlock({ onPeople, onBoost, boosting, filters })
                 <span onClick={onPeople} style={{ color: 'var(--app-primary)', fontWeight: 700, cursor: 'pointer' }}>
                     {t('nav_people').toUpperCase()}
                 </span>
-                {' '}section you'd like to meet.
+                {' '}{t('boost_hint_suffix')}
             </div>
         </div>
     )

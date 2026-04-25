@@ -48,12 +48,16 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
         setTranslating(true)
         try {
             const result = await translateProfile(person, targetLang)
-            setTranslatedData({
-                about: result.about,
-                gives: result.gives,
-                wants: result.wants,
-            })
-            setTranslated(true)
+            if (result) {
+                setTranslatedData({
+                    about: result.about,
+                    gives: result.gives,
+                    wants: result.wants,
+                })
+                setTranslated(true)
+            } else {
+                toast.error('Translation failed')
+            }
         } catch {
             toast.error('Translation failed')
         } finally {

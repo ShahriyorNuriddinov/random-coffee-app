@@ -1,7 +1,9 @@
 // HTML: meetings.html → .history-item
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function HistoryItem({ match, onPost }) {
+    const { t } = useTranslation()
     const [showNote, setShowNote] = useState(false)
     const { partner, createdAt } = match
     if (!partner) return null
@@ -36,7 +38,7 @@ export default function HistoryItem({ match, onPost }) {
                         <div style={{ fontSize: 12, color: 'var(--app-hint)' }}>{dateStr}</div>
                     </div>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#34c759' }}>Success ✓</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#34c759' }}>{t('history_success')}</div>
             </div>
 
             {/* .notes-preview */}
@@ -46,7 +48,7 @@ export default function HistoryItem({ match, onPost }) {
                     background: 'rgba(120,120,128,0.05)',
                     padding: 10, borderRadius: 8, marginBottom: 8,
                 }}>
-                    📝 <strong>Note:</strong> You matched with {partner.name}. {regionFlag} {partner.region}
+                    📝 <strong>{t('history_note')}:</strong> {t('history_matched_with')} {partner.name}. {regionFlag} {partner.region}
                 </div>
             )}
 
@@ -56,7 +58,7 @@ export default function HistoryItem({ match, onPost }) {
                 fontSize: 12, fontWeight: 700, color: 'var(--app-primary)',
                 cursor: 'pointer', fontFamily: 'inherit',
             }}>
-                {showNote ? 'Hide Note' : 'Show Note'}
+                {showNote ? t('hide_note') : t('show_note')}
             </button>
 
             {/* .btn-beautiful-post */}
@@ -70,7 +72,7 @@ export default function HistoryItem({ match, onPost }) {
                 fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
-                ✏️ Write a Post (+1 ☕)
+                {t('write_post')}
             </button>
         </div>
     )

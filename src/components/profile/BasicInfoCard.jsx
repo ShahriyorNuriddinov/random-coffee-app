@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/Card'
 const REGIONS = [
     { value: 'Hong Kong', labelKey: 'region_hk' },
     { value: 'Macau', labelKey: 'region_mo' },
-    { value: 'Mainland China', labelKey: 'region_cn' },
+    { value: 'Mainland', labelKey: 'region_cn' },
 ]
 
 function formatDob(dob) {
@@ -33,8 +33,8 @@ export default function BasicInfoCard({ profile, region, city, onCityChange }) {
                 <ReadonlyRow label={t('name_field')} value={profile.name} />
                 <ReadonlyRow label={t('dob_field')} value={formatDob(profile.dob)} />
                 <ReadonlyRow label={t('gender_field')} value={profile.gender === 'male' ? t('male') : t('female')} />
-                <ReadonlyRow label={t('region_label')} value={t(selected.labelKey)} isLast={region !== 'Mainland China'} />
-                {region === 'Mainland China' && (
+                <ReadonlyRow label={t('region_label')} value={t(selected.labelKey)} isLast={region !== 'Mainland'} />
+                {region === 'Mainland' && (
                     <div style={{
                         display: 'flex', alignItems: 'center', padding: '14px 16px',
                     }}>

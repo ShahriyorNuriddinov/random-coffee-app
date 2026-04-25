@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useApp } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
@@ -27,6 +27,13 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
 
     const hoverTimer = useRef(null)
     const leaveTimer = useRef(null)
+
+    useEffect(() => {
+        return () => {
+            clearTimeout(hoverTimer.current)
+            clearTimeout(leaveTimer.current)
+        }
+    }, [])
 
     const author = moment.author || {}
     const isOwn = user?.id && author.id === user.id

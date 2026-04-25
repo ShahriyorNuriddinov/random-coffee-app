@@ -1,7 +1,9 @@
 // ─── PersonCard — HTML: people.html → .user-card ─────────────────────────────
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function PersonCard({ person, liked, onLike, onOpen }) {
+    const { t } = useTranslation()
     const regionFlag = person.region === 'Macau' ? '🇲🇴'
         : person.region === 'Mainland' ? '🇨🇳'
             : person.region === 'Other' ? '🌍'
@@ -92,7 +94,7 @@ export default function PersonCard({ person, liked, onLike, onOpen }) {
                         transition: 'all 0.2s', whiteSpace: 'nowrap',
                     }}
                 >
-                    {liked ? 'Cancel ✕' : 'Interest'}
+                    {liked ? t('cancel_interest') : t('send_interest_short')}
                 </button>
             </div>
 
