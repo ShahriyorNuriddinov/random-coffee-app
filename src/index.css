@@ -408,6 +408,11 @@
   font-weight: 500;
 }
 
+/* ── Onboarding slider scrollbar hide (webkit/Yandex) ── */
+.onboarding-slider::-webkit-scrollbar {
+  display: none;
+}
+
 /* ── Swiper custom styles ── */
 .swiper {
   width: 100%;
