@@ -86,7 +86,19 @@ export default function NewMomentModal({ onClose, onPosted }) {
             onPosted?.(result)
             onClose()
         } else {
-            toast.error('Failed to post. Try again.')
+            // Try without translations if failed
+            const result2 = await postMoment(user.id, trimmedText, imageUrl, null, null)
+            setLoading(false)
+            if (result2) {
+                const newCredits = (subscription.credits ?? 0) + 1
+                setSubscription(s => ({ ...s, credits: newCredits }))
+                await supabase.from('profiles').update({ coffee_credits: newCredits }).eq('id', user.id)
+                toast.success('Posted! +1 credit earned ☕')
+                onPosted?.(result2)
+                onClose()
+            } else {
+                toast.error('Failed to post. Try again.')
+            }
         }
     }
 
