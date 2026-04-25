@@ -6,15 +6,42 @@ import ScreenHeader from '@/components/ui/ScreenHeader'
 import MomentCard from '@/components/moments/MomentCard'
 import NewMomentModal from '@/components/moments/NewMomentModal'
 import { getMoments, getUserMomentReaction, supabase } from '@/lib/supabaseClient'
+import { translateText } from '@/lib/aiUtils'
 
 export default function MomentsScreen() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { user } = useApp()
     const [moments, setMoments] = useState([])
-    const [userReactions, setUserReactions] = useState({}) // { momentId: emoji }
+    const [displayMoments, setDisplayMoments] = useState([])
+    const [userReactions, setUserReactions] = useState({})
     const [loading, setLoading] = useState(true)
     const [showNew, setShowNew] = useState(false)
-    const momentsRef = useRef([]) // always up-to-date ref for realtime callback
+    const momentsRef = useRef([])
+
+    // Auto-translate when language changes
+    useEffect(() => {
+        if (moments.length === 0) return
+        if (i18n.language === 'zh') {
+            translateMoments(moments)
+        } else {
+            setDisplayMoments(moments)
+        }
+    }, [i18n.language, moments.length])
+
+    const translateMoments = async (list) => {
+        const cacheKey = `translated_moments_${list.map(m => m.id).join(',').slice(0, 80)}`
+        try {
+            const cached = sessionStorage.getItem(cacheKey)
+            if (cached) { setDisplayMoments(JSON.parse(cached)); return }
+        } catch { }
+
+        const translated = await Promise.all(list.map(async (m) => {
+            const text = await translateText(m.text)
+            return { ...m, text: text || m.text }
+        }))
+        setDisplayMoments(translated)
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(translated)) } catch { }
+    }
 
     const reloadReactions = async (data) => {
         const momentList = data || momentsRef.current
@@ -66,6 +93,7 @@ export default function MomentsScreen() {
         const data = await getMoments()
         momentsRef.current = data
         setMoments(data)
+        setDisplayMoments(data)
 
         if (user?.id) {
             const userR = {}
@@ -79,8 +107,9 @@ export default function MomentsScreen() {
     }
 
     const handlePosted = (newMoment) => {
-        // Add reactions field for new post
-        setMoments(prev => [{ ...newMoment, reactions: {} }, ...prev])
+        const withReactions = { ...newMoment, reactions: {} }
+        setMoments(prev => [withReactions, ...prev])
+        setDisplayMoments(prev => [withReactions, ...prev])
     }
 
     const handleReactionChange = (momentId, emoji) => {
@@ -118,17 +147,20 @@ export default function MomentsScreen() {
             <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
                 {loading ? (
                     <LoadingSkeleton />
-                ) : moments.length === 0 ? (
+                ) : displayMoments.length === 0 ? (
                     <EmptyState onNew={() => setShowNew(true)} />
                 ) : (
                     <div className="screen-content" style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 20 }}>
-                        {moments.map(m => (
+                        {displayMoments.map(m => (
                             <MomentCard
                                 key={m.id}
                                 moment={m}
                                 userReaction={userReactions[m.id] || null}
                                 onReactionChange={(emoji) => handleReactionChange(m.id, emoji)}
-                                onDeleted={(id) => setMoments(prev => prev.filter(p => p.id !== id))}
+                                onDeleted={(id) => {
+                                    setMoments(prev => prev.filter(p => p.id !== id))
+                                    setDisplayMoments(prev => prev.filter(p => p.id !== id))
+                                }}
                             />
                         ))}
                     </div>
