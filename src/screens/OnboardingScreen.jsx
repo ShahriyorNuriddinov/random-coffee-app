@@ -37,22 +37,16 @@ export default function OnboardingScreen() {
                 <DarkToggle />
                 <LangSwitcher />
             </div>
-
-            {/* Slider */}
             <div
                 ref={sliderRef}
                 onScroll={handleScroll}
-                className="onboarding-slider"
                 style={{
                     flex: 1,
                     display: 'flex',
                     overflowX: 'auto',
-                    overflowY: 'hidden',
                     scrollSnapType: 'x mandatory',
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
-                    WebkitOverflowScrolling: 'touch',
-                    minHeight: 0,
                 }}
             >
                 {slides.map((slide, i) => (
@@ -60,13 +54,13 @@ export default function OnboardingScreen() {
                         key={slide.key}
                         style={{
                             minWidth: '100%',
-                            flexShrink: 0,
+                            height: '100%',
                             scrollSnapAlign: 'center',
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'center',
                             alignItems: 'center',
-                            padding: '60px 40px 40px',
+                            padding: '40px',
                             textAlign: 'center',
                             background: darkMode
                                 ? 'var(--app-bg)'
@@ -95,48 +89,46 @@ export default function OnboardingScreen() {
                     </div>
                 ))}
             </div>
-
-            {/* Bottom bar: dots + button — always in normal flow, never absolute */}
+            {/* Dots */}
             <div style={{
-                flexShrink: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: '16px 24px 40px',
-                gap: 16,
-                background: darkMode ? 'var(--app-bg)' : '#fff',
+                position: 'absolute',
+                bottom: isLast ? 120 : 28,
+                left: 0, right: 0,
+                display: 'flex', justifyContent: 'center', gap: 8,
+                pointerEvents: 'none',
+                transition: 'bottom 0.3s',
             }}>
-                {/* Dots */}
-                <div style={{ display: 'flex', gap: 8 }}>
-                    {slides.map((_, i) => (
-                        <div key={i} style={{
-                            width: i === current ? 20 : 8,
-                            height: 8,
-                            borderRadius: i === current ? 4 : '50%',
-                            background: i === current ? 'var(--app-primary)' : '#d1d1d6',
-                            transition: 'all 0.3s',
-                        }} />
-                    ))}
-                </div>
+                {slides.map((_, i) => (
+                    <div key={i} style={{
+                        width: i === current ? 20 : 8,
+                        height: 8,
+                        borderRadius: i === current ? 4 : '50%',
+                        background: i === current ? 'var(--app-primary)' : '#d1d1d6',
+                        transition: 'all 0.3s',
+                    }} />
+                ))}
+            </div>
 
-                {/* Get Started button */}
-                <div style={{
-                    width: '100%',
-                    opacity: isLast ? 1 : 0,
-                    transform: isLast ? 'translateY(0)' : 'translateY(8px)',
-                    transition: 'all 0.35s ease',
-                    pointerEvents: isLast ? 'auto' : 'none',
-                    display: 'flex',
-                    justifyContent: 'center',
-                }}>
-                    <button
-                        className="btn-gradient"
-                        onClick={() => setScreen('phone')}
-                        style={{ borderRadius: 16, padding: '15px 0', fontSize: 17 }}
-                    >
-                        {t('get_started')}
-                    </button>
-                </div>
+            {/* Get Started button */}
+            <div style={{
+                position: 'absolute',
+                bottom: 40,
+                left: 0, right: 0,
+                padding: '0 24px',
+                opacity: isLast ? 1 : 0,
+                transform: isLast ? 'translateY(0)' : 'translateY(10px)',
+                transition: 'all 0.4s ease 0.1s',
+                pointerEvents: isLast ? 'auto' : 'none',
+                display: 'flex',
+                justifyContent: 'center',
+            }}>
+                <button
+                    className="btn-gradient"
+                    onClick={() => setScreen('phone')}
+                    style={{ borderRadius: 16, padding: '15px 0', fontSize: 17 }}
+                >
+                    {t('get_started')}
+                </button>
             </div>
         </div>
     )
