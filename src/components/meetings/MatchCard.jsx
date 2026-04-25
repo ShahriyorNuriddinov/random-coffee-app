@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '@/store/useAppStore'
 import { useTranslation } from 'react-i18next'
-import { explainMatch, generateMeetingQuestions, translateText } from '@/lib/aiUtils'
+import { explainMatch, generateMeetingQuestions, translateProfile } from '@/lib/aiUtils'
 
 export default function MatchCard({ match, onPost, onFeedback }) {
     const { partner, createdAt } = match
@@ -27,12 +27,7 @@ export default function MatchCard({ match, onPost, onFeedback }) {
             if (cached) { setTranslatedPartner(JSON.parse(cached)); return }
         } catch { }
         const translate = async () => {
-            const [about, gives, wants] = await Promise.all([
-                partner.about ? translateText(partner.about, 'zh') : null,
-                partner.gives ? translateText(partner.gives, 'zh') : null,
-                partner.wants ? translateText(partner.wants, 'zh') : null,
-            ])
-            const result = { ...partner, about: about || partner.about, gives: gives || partner.gives, wants: wants || partner.wants }
+            const result = await translateProfile(partner, 'zh')
             setTranslatedPartner(result)
             try { sessionStorage.setItem(cacheKey, JSON.stringify(result)) } catch { }
         }
@@ -270,22 +265,6 @@ export default function MatchCard({ match, onPost, onFeedback }) {
                     marginBottom: 10,
                 }}>
                     {lang === 'zh' ? '完成会面' : 'Complete Meeting'}
-                </button>
-            )}
-
-            {/* Write post */}
-            {onPost && (
-                <button onClick={onPost} style={{
-                    width: '100%',
-                    background: 'linear-gradient(135deg, rgba(0,122,255,0.1), rgba(0,198,255,0.1))',
-                    color: 'var(--app-primary)',
-                    border: '1px solid rgba(0,122,255,0.2)',
-                    padding: 12, borderRadius: 12,
-                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                    fontFamily: 'inherit', marginBottom: 10,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}>
-                    {lang === 'zh' ? '✏️ 写一篇帖子 (+1 ☕)' : '✏️ Write a Post (+1 ☕)'}
                 </button>
             )}
 

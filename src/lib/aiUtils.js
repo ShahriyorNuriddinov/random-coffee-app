@@ -102,6 +102,40 @@ export async function translateText(text, targetLang = 'zh') {
     return await callAI(prompt, 300)
 }
 
+// Translate multiple fields in ONE request to avoid rate limits
+export async function translateProfile(profile, targetLang = 'zh') {
+    const { about, gives, wants } = profile
+    if (!about && !gives && !wants) return profile
+
+    const instruction = targetLang === 'zh'
+        ? 'Translate each section to Simplified Chinese. Return ONLY a JSON object.'
+        : 'Translate each section to English. Return ONLY a JSON object.'
+
+    const prompt = `${instruction}
+
+Input:
+{"about": ${JSON.stringify(about || '')}, "gives": ${JSON.stringify(gives || '')}, "wants": ${JSON.stringify(wants || '')}}
+
+Return ONLY valid JSON with same keys, translated values.`
+
+    const result = await callAI(prompt, 400)
+    if (!result) return profile
+
+    try {
+        const match = result.match(/\{[\s\S]*\}/)
+        if (!match) return profile
+        const parsed = JSON.parse(match[0])
+        return {
+            ...profile,
+            about: parsed.about || about,
+            gives: parsed.gives || gives,
+            wants: parsed.wants || wants,
+        }
+    } catch {
+        return profile
+    }
+}
+
 // ─── Fallback keyword extraction ──────────────────────────────────────────────
 function extractTagsFallback(about, gives, wants) {
     const text = `${about} ${gives} ${wants}`.toLowerCase()

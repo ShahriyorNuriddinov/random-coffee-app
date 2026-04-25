@@ -34,9 +34,10 @@ export default function PeopleFilterModal({ filters, onApply, onClose }) {
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {[
-                            { val: 'Hong Kong', label: '🇭🇰 Hong Kong' },
-                            { val: 'Macau', label: '🇲🇴 Macao' },
-                            { val: 'Mainland China', label: '🇨🇳 Mainland China' },
+                            { val: 'Hong Kong', label: '🇭🇰 HK' },
+                            { val: 'Macau', label: '🇲🇴 Macau' },
+                            { val: 'Mainland', label: '🇨🇳 Mainland' },
+                            { val: 'Other', label: '🌍 Other' },
                         ].map(r => (
                             <SelectableTag
                                 key={r.val}
@@ -58,6 +59,7 @@ export default function PeopleFilterModal({ filters, onApply, onClose }) {
                             { val: 'EN', label: 'English' },
                             { val: 'ZH', label: 'Chinese' },
                             { val: 'CAN', label: 'Cantonese' },
+                            { val: 'RU', label: 'Russian' },
                         ].map(l => (
                             <SelectableTag
                                 key={l.val}

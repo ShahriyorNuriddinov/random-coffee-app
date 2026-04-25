@@ -50,7 +50,8 @@ export default function SearchSettingsModal({ filters, onApply, onClose }) {
                     {[
                         { val: 'Hong Kong', label: t('region_hk') },
                         { val: 'Macau', label: t('region_mo') },
-                        { val: 'Mainland China', label: t('region_cn') },
+                        { val: 'Mainland', label: t('region_cn') },
+                        { val: 'Other', label: t('region_other') },
                     ].map(r => (
                         <Tag key={r.val} label={r.label} active={regions.includes(r.val)} onToggle={() => toggle(regions, setRegions, r.val)} />
                     ))}
@@ -62,6 +63,7 @@ export default function SearchSettingsModal({ filters, onApply, onClose }) {
                         { val: 'EN', label: t('lang_en') },
                         { val: 'CAN', label: t('lang_canton') },
                         { val: 'ZH', label: t('lang_zh') },
+                        { val: 'RU', label: t('lang_ru') },
                     ].map(l => (
                         <Tag key={l.val} label={l.label} active={langs.includes(l.val)} onToggle={() => toggle(langs, setLangs, l.val)} />
                     ))}

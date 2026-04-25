@@ -16,7 +16,8 @@ export default function PersonalScreen() {
     const REGIONS = [
         { value: 'Hong Kong', labelKey: 'region_hk' },
         { value: 'Macau', labelKey: 'region_mo' },
-        { value: 'Mainland China', labelKey: 'region_cn' },
+        { value: 'Mainland', labelKey: 'region_cn' },
+        { value: 'Other', labelKey: 'region_other' },
     ]
 
     const [name, setName] = useState(profile.name)
@@ -127,17 +128,15 @@ export default function PersonalScreen() {
                         </div>
                     </div>
 
-                    {/* City — shown only for Mainland China */}
-                    {region === 'Mainland China' && (
-                        <InputCard label={t('city_label')}>
-                            <Input
-                                type="text"
-                                value={city}
-                                onChange={e => setCity(e.target.value)}
-                                placeholder={t('city_placeholder')}
-                            />
-                        </InputCard>
-                    )}
+                    {/* City — shown for all regions */}
+                    <InputCard label={t('city_label')}>
+                        <Input
+                            type="text"
+                            value={city}
+                            onChange={e => setCity(e.target.value)}
+                            placeholder={t('city_placeholder')}
+                        />
+                    </InputCard>
 
                     <Button onClick={handleNext} disabled={loading}>{loading ? '...' : t('next')}</Button>
                 </div>

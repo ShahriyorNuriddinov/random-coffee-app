@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 
 import { useApp } from '@/store/useAppStore'
-import { saveProfile, uploadAvatar } from '@/lib/supabaseClient'
-import { extractTags, scoreProfile, improveProfileText } from '@/lib/aiUtils'
+import { saveProfile, uploadAvatar, savePhotos } from '@/lib/supabaseClient'
+import { extractTags, scoreProfile, improveProfileText, translateProfile } from '@/lib/aiUtils'
 
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import Modal from '@/components/ui/Modal'
@@ -61,7 +61,18 @@ export default function ProfileEditScreen() {
         const localUrl = URL.createObjectURL(file)
         setAvatar(localUrl)
         const publicUrl = await uploadAvatar(user?.id || 'mock', file)
-        if (publicUrl) setAvatar(publicUrl)
+        if (publicUrl) {
+            setAvatar(publicUrl)
+            // Also set as first photo if photos array is empty
+            const currentPhotos = Array.isArray(profile.photos) ? profile.photos : [null, null, null, null]
+            if (!currentPhotos[0]) {
+                const updatedPhotos = [...currentPhotos]
+                updatedPhotos[0] = publicUrl
+                setProfile(p => ({ ...p, photos: updatedPhotos }))
+                const { savePhotos } = await import('@/lib/supabaseClient')
+                await savePhotos(user?.id || 'mock', updatedPhotos)
+            }
+        }
     }
 
     const handleSave = async () => {
@@ -75,37 +86,9 @@ export default function ProfileEditScreen() {
 
         setSaving(true)
 
-        // ── AI: grammar check + improve text ─────────────────────────────
-        let improvedAbout = null, improvedGives = null, improvedWants = null
-        try {
-            ;[improvedAbout, improvedGives, improvedWants] = await Promise.all([
-                improveProfileText(about, 'About Me'),
-                improveProfileText(gives, 'Can Give'),
-                improveProfileText(wants, 'Wants to Get'),
-            ])
-        } catch { /* AI failed, use original text */ }
-
-        const finalAbout = improvedAbout || about
-        const finalGives = improvedGives || gives
-        const finalWants = improvedWants || wants
-
-        if (improvedAbout) setAbout(improvedAbout)
-        if (improvedGives) setGives(improvedGives)
-        if (improvedWants) setWants(improvedWants)
-
-        // ── AI tag extraction ─────────────────────────────────────────────
-        let tags = [], scoreResult = { score: 0, tips: [] }
-        try {
-            ;[tags, scoreResult] = await Promise.all([
-                extractTags(finalAbout, finalGives, finalWants),
-                scoreProfile(finalAbout, finalGives, finalWants),
-            ])
-        } catch { /* AI failed, use empty tags */ }
-
-        setProfileScore(scoreResult)
-
+        // Save immediately without waiting for AI
         const dbData = {
-            about: finalAbout, gives: finalGives, wants: finalWants, balance,
+            about, gives, wants, balance,
             wechat, whatsapp,
             show_age: showAge,
             dating_mode: datingMode,
@@ -117,38 +100,82 @@ export default function ProfileEditScreen() {
             dob: profile.dob,
             gender: profile.gender,
             email: profile.email,
-            tags,
             status: 'active',
         }
 
         setProfile(p => ({
             ...p,
-            about: finalAbout, gives: finalGives, wants: finalWants, balance,
+            about, gives, wants, balance,
             wechat, whatsapp,
             showAge, datingMode, datingGender,
-            languages, region, city, avatar, tags,
+            languages, region, city, avatar,
         }))
 
         const result = await saveProfile(user?.id || 'mock', dbData)
         setSaving(false)
 
         if (result.success) {
-            // Show profile score if available
-            if (scoreResult?.score !== undefined) {
-                const scoreColor = scoreResult.score >= 70 ? '#34c759' : scoreResult.score >= 40 ? '#ff9500' : '#ff3b30'
-                const scoreMsg = scoreResult.score >= 70
-                    ? `Profile strength: ${scoreResult.score}/100 ✓`
-                    : `Profile strength: ${scoreResult.score}/100 — ${scoreResult.tips?.[0] || 'Add more details'}`
-                toast.success(scoreMsg, {
-                    duration: 4000,
-                    style: { background: scoreColor, color: '#fff', borderRadius: 16, fontWeight: 600 },
-                })
-            } else {
-                toast.success(t('toast_saved'))
-            }
+            toast.success(t('toast_saved'))
             setScreen('profile')
+
+            // AI improvements in background (non-blocking)
+            setTimeout(async () => {
+                try {
+                    let improvedAbout = null, improvedGives = null, improvedWants = null
+                        ;[improvedAbout, improvedGives, improvedWants] = await Promise.all([
+                            improveProfileText(about, 'About Me'),
+                            improveProfileText(gives, 'Can Give'),
+                            improveProfileText(wants, 'Wants to Get'),
+                        ])
+                    const finalAbout = improvedAbout || about
+                    const finalGives = improvedGives || gives
+                    const finalWants = improvedWants || wants
+
+                    const [tags, scoreResult] = await Promise.all([
+                        extractTags(finalAbout, finalGives, finalWants),
+                        scoreProfile(finalAbout, finalGives, finalWants),
+                    ])
+
+                    // Detect language: if text contains Chinese chars → translate to EN, else → translate to ZH
+                    const hasChinese = /[\u4e00-\u9fff]/.test(finalAbout + finalGives + finalWants)
+                    const targetLang = hasChinese ? 'en' : 'zh'
+                    const otherLangKey = hasChinese ? 'en' : 'zh'
+
+                    const translated = await translateProfile(
+                        { about: finalAbout, gives: finalGives, wants: finalWants },
+                        targetLang
+                    )
+
+                    const updateData = {
+                        ...dbData,
+                        about: finalAbout, gives: finalGives, wants: finalWants, tags,
+                    }
+
+                    if (hasChinese) {
+                        // User wrote in Chinese → save English translation
+                        updateData.about_zh = finalAbout
+                        updateData.gives_zh = finalGives
+                        updateData.wants_zh = finalWants
+                        // Store English in main fields, Chinese in _zh fields
+                        updateData.about = translated?.about || finalAbout
+                        updateData.gives = translated?.gives || finalGives
+                        updateData.wants = translated?.wants || finalWants
+                    } else {
+                        // User wrote in English → save Chinese translation
+                        updateData.about_zh = translated?.about || null
+                        updateData.gives_zh = translated?.gives || null
+                        updateData.wants_zh = translated?.wants || null
+                    }
+
+                    await saveProfile(user?.id || 'mock', updateData)
+                    setProfile(p => ({
+                        ...p,
+                        about: updateData.about, gives: updateData.gives, wants: updateData.wants, tags,
+                    }))
+                    setProfileScore(scoreResult)
+                } catch { /* AI failed silently */ }
+            }, 100)
         } else {
-            console.error('[Save failed]', result.error)
             toast.error(result.error || 'Save failed. Please try again.')
         }
     }

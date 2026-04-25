@@ -7,7 +7,7 @@ import { Pagination, Navigation } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/navigation'
-import { translateText } from '@/lib/aiUtils'
+import { translateProfile } from '@/lib/aiUtils'
 import toast from 'react-hot-toast'
 
 export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
@@ -35,12 +35,12 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
         if (translatedData) { setTranslated(true); return }
         setTranslating(true)
         try {
-            const [about, gives, wants] = await Promise.all([
-                person.about ? translateText(person.about, targetLang) : null,
-                person.gives ? translateText(person.gives, targetLang) : null,
-                person.wants ? translateText(person.wants, targetLang) : null,
-            ])
-            setTranslatedData({ about, gives, wants })
+            const result = await translateProfile(person, targetLang)
+            setTranslatedData({
+                about: result.about,
+                gives: result.gives,
+                wants: result.wants,
+            })
             setTranslated(true)
         } catch {
             toast.error('Translation failed')

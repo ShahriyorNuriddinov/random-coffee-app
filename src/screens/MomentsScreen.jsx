@@ -5,9 +5,8 @@ import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import MomentCard from '@/components/moments/MomentCard'
 import NewMomentModal from '@/components/moments/NewMomentModal'
-import { getMoments, getUserMomentReaction, supabase } from '@/lib/supabaseClient'
+import { getMoments, getUserMomentReaction, getMeetingHistory, supabase } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
-
 export default function MomentsScreen() {
     const { t, i18n } = useTranslation()
     const { user } = useApp()
@@ -16,6 +15,8 @@ export default function MomentsScreen() {
     const [userReactions, setUserReactions] = useState({})
     const [loading, setLoading] = useState(true)
     const [showNew, setShowNew] = useState(false)
+    const [hasMeetings, setHasMeetings] = useState(false)
+    const [showNoMeetingHint, setShowNoMeetingHint] = useState(false)
     const momentsRef = useRef([])
 
     // Auto-translate when language changes
@@ -72,6 +73,10 @@ export default function MomentsScreen() {
 
     useEffect(() => {
         load()
+        // Check if user has any meetings
+        if (user?.id) {
+            getMeetingHistory(user.id).then(h => setHasMeetings(h.length > 0))
+        }
 
         // Realtime — update reactions without full reload
         const channel = supabase
@@ -123,7 +128,10 @@ export default function MomentsScreen() {
                 right={
                     /* Plus button — HTML: .plus-btn */
                     <button
-                        onClick={() => setShowNew(true)}
+                        onClick={() => {
+                            if (!hasMeetings) { setShowNoMeetingHint(true); return }
+                            setShowNew(true)
+                        }}
                         style={{
                             width: 32, height: 32, borderRadius: '50%',
                             background: 'rgba(120,120,128,0.12)',
@@ -172,6 +180,34 @@ export default function MomentsScreen() {
                     onClose={() => setShowNew(false)}
                     onPosted={handlePosted}
                 />
+            )}
+
+            {/* No meeting hint modal */}
+            {showNoMeetingHint && (
+                <div onClick={() => setShowNoMeetingHint(false)} style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', zIndex: 100, padding: 24,
+                }}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        background: 'var(--app-card)', borderRadius: 20, padding: 28,
+                        maxWidth: 360, width: '100%', textAlign: 'center',
+                    }}>
+                        <div style={{ fontSize: 48, marginBottom: 12 }}>☕</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 10 }}>
+                            Moments are for meetings
+                        </div>
+                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>
+                            After each coffee meeting, you can share your experience here and earn +1 credit. Complete a meeting first!
+                        </div>
+                        <button onClick={() => setShowNoMeetingHint(false)} style={{
+                            width: '100%', padding: '14px 0', borderRadius: 14, border: 'none',
+                            background: 'linear-gradient(135deg, #007aff, #5856d6)',
+                            color: '#fff', fontSize: 16, fontWeight: 700,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                        }}>Got it</button>
+                    </div>
+                </div>
             )}
 
             <BottomNav active="moments" />

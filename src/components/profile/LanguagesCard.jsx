@@ -5,6 +5,7 @@ const LANGS = [
     { code: 'EN', key: 'lang_en' },
     { code: 'ZH', key: 'lang_zh' },
     { code: 'CAN', key: 'lang_canton' },
+    { code: 'RU', key: 'lang_ru' },
 ]
 
 export default function LanguagesCard({ selected, onChange }) {
