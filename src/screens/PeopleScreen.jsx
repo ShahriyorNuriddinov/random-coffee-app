@@ -111,18 +111,6 @@ export default function PeopleScreen() {
 
     return (
         <div className="app-screen">
-            {!hasCredits && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 60, background: 'rgba(0,0,0,0.5)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                    <div style={{ background: 'var(--app-card)', borderRadius: 20, padding: 28, textAlign: 'center', maxWidth: 320, width: '100%' }}>
-                        <div style={{ fontSize: 48, marginBottom: 12 }}>☕</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>No Credits Left</div>
-                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>Top up your balance to browse people and find new matches.</div>
-                        <button onClick={() => setShowBuyCredits(true)} style={{ width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #007aff, #5856d6)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                            Top Up Balance
-                        </button>
-                    </div>
-                </div>
-            )}
             <ScreenHeader
                 title={t('nav_people')}
                 right={
@@ -141,33 +129,47 @@ export default function PeopleScreen() {
                 }
             />
 
-            <div style={{ padding: '12px 16px 0', background: 'var(--app-card)', borderBottom: '0.5px solid var(--app-border)' }}>
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                    placeholder="Search by name, bio, location..."
-                    style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: '0.5px solid var(--app-border)', background: 'var(--app-bg)', fontSize: 15, color: 'var(--app-text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 12 }}
-                />
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
-                {loading ? <LoadingSkeleton /> : filtered.length === 0 ? <EmptyState hasSearch={!!search || hasActiveFilters} /> : (
-                    <div className="screen-content" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
-                        <div style={{ fontSize: 13, color: 'var(--app-hint)', textAlign: 'center', lineHeight: 1.4, padding: '0 10px' }}>
-                            {t('people_ai_hint')}
-                        </div>
-                        <div style={{ fontSize: 13, color: 'var(--app-hint)', marginLeft: 2 }}>
-                            {filtered.length} {t('people_found')}
-                        </div>
-                        {filtered.map(person => (
-                            <PersonCard key={person.id} person={person} liked={likedIds.has(person.id)}
-                                onLike={() => hasCredits ? handleLike(person) : setShowBuyCredits(true)}
-                                onOpen={() => setSelected(person)} />
-                        ))}
+            {!hasCredits ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                    <div style={{ background: 'var(--app-card)', borderRadius: 20, padding: 28, textAlign: 'center', maxWidth: 320, width: '100%', border: '0.5px solid var(--app-border)' }}>
+                        <div style={{ fontSize: 48, marginBottom: 12 }}>☕</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>No Credits Left</div>
+                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>Top up your balance to browse people and find new matches.</div>
+                        <button onClick={() => setShowBuyCredits(true)} style={{ width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #007aff, #5856d6)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            Top Up Balance
+                        </button>
                     </div>
-                )}
-            </div>
+                </div>
+            ) : (
+                <>
+                    <div style={{ padding: '12px 16px 0', background: 'var(--app-card)', borderBottom: '0.5px solid var(--app-border)' }}>
+                        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                            placeholder="Search by name, bio, location..."
+                            style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: '0.5px solid var(--app-border)', background: 'var(--app-bg)', fontSize: 15, color: 'var(--app-text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 12 }}
+                        />
+                    </div>
+                    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
+                        {loading ? <LoadingSkeleton /> : filtered.length === 0 ? <EmptyState hasSearch={!!search || hasActiveFilters} /> : (
+                            <div className="screen-content" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
+                                <div style={{ fontSize: 13, color: 'var(--app-hint)', textAlign: 'center', lineHeight: 1.4, padding: '0 10px' }}>
+                                    {t('people_ai_hint')}
+                                </div>
+                                <div style={{ fontSize: 13, color: 'var(--app-hint)', marginLeft: 2 }}>
+                                    {filtered.length} {t('people_found')}
+                                </div>
+                                {filtered.map(person => (
+                                    <PersonCard key={person.id} person={person} liked={likedIds.has(person.id)}
+                                        onLike={() => handleLike(person)}
+                                        onOpen={() => setSelected(person)} />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
 
             {selected && <PersonProfileSheet person={selected} liked={likedIds.has(selected.id)}
-                onLike={() => { hasCredits ? handleLike(selected) : setShowBuyCredits(true); setSelected(null) }}
+                onLike={() => { handleLike(selected); setSelected(null) }}
                 onClose={() => setSelected(null)} />}
             {showFilter && <PeopleFilterModal filters={filters} onApply={setFilters} onClose={() => setShowFilter(false)} />}
             {showBuyCredits && <BuyCreditsModal onClose={() => setShowBuyCredits(false)} />}
