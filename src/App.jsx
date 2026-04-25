@@ -1,5 +1,6 @@
 import { Toaster } from 'react-hot-toast'
 import { AppProvider, useApp } from '@/store/useAppStore'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import OnboardingScreen from '@/screens/OnboardingScreen'
 import PhoneScreen from '@/screens/PhoneScreen'
 import OtpScreen from '@/screens/OtpScreen'
@@ -34,23 +35,25 @@ function Router() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <Router />
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            background: 'rgba(0,0,0,0.82)',
-            color: '#fff',
-            borderRadius: 20,
-            fontWeight: 600,
-            fontSize: 14,
-            padding: '12px 24px',
-          },
-          success: { iconTheme: { primary: '#34c759', secondary: '#fff' } },
-          error: { style: { background: '#ff3b30' } },
-        }}
-      />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <Router />
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            style: {
+              background: 'rgba(0,0,0,0.82)',
+              color: '#fff',
+              borderRadius: 20,
+              fontWeight: 600,
+              fontSize: 14,
+              padding: '12px 24px',
+            },
+            success: { iconTheme: { primary: '#34c759', secondary: '#fff' } },
+            error: { style: { background: '#ff3b30' } },
+          }}
+        />
+      </AppProvider>
+    </ErrorBoundary>
   )
 }

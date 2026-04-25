@@ -45,7 +45,7 @@ export default function MomentsScreen() {
 
     const reloadReactions = async (data) => {
         const momentList = data || momentsRef.current
-        if (!user?.id || !momentList || momentList.length === 0) return
+        if (!user?.id || !momentList || !Array.isArray(momentList) || momentList.length === 0) return
         const userR = {}
         const updatedMoments = [...momentList]
         for (let i = 0; i < momentList.length; i++) {

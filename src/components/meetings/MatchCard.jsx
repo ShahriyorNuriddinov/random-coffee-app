@@ -41,6 +41,8 @@ export default function MatchCard({ match, onPost, onFeedback }) {
 
     const displayPartner = (lang === 'zh' && translatedPartner) ? translatedPartner : partner
 
+    if (!partner) return null
+
     useEffect(() => {
         if (!partner || !profile?.gives || !profile?.wants) return
         if (!partner.gives && !partner.wants) return  // partner profile empty — skip AI

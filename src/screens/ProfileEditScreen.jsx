@@ -76,11 +76,15 @@ export default function ProfileEditScreen() {
         setSaving(true)
 
         // ── AI: grammar check + improve text ─────────────────────────────
-        const [improvedAbout, improvedGives, improvedWants] = await Promise.all([
-            improveProfileText(about, 'About Me'),
-            improveProfileText(gives, 'Can Give'),
-            improveProfileText(wants, 'Wants to Get'),
-        ])
+        let improvedAbout = null, improvedGives = null, improvedWants = null
+        try {
+            ;[improvedAbout, improvedGives, improvedWants] = await Promise.all([
+                improveProfileText(about, 'About Me'),
+                improveProfileText(gives, 'Can Give'),
+                improveProfileText(wants, 'Wants to Get'),
+            ])
+        } catch { /* AI failed, use original text */ }
+
         const finalAbout = improvedAbout || about
         const finalGives = improvedGives || gives
         const finalWants = improvedWants || wants
@@ -90,10 +94,13 @@ export default function ProfileEditScreen() {
         if (improvedWants) setWants(improvedWants)
 
         // ── AI tag extraction ─────────────────────────────────────────────
-        const [tags, scoreResult] = await Promise.all([
-            extractTags(finalAbout, finalGives, finalWants),
-            scoreProfile(finalAbout, finalGives, finalWants),
-        ])
+        let tags = [], scoreResult = { score: 0, tips: [] }
+        try {
+            ;[tags, scoreResult] = await Promise.all([
+                extractTags(finalAbout, finalGives, finalWants),
+                scoreProfile(finalAbout, finalGives, finalWants),
+            ])
+        } catch { /* AI failed, use empty tags */ }
 
         setProfileScore(scoreResult)
 

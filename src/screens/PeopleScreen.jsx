@@ -95,14 +95,18 @@ export default function PeopleScreen() {
         } catch { }
 
         if (!scores) {
-            scores = await calcMatchScoresBatch(myProfile, candidates)
+            try {
+                scores = await calcMatchScoresBatch(myProfile, candidates)
+            } catch {
+                scores = candidates.map(() => 0)
+            }
             try {
                 sessionStorage.setItem(cacheKey, JSON.stringify({ data: scores, ts: Date.now() }))
             } catch { }
         }
 
         const sorted = candidates
-            .map((p, i) => ({ ...p, score: scores[i] ?? 0 }))
+            .map((p, i) => ({ ...p, score: Array.isArray(scores) ? (scores[i] ?? 0) : 0 }))
             .sort((a, b) => b.score - a.score)
 
         setPeople(sorted)

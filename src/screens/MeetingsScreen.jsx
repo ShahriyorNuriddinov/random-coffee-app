@@ -79,12 +79,25 @@ export default function MeetingsScreen() {
 
             let partner
             if (myProfile.gives || myProfile.wants || searchFilters.prompt?.trim()) {
-                const scores = await calcMatchScoresBatch(myProfile, candidates, searchFilters.prompt?.trim() || '')
-                const bestIdx = scores.indexOf(Math.max(...scores))
-                partner = candidates[bestIdx]
+                try {
+                    const scores = await calcMatchScoresBatch(myProfile, candidates, searchFilters.prompt?.trim() || '')
+                    if (scores && scores.length > 0) {
+                        const bestIdx = scores.indexOf(Math.max(...scores))
+                        partner = candidates[bestIdx] || candidates[0]
+                    } else {
+                        partner = candidates[0]
+                    }
+                } catch {
+                    partner = candidates[0]
+                }
             } else {
-                // No profile data — pick first candidate
                 partner = candidates[0]
+            }
+
+            if (!partner) {
+                toast.error('No match found. Try again.')
+                setBoosting(false)
+                return
             }
 
             // Create match in DB (prevent duplicates)
