@@ -85,12 +85,14 @@ export default function MeetingsScreen() {
                 partner = candidates[0]
             }
 
-            // Create match in DB
+            // Create match in DB (prevent duplicates)
             const u1 = user.id < partner.id ? user.id : partner.id
             const u2 = user.id < partner.id ? partner.id : user.id
-            await supabase.from('matches')
-                .insert({ user1_id: u1, user2_id: u2 })
-                .select()
+            const { data: existing } = await supabase.from('matches')
+                .select('id').eq('user1_id', u1).eq('user2_id', u2).maybeSingle()
+            if (!existing) {
+                await supabase.from('matches').insert({ user1_id: u1, user2_id: u2 })
+            }
 
             // Deduct 1 credit (not for trial)
             if (subscription.status !== 'trial') {

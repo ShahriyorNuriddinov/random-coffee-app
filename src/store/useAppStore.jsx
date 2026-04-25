@@ -1,5 +1,6 @@
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, useRef, createContext, useContext } from 'react'
 import { supabase, getProfile } from '@/lib/supabaseClient'
+import toast from 'react-hot-toast'
 
 const AppContext = createContext(null)
 
@@ -62,6 +63,7 @@ export function AppProvider({ children }) {
     const [notifImportantNews, setNotifImportantNews] = useState(true)
     const [profileWelcomeSeen, setProfileWelcomeSeen] = useState(false)
     const [sessionLoading, setSessionLoading] = useState(true)
+    const userRef = useRef(null)
 
     // ── On app start: restore session from Supabase Auth ─────────
     useEffect(() => {
@@ -73,7 +75,9 @@ export function AppProvider({ children }) {
                     const email = session.user.email
                     const db = await getProfile(uid)
                     if (db && db.name) {
-                        setUser({ id: uid, email })
+                        const u = { id: uid, email }
+                        setUser(u)
+                        userRef.current = u
                         setProfile(dbToProfile(db))
                         setSubscription({
                             status: db.subscription_status || 'trial',
@@ -98,6 +102,42 @@ export function AppProvider({ children }) {
         }
         restore()
     }, [])
+
+    // ── Real-time: notify when new match arrives ──────────────────
+    useEffect(() => {
+        if (!user?.id) return
+        userRef.current = user
+
+        const channel = supabase
+            .channel('matches_rt_' + user.id)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'matches',
+            }, async (payload) => {
+                const m = payload.new
+                const uid = userRef.current?.id
+                if (!uid) return
+                if (m.user1_id !== uid && m.user2_id !== uid) return
+
+                // Get partner info
+                const partnerId = m.user1_id === uid ? m.user2_id : m.user1_id
+                const { data: partner } = await supabase
+                    .from('profiles').select('name').eq('id', partnerId).maybeSingle()
+
+                toast.success(`🎉 New match: ${partner?.name || 'Someone'}!`, {
+                    duration: 5000,
+                    style: {
+                        background: 'linear-gradient(135deg, #007aff, #5856d6)',
+                        color: '#fff', borderRadius: 20, fontWeight: 700,
+                        fontSize: 15, padding: '14px 24px',
+                    },
+                })
+            })
+            .subscribe()
+
+        return () => { supabase.removeChannel(channel) }
+    }, [user?.id])
 
     const loginUser = (userData, phoneNum, code) => {
         setUser(userData)
