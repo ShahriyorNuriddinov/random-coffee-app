@@ -15,7 +15,7 @@ export default function MomentsScreen() {
     const [userReactions, setUserReactions] = useState({})
     const [loading, setLoading] = useState(true)
     const [showNew, setShowNew] = useState(false)
-    const [hasMeetings, setHasMeetings] = useState(false)
+    const [hasMeetings, setHasMeetings] = useState(true) // default true, will be set false if no meetings
     const [showNoMeetingHint, setShowNoMeetingHint] = useState(false)
     const momentsRef = useRef([])
 
