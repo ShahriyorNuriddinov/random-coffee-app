@@ -112,7 +112,7 @@ export default function PeopleScreen() {
     return (
         <div className="app-screen">
             {!hasCredits && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 60, background: 'rgba(0,0,0,0.5)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
                     <div style={{ background: 'var(--app-card)', borderRadius: 20, padding: 28, textAlign: 'center', maxWidth: 320, width: '100%' }}>
                         <div style={{ fontSize: 48, marginBottom: 12 }}>☕</div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>No Credits Left</div>
