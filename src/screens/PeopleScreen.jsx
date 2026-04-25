@@ -24,6 +24,7 @@ export default function PeopleScreen() {
 
     useEffect(() => {
         if (!user?.id) return
+        if (!hasCredits) return  // #14: no credits — don't load
         load()
     }, [user?.id, profile?.tags?.length])
 

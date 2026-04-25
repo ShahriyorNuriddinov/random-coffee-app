@@ -76,7 +76,7 @@ export default function MeetingsScreen() {
                             : <NoCreditsBlock onTopUp={() => setShowBuyCredits(true)} />
                     )}
 
-                    {!loading && history.map(m => (
+                    {!loading && history.filter(m => m.status !== 'completed').map(m => (
                         <MatchCard
                             key={m.matchId}
                             match={m}
@@ -85,8 +85,11 @@ export default function MeetingsScreen() {
                         />
                     ))}
 
-                    {!loading && history.length > 0 && (
-                        <PreviousMeetings history={history} onPost={() => setShowNewMoment(true)} />
+                    {!loading && history.some(m => m.status === 'completed') && (
+                        <PreviousMeetings
+                            history={history.filter(m => m.status === 'completed')}
+                            onPost={() => setShowNewMoment(true)}
+                        />
                     )}
                 </div>
             </div>

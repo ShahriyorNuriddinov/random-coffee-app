@@ -98,7 +98,6 @@ export default function ProfileEditScreen() {
             dob: profile.dob,
             gender: profile.gender,
             email: profile.email,
-            status: 'active',
         }
 
         setProfile(p => ({

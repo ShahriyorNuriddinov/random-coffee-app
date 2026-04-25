@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, completeMeeting } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
 export default function FeedbackModal({ onClose, onPost, matchId }) {
@@ -45,11 +45,13 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
 
     const handleSaveSuccess = async () => {
         await saveFeedback({ status: 'success', ratingVal: rating, noteVal: note })
+        if (matchId) await completeMeeting(matchId)
         setStep('reward')
     }
 
     const handleSaveFail = async () => {
         await saveFeedback({ status: 'fail', reason: failReason })
+        if (matchId) await completeMeeting(matchId)
         onClose()
         toast.success(t('send') + ' ✓')
     }

@@ -30,6 +30,12 @@ export default function MomentsScreen() {
     }, [i18n.language, moments.length])
 
     const translateMoments = async (list) => {
+        // Use pre-saved DB translations first, only call AI for missing ones
+        const needsAI = list.filter(m => !m.text_zh)
+        if (needsAI.length === 0) {
+            setDisplayMoments(list.map(m => ({ ...m, text: m.text_zh || m.text })))
+            return
+        }
         const cacheKey = `translated_moments_${list.map(m => m.id).join(',').slice(0, 80)}`
         try {
             const cached = sessionStorage.getItem(cacheKey)
@@ -37,6 +43,7 @@ export default function MomentsScreen() {
         } catch { }
 
         const translated = await Promise.all(list.map(async (m) => {
+            if (m.text_zh) return { ...m, text: m.text_zh }
             const text = await translateText(m.text, 'zh')
             return { ...m, text: text || m.text }
         }))
@@ -73,9 +80,9 @@ export default function MomentsScreen() {
 
     useEffect(() => {
         load()
-        // Check if user has any meetings
+        // Check if user has any COMPLETED meetings
         if (user?.id) {
-            getMeetingHistory(user.id).then(h => setHasMeetings(h.length > 0))
+            getMeetingHistory(user.id).then(h => setHasMeetings(h.some(m => m.status === 'completed')))
         }
 
         // Realtime — update reactions without full reload
