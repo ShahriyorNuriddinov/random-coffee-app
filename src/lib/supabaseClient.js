@@ -322,5 +322,5 @@ export const getMeetingHistory = async (userId) => {
     return (data || []).map(m => {
         const partner = m.user1?.id === userId ? m.user2 : m.user1
         return { matchId: m.id, createdAt: m.created_at, partner }
-    })
+    }).filter(m => m.partner && m.partner.id && m.partner.id !== userId)
 }
