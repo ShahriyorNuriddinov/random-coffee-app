@@ -34,8 +34,6 @@ export default function OtpScreen() {
         if (!/^[0-9]?$/.test(val)) return
         const next = [...digits]; next[i] = val; setDigits(next)
         if (val && i < 5) inputs.current[i + 1]?.focus()
-        // auto-verify only if not already loading
-        if (next.every(d => d !== '') && !loading) handleVerify(next.join(''))
     }
 
     const handleKeyDown = (i, e) => {
