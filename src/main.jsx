@@ -8,10 +8,12 @@ import './i18n'
 const isAdmin = window.location.pathname.startsWith('/admin')
 
 if (isAdmin) {
-  document.body.style.background = '#d1d5db'
+  document.body.style.background = '#ffffff'
   document.getElementById('root').style.height = 'auto'
   document.getElementById('root').style.overflow = 'visible'
   document.getElementById('root').style.minHeight = '100vh'
+} else {
+  document.body.style.background = '#ffffff'
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
