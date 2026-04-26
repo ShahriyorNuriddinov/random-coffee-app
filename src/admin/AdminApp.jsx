@@ -53,6 +53,21 @@ export default function AdminApp() {
     const [lang, setLang] = useState('en')
     const [unreadCount, setUnreadCount] = useState(0)
 
+    useEffect(() => {
+        if (!authed) return
+        const bump = () => setUnreadCount(n => n + 1)
+        const ch = supabase
+            .channel('app_badge_v2')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moments' }, bump)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, bump)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, bump)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, bump)
+            .subscribe((status, err) => {
+                console.log('[badge channel]', status, err || '')
+            })
+        return () => supabase.removeChannel(ch)
+    }, [authed])
+
     const handleTabChange = (t) => {
         setTab(t)
         if (t === 'notifications') setUnreadCount(0)
