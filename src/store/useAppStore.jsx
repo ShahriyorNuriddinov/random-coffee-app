@@ -41,7 +41,19 @@ function dbToProfile(db) {
 }
 
 export function AppProvider({ children }) {
-    const [screen, setScreen] = useState('onboarding')
+    // Read token from localStorage synchronously — no network needed
+    const getSbUser = () => {
+        try {
+            const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+            if (!key) return null
+            const t = JSON.parse(localStorage.getItem(key))
+            if (t?.user?.id && t?.expires_at && t.expires_at * 1000 > Date.now()) return t.user
+        } catch { }
+        return null
+    }
+    const sbUser = getSbUser()
+
+    const [screen, setScreen] = useState(sbUser ? 'profile' : 'onboarding')
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem(DARK_KEY)
         const isDark = saved === 'true'
@@ -50,15 +62,15 @@ export function AppProvider({ children }) {
     })
     const [phone, setPhone] = useState('')
     const [countryCode, setCountryCode] = useState('+852')
-    const [user, setUser] = useState(null)
+    const [user, setUser] = useState(sbUser ? { id: sbUser.id, email: sbUser.email } : null)
     const [profile, setProfile] = useState(EMPTY_PROFILE)
     const [subscription, setSubscription] = useState({ status: 'trial', credits: 2, start: null, end: null })
     const [notifNewMatches, setNotifNewMatches] = useState(true)
     const [notifImportantNews, setNotifImportantNews] = useState(true)
     const [profileWelcomeSeen, setProfileWelcomeSeen] = useState(false)
-    const [sessionLoading, setSessionLoading] = useState(true)
+    const [sessionLoading, setSessionLoading] = useState(false)
     const [isOnline, setIsOnline] = useState(navigator.onLine)
-    const userRef = useRef(null)
+    const userRef = useRef(sbUser ? { id: sbUser.id, email: sbUser.email } : null)
 
     useEffect(() => {
         const goOnline = () => setIsOnline(true)
@@ -99,11 +111,8 @@ export function AppProvider({ children }) {
         const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (event === 'INITIAL_SESSION') {
-                    try {
-                        if (session?.user) await restoreFromUser(session.user)
-                    } finally {
-                        setSessionLoading(false)
-                    }
+                    // Background refresh — screen already shown from token
+                    if (session?.user) restoreFromUser(session.user).catch(() => { })
                 } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     if (session?.user && !userRef.current) {
                         await restoreFromUser(session.user)
