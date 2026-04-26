@@ -252,30 +252,48 @@ export default function AdminNotifications() {
 
     const t = NOTIF_I18N[lang]
 
-    useEffect(() => {
-        const load = async () => {
-            setLoading(true)
-            try {
-                const [profilesRes, matchesRes, momentsRes, paymentsRes] = await Promise.all([
-                    supabase.from('profiles').select('id, name, email, created_at').order('created_at', { ascending: false }).limit(20),
-                    supabase.from('matches').select('id, created_at, user1:user1_id(id,name), user2:user2_id(id,name)').order('created_at', { ascending: false }).limit(10),
-                    supabase.from('moments').select('id, text, created_at, status, author:user_id(id,name,avatar_url)').order('created_at', { ascending: false }).limit(10),
-                    supabase.from('payments').select('id, amount, credits, created_at').order('created_at', { ascending: false }).limit(10),
-                ])
-                const built = buildNotifications(
-                    profilesRes.data || [],
-                    matchesRes.data || [],
-                    momentsRes.data || [],
-                    paymentsRes.data || [],
-                )
-                setNotifs(built)
-            } catch (err) {
-                console.error('[AdminNotifications] load error:', err)
-            } finally {
-                setLoading(false)
-            }
+    const loadData = async () => {
+        try {
+            const [profilesRes, matchesRes, momentsRes, paymentsRes] = await Promise.all([
+                supabase.from('profiles').select('id, name, email, created_at').order('created_at', { ascending: false }).limit(20),
+                supabase.from('matches').select('id, created_at, user1:user1_id(id,name), user2:user2_id(id,name)').order('created_at', { ascending: false }).limit(10),
+                supabase.from('moments').select('id, text, created_at, status, author:user_id(id,name,avatar_url)').order('created_at', { ascending: false }).limit(10),
+                supabase.from('payments').select('id, amount, credits, created_at').order('created_at', { ascending: false }).limit(10),
+            ])
+            const built = buildNotifications(
+                profilesRes.data || [],
+                matchesRes.data || [],
+                momentsRes.data || [],
+                paymentsRes.data || [],
+            )
+            setNotifs(built)
+        } catch (err) {
+            console.error('[AdminNotifications] load error:', err)
+        } finally {
+            setLoading(false)
         }
-        load()
+    }
+
+    useEffect(() => {
+        loadData()
+
+        // ── Realtime subscriptions ────────────────────────────────
+        const channels = [
+            supabase.channel('rt_moments_notif')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'moments' }, () => loadData())
+                .subscribe(),
+            supabase.channel('rt_profiles_notif')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => loadData())
+                .subscribe(),
+            supabase.channel('rt_matches_notif')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, () => loadData())
+                .subscribe(),
+            supabase.channel('rt_payments_notif')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, () => loadData())
+                .subscribe(),
+        ]
+
+        return () => channels.forEach(c => supabase.removeChannel(c))
     }, [])
 
     const handleApprove = async (momentId) => {

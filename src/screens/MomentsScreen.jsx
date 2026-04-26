@@ -89,21 +89,43 @@ export default function MomentsScreen() {
         }
 
         // Realtime — update reactions without full reload
-        const channel = supabase
+        const likesChannel = supabase
             .channel('moment_likes_rt')
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'moment_likes',
-            }, () => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'moment_likes' }, () => {
                 reloadReactions()
             })
             .subscribe()
 
-        // Fallback polling every 15s in case realtime is not enabled on moment_likes
+        // Realtime — moment status changes (pending → approved/rejected by admin)
+        const momentsChannel = supabase
+            .channel('moments_status_rt')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'moments' }, (payload) => {
+                const updated = payload.new
+                setMoments(prev => {
+                    // If approved — keep it (it's now visible to all)
+                    // If rejected — remove from own list
+                    if (updated.status === 'rejected') {
+                        return prev.filter(m => m.id !== updated.id)
+                    }
+                    return prev.map(m => m.id === updated.id ? { ...m, status: updated.status } : m)
+                })
+                setDisplayMoments(prev => {
+                    if (updated.status === 'rejected') {
+                        return prev.filter(m => m.id !== updated.id)
+                    }
+                    return prev.map(m => m.id === updated.id ? { ...m, status: updated.status } : m)
+                })
+            })
+            .subscribe()
+
+        // Fallback polling every 15s
         const pollInterval = setInterval(() => reloadReactions(), 15000)
 
-        return () => { supabase.removeChannel(channel); clearInterval(pollInterval) }
+        return () => {
+            supabase.removeChannel(likesChannel)
+            supabase.removeChannel(momentsChannel)
+            clearInterval(pollInterval)
+        }
     }, [user?.id])
 
     const load = async () => {
