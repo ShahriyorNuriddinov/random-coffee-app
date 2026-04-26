@@ -274,7 +274,7 @@ export default function AdminNews() {
                     <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400 mt-1">{t.pinned}</p>
                 </Card>
                 <Card className="p-4 text-center">
-                    <p className="text-2xl font-extrabold text-[#34c759]">{news.reduce((sum, n) => sum + (n.reactions_count || 0), 0)}</p>
+                    <p className="text-2xl font-extrabold text-[#34c759]">{news._totalReactions || 0}</p>
                     <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400 mt-1">{lang === 'zh' ? '总反应' : 'Reactions'}</p>
                 </Card>
             </div>            {/* Add button */}

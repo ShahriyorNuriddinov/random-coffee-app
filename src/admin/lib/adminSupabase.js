@@ -239,9 +239,26 @@ export const getNews = async () => {
         console.error('[getNews]', error.message)
         return []
     }
-    // Attach empty reactions object (news_reactions table is optional)
-    // If you add a news_reactions table later, fetch here
-    return (data || []).map(n => ({ ...n, reactions: n.reactions || {} }))
+
+    // Get total reactions from moment_likes for all admin posts
+    const { data: adminMoments } = await supabase
+        .from('moments')
+        .select('id')
+        .eq('is_admin_post', true)
+
+    let totalReactions = 0
+    if (adminMoments?.length > 0) {
+        const { count } = await supabase
+            .from('moment_likes')
+            .select('id', { count: 'exact', head: true })
+            .in('moment_id', adminMoments.map(m => m.id))
+        totalReactions = count || 0
+    }
+
+    const news = (data || []).map(n => ({ ...n, reactions: n.reactions || {}, reactions_count: 0 }))
+    // Put total reactions on the array itself for the stat card
+    news._totalReactions = totalReactions
+    return news
 }
 
 export const createNews = async ({ text, text_zh, image_url, pinned = false }) => {
