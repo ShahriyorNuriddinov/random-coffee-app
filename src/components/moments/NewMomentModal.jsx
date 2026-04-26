@@ -85,7 +85,6 @@ export default function NewMomentModal({ onClose, onPosted }) {
 
         if (result) {
             toast.success(t('toast_moment_posted', 'Posted! Your moment is pending review ⏳'))
-            onPosted?.(result)
             onClose()
         } else {
             toast.error(t('toast_post_failed', 'Failed to post. Try again.'))
