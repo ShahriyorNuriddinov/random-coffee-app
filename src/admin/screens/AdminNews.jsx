@@ -3,6 +3,7 @@ import { Plus, MoreHorizontal, Pin, Pencil, Trash2, X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { getNews, createNews, updateNews, deleteNews } from '../lib/adminSupabase'
 import { uploadMomentImage } from '@/lib/supabaseClient'
+import { translateText } from '@/lib/aiUtils'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
 import Spinner from '../components/ui/Spinner'
@@ -10,6 +11,16 @@ import SectionLabel from '../components/ui/SectionLabel'
 import Card from '../components/ui/Card'
 import BottomSheet, { SheetHeader, SheetAction } from '../components/ui/BottomSheet'
 
+// After saving, silently translate missing field and update DB
+async function translateAndUpdate(id, text, text_zh) {
+    if (text && !text_zh) {
+        const translated = await translateText(text, 'zh').catch(() => null)
+        if (translated) await updateNews(id, { text_zh: translated }).catch(() => { })
+    } else if (text_zh && !text) {
+        const translated = await translateText(text_zh, 'en').catch(() => null)
+        if (translated) await updateNews(id, { text: translated }).catch(() => { })
+    }
+}
 // ─── Image uploader ───────────────────────────────────────────────────────────
 function ImageUploader({ imageUrl, setImageUrl, lang }) {
     const [uploading, setUploading] = useState(false)
@@ -65,9 +76,9 @@ function NewsEditor({ item, onSave, onClose, lang }) {
     const t = getT('news', lang)
 
     const handleSave = async () => {
-        if (!text.trim()) { toast.error(t.enterContent); return }
+        if (!text.trim() && !textZh.trim()) { toast.error(t.enterContent); return }
         setSaving(true)
-        await onSave({ text, text_zh: textZh, image_url: imageUrl })
+        await onSave({ text: text.trim(), text_zh: textZh.trim(), image_url: imageUrl })
         setSaving(false)
     }
 
@@ -210,6 +221,9 @@ export default function AdminNews() {
             : await createNews(payload)
         if (res.success) {
             toast.success(editorItem?.id ? getT('common', lang).saved : t.publishedMsg)
+            // Background translate missing language silently
+            const savedId = editorItem?.id || res.data?.id
+            if (savedId) translateAndUpdate(savedId, payload.text, payload.text_zh).catch(() => { })
             load()
         } else toast.error(res.error)
         setEditorItem(undefined)
