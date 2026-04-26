@@ -146,7 +146,6 @@ export const createPaymentIntent = async ({ userId, amount, currency = 'HKD', cr
         clientSecret: 'mock_secret',
     }
 }
-
 export const confirmPayment = async ({ userId, paymentIntentId, credits, amount, method }) => {
     const { error: payError } = await supabase.from('payments').insert({
         user_id: userId, amount, currency: 'HKD', credits,

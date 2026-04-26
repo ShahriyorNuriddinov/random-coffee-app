@@ -18,7 +18,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
-import { supabase, confirmPayment } from '@/lib/supabaseClient'
+import { confirmPayment, createPaymentIntent } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
 const PLANS = [
@@ -55,33 +55,23 @@ export default function BuyCreditsModal({ onClose }) {
         setStep('processing')
 
         try {
-            // 1. Create Payment Intent via Edge Function
-            const { data, error } = await supabase.functions.invoke('create-payment-intent', {
-                body: {
-                    userId: user.id,
-                    amount: plan.amount,
-                    currency: 'HKD',
-                    credits: plan.credits,
-                },
+            const data = await createPaymentIntent({
+                userId: user.id,
+                amount: plan.amount,
+                currency: 'HKD',
+                credits: plan.credits,
             })
 
-            if (error || !data?.success) {
-                throw new Error(data?.error || 'Failed to create payment intent')
-            }
+            if (!data?.success) throw new Error(data?.error || 'Failed to create payment intent')
 
-            // 2. Mock mode (no credentials) — skip real payment
+            // Mock mode — skip real Airwallex checkout
             if (data.mock) {
-                console.log('[BuyCredits] Mock payment — skipping Airwallex checkout')
                 await handlePaymentSuccess(data.paymentIntentId)
                 return
             }
 
-            // 3. Real Airwallex Checkout
-            // Requires Airwallex JS SDK loaded in index.html:
-            // <script src="https://checkout.airwallex.com/assets/bundle.x.min.js"></script>
+            // Real Airwallex Checkout
             if (typeof window.Airwallex === 'undefined') {
-                // Fallback: open Airwallex hosted checkout in new tab
-                // In production, use embedded checkout instead
                 toast.error(t('toast_payment_sdk_error', 'Payment SDK not loaded. Please refresh and try again.'))
                 setStep('error')
                 setErrorMsg('Payment SDK not loaded')
