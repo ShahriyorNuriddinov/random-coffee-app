@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { UserPlus, FileText, CreditCard, Shuffle, AlertTriangle, ChevronRight, Eye } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { supabase } from '../lib/adminSupabase'
+import { supabase, rejectMoment } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import Spinner from '../components/ui/Spinner'
 import MemberSheet from '../components/members/MemberSheet'
@@ -159,7 +159,7 @@ const formatTime = (iso, lang = 'en') => {
 }
 
 // ─── Single notification card ─────────────────────────────────────────────────
-function NotifCard({ notif, lang, onApprove, onBan, onViewProfile }) {
+function NotifCard({ notif, lang, onApprove, onReject, onBan, onViewProfile }) {
     const t = NOTIF_I18N[lang]
     const cfg = ICON_CONFIG[notif.category] || ICON_CONFIG.profile
     const Icon = cfg.icon
@@ -205,7 +205,7 @@ function NotifCard({ notif, lang, onApprove, onBan, onViewProfile }) {
                             {t.approve}
                         </button>
                         <button
-                            onClick={() => toast(lang === 'en' ? 'Open Moments tab to reject' : '请在动态页面拒绝')}
+                            onClick={() => onReject?.(notif.momentId)}
                             className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-[13px] font-bold active:scale-[0.97] transition-all"
                         >
                             {t.reject}
@@ -332,6 +332,17 @@ export default function AdminNotifications() {
         }
     }
 
+    const handleReject = async (momentId) => {
+        if (!momentId) return
+        const { error } = await rejectMoment(momentId, 'Rejected by admin')
+        if (!error) {
+            toast.success(lang === 'en' ? 'Rejected!' : '已拒绝！')
+            setNotifs(n => n.filter(x => x.momentId !== momentId))
+        } else {
+            toast.error(error)
+        }
+    }
+
     const filtered = filter === 'all' ? notifs : notifs.filter(n => n.category === filter)
 
     return (
@@ -374,6 +385,7 @@ export default function AdminNotifications() {
                             notif={notif}
                             lang={lang}
                             onApprove={handleApprove}
+                            onReject={handleReject}
                             onBan={handleBan}
                             onViewProfile={setSelectedMemberId}
                         />
