@@ -53,8 +53,10 @@ export default function App() {
     <ErrorBoundary>
       <AppProvider>
         <OfflineBanner />
-        <div style={{ minHeight: '100vh', background: '#ffffff' }}>
-          <Router />
+        <div style={{ minHeight: '100vh', background: '#f5f7fb', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 480, minHeight: '100vh', background: '#ffffff', position: 'relative' }}>
+            <Router />
+          </div>
         </div>
         <Toaster
           position="top-center"
