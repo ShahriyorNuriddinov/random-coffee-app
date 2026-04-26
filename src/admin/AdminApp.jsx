@@ -53,36 +53,25 @@ export default function AdminApp() {
     const [lang, setLang] = useState('en')
     const [unreadCount, setUnreadCount] = useState(0)
 
-    // Track when admin last viewed notifications
-    const [lastSeen, setLastSeen] = useState(() => new Date().toISOString())
-
-    const fetchUnread = async (since) => {
-        try {
-            const [m, p, ma, pa] = await Promise.all([
-                supabase.from('moments').select('id', { count: 'exact', head: true }).gte('created_at', since),
-                supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', since),
-                supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', since),
-                supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', since),
-            ])
-            setUnreadCount((m.count || 0) + (p.count || 0) + (ma.count || 0) + (pa.count || 0))
-        } catch (e) {
-            console.error('[badge] fetch error', e)
-        }
-    }
-
     useEffect(() => {
         if (!authed) return
-        fetchUnread(lastSeen)
-        const interval = setInterval(() => fetchUnread(lastSeen), 30_000)
-        return () => clearInterval(interval)
-    }, [authed, lastSeen])
+
+        const bump = () => setUnreadCount(n => n + 1)
+
+        const ch = supabase
+            .channel('admin_unread_badge')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moments' }, bump)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, bump)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, bump)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, bump)
+            .subscribe()
+
+        return () => supabase.removeChannel(ch)
+    }, [authed])
 
     const handleTabChange = (t) => {
         setTab(t)
-        if (t === 'notifications') {
-            setLastSeen(new Date().toISOString())
-            setUnreadCount(0)
-        }
+        if (t === 'notifications') setUnreadCount(0)
     }
 
     if (!authed) {
