@@ -115,17 +115,21 @@ export default function AdminMoments() {
     }, [])
 
     const handleApprove = async (id) => {
+        // Check current status to prevent double-crediting
+        const moment = moments.find(m => m.id === id)
+        if (!moment || moment.status !== 'pending') {
+            toast(t.approvedMsg)
+            setMoments(m => m.filter(x => x.id !== id))
+            return
+        }
         const res = await approveMoment(id)
         if (res.success) {
-            // Give +1 credit to the post author
-            const moment = moments.find(m => m.id === id)
             if (moment?.author?.id) {
                 const { data: profile } = await supabase
                     .from('profiles').select('coffee_credits').eq('id', moment.author.id).single()
                 if (profile) {
-                    const newCredits = (profile.coffee_credits ?? 0) + 1
                     await supabase.from('profiles').update({
-                        coffee_credits: newCredits,
+                        coffee_credits: (profile.coffee_credits ?? 0) + 1,
                         subscription_status: 'active',
                         updated_at: new Date().toISOString(),
                     }).eq('id', moment.author.id)

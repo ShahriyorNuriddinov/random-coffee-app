@@ -297,24 +297,29 @@ export default function AdminNotifications() {
     }, [])
 
     const handleApprove = async (momentId) => {
+        // First check current status to prevent double-crediting
+        const { data: current } = await supabase
+            .from('moments').select('status, user_id').eq('id', momentId).single()
+        if (!current || current.status !== 'pending') {
+            toast(lang === 'en' ? 'Already processed' : '已处理')
+            setNotifs(n => n.filter(x => x.momentId !== momentId))
+            return
+        }
         const { error } = await supabase.from('moments').update({ status: 'approved' }).eq('id', momentId)
         if (!error) {
-            // Give +1 credit to the post author
-            const { data: moment } = await supabase
-                .from('moments').select('user_id').eq('id', momentId).single()
-            if (moment?.user_id) {
+            // Give +1 credit only if was pending
+            if (current.user_id) {
                 const { data: profile } = await supabase
-                    .from('profiles').select('coffee_credits').eq('id', moment.user_id).single()
+                    .from('profiles').select('coffee_credits').eq('id', current.user_id).single()
                 if (profile) {
-                    const newCredits = (profile.coffee_credits ?? 0) + 1
                     await supabase.from('profiles').update({
-                        coffee_credits: newCredits,
+                        coffee_credits: (profile.coffee_credits ?? 0) + 1,
                         subscription_status: 'active',
                         updated_at: new Date().toISOString(),
-                    }).eq('id', moment.user_id)
+                    }).eq('id', current.user_id)
                 }
             }
-            toast.success(lang === 'en' ? 'Approved!' : '已通过！')
+            toast.success(lang === 'en' ? 'Approved! +1 credit given' : '已通过！+1 积分')
             setNotifs(n => n.filter(x => x.momentId !== momentId))
         }
     }
