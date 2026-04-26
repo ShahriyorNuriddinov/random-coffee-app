@@ -10,28 +10,33 @@
   <meta name="description"
     content="Meet interesting professionals over coffee in Hong Kong, Macau and Mainland China. AI-powered matching for meaningful 1-on-1 meetings every week." />
   <meta name="keywords"
-    content="random coffee, networking, hong kong, professional meetings, AI matching, coffee chat, business networking" />
+    content="random coffee, networking, hong kong, professional meetings, AI matching, coffee chat, business networking, macau, mainland china" />
   <meta name="author" content="Denis Ivanov Limited" />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://randomcoffeehk.com/" />
+  <link rel="canonical" href="https://random-coffee-app.vercel.app/" />
 
-  <!-- Open Graph (Facebook, LinkedIn) -->
+  <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://randomcoffeehk.com/" />
+  <meta property="og:url" content="https://random-coffee-app.vercel.app/" />
   <meta property="og:title" content="Random Coffee HK — Professional Networking" />
   <meta property="og:description"
     content="AI-powered coffee meetings with interesting professionals in Hong Kong. Find your next business partner, mentor or friend." />
-  <meta property="og:image" content="https://randomcoffeehk.com/og-image.svg" />
+  <meta property="og:image" content="https://random-coffee-app.vercel.app/og-image.png" />
+  <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Random Coffee HK — AI-powered professional networking" />
   <meta property="og:locale" content="en_HK" />
   <meta property="og:locale:alternate" content="zh_HK" />
+  <meta property="og:site_name" content="Random Coffee HK" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@randomcoffeehk" />
   <meta name="twitter:title" content="Random Coffee HK — Professional Networking" />
   <meta name="twitter:description" content="AI-powered coffee meetings with interesting professionals in Hong Kong." />
-  <meta name="twitter:image" content="https://randomcoffeehk.com/og-image.svg" />
+  <meta name="twitter:image" content="https://random-coffee-app.vercel.app/og-image.png" />
+  <meta name="twitter:image:alt" content="Random Coffee HK" />
 
   <!-- PWA -->
   <meta name="theme-color" content="#007aff" />
@@ -45,8 +50,43 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
   <!-- Preconnect for performance -->
-  <link rel="preconnect" href="https://ilauvaegbdrlytjwzvks.supabase.co" />
-  <link rel="preconnect" href="https://api.groq.com" />
+  <link rel="preconnect" href="https://ilauvaegbdrlytjwzvks.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://ilauvaegbdrlytjwzvks.supabase.co" />
+  <link rel="preconnect" href="https://api.groq.com" crossorigin />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Random Coffee HK",
+    "url": "https://random-coffee-app.vercel.app/",
+    "description": "AI-powered professional networking platform for coffee meetings in Hong Kong, Macau and Mainland China.",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, iOS, Android",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "HKD",
+      "description": "Free trial with 2 coffee credits"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "Denis Ivanov Limited",
+      "url": "https://random-coffee-app.vercel.app/"
+    },
+    "inLanguage": ["en", "zh"],
+    "availableLanguage": [
+      { "@type": "Language", "name": "English" },
+      { "@type": "Language", "name": "Chinese" }
+    ],
+    "areaServed": [
+      { "@type": "City", "name": "Hong Kong" },
+      { "@type": "City", "name": "Macau" },
+      { "@type": "Country", "name": "China" }
+    ]
+  }
+  </script>
 </head>
 
 <body>
