@@ -11,16 +11,6 @@ import SectionLabel from '../components/ui/SectionLabel'
 import Card from '../components/ui/Card'
 import BottomSheet, { SheetHeader, SheetAction } from '../components/ui/BottomSheet'
 
-// After saving, silently translate missing field and update DB
-async function translateAndUpdate(id, text, text_zh) {
-    if (text && !text_zh) {
-        const translated = await translateText(text, 'zh').catch(() => null)
-        if (translated) await updateNews(id, { text_zh: translated }).catch(() => { })
-    } else if (text_zh && !text) {
-        const translated = await translateText(text_zh, 'en').catch(() => null)
-        if (translated) await updateNews(id, { text: translated }).catch(() => { })
-    }
-}
 // ─── Image uploader ───────────────────────────────────────────────────────────
 function ImageUploader({ imageUrl, setImageUrl, lang }) {
     const [uploading, setUploading] = useState(false)
@@ -56,13 +46,6 @@ function ImageUploader({ imageUrl, setImageUrl, lang }) {
                 </span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
             </label>
-            <input
-                type="url"
-                value={imageUrl}
-                onChange={e => setImageUrl(e.target.value)}
-                placeholder="https://..."
-                className="mt-2 w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-[14px] outline-none"
-            />
         </div>
     )
 }
@@ -70,16 +53,30 @@ function ImageUploader({ imageUrl, setImageUrl, lang }) {
 // ─── News editor (full screen) ────────────────────────────────────────────────
 function NewsEditor({ item, onSave, onClose, lang }) {
     const [text, setText] = useState(item?.text || '')
-    const [textZh, setTextZh] = useState(item?.text_zh || '')
     const [imageUrl, setImageUrl] = useState(item?.image_url || '')
     const [saving, setSaving] = useState(false)
     const t = getT('news', lang)
 
     const handleSave = async () => {
-        if (!text.trim() && !textZh.trim()) { toast.error(t.enterContent); return }
+        if (!text.trim()) { toast.error(t.enterContent); return }
         setSaving(true)
-        await onSave({ text: text.trim(), text_zh: textZh.trim(), image_url: imageUrl })
+        const isChinese = /[\u4e00-\u9fff]/.test(text)
+        const payload = isChinese
+            ? { text: '', text_zh: text.trim(), image_url: imageUrl }
+            : { text: text.trim(), text_zh: '', image_url: imageUrl }
+        const res = await onSave(payload)
         setSaving(false)
+        // Background translate to the other language silently
+        if (res?.id) {
+            const target = isChinese ? 'en' : 'zh'
+            translateText(text.trim(), target)
+                .then(translated => {
+                    if (!translated) return
+                    const update = isChinese ? { text: translated } : { text_zh: translated }
+                    updateNews(res.id, update).catch(() => { })
+                })
+                .catch(() => { })
+        }
     }
 
     return (
@@ -112,17 +109,6 @@ function NewsEditor({ item, onSave, onClose, lang }) {
                         onChange={e => setText(e.target.value)}
                         rows={5}
                         placeholder="Write post content..."
-                        className="w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-[14px] outline-none resize-none"
-                    />
-                </div>
-
-                <div>
-                    <SectionLabel>{t.contentZh}</SectionLabel>
-                    <textarea
-                        value={textZh}
-                        onChange={e => setTextZh(e.target.value)}
-                        rows={5}
-                        placeholder="写中文内容..."
                         className="w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-[14px] outline-none resize-none"
                     />
                 </div>
@@ -221,12 +207,10 @@ export default function AdminNews() {
             : await createNews(payload)
         if (res.success) {
             toast.success(editorItem?.id ? getT('common', lang).saved : t.publishedMsg)
-            // Background translate missing language silently
-            const savedId = editorItem?.id || res.data?.id
-            if (savedId) translateAndUpdate(savedId, payload.text, payload.text_zh).catch(() => { })
             load()
         } else toast.error(res.error)
         setEditorItem(undefined)
+        return res.data || (editorItem?.id ? { id: editorItem.id } : null)
     }
 
     const handlePin = async () => {
