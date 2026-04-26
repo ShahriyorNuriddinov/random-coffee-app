@@ -53,22 +53,42 @@ export default function AdminApp() {
     const [lang, setLang] = useState('en')
     const [unreadCount, setUnreadCount] = useState(0)
 
+    const loadUnreadCount = async () => {
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const [momentsRes, profilesRes, matchesRes, paymentsRes] = await Promise.all([
+            supabase.from('moments').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+            supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+            supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+        ])
+        const total =
+            (momentsRes.count || 0) +
+            (profilesRes.count || 0) +
+            (matchesRes.count || 0) +
+            (paymentsRes.count || 0)
+        setUnreadCount(total)
+    }
+
     useEffect(() => {
         if (!authed) return
-        // Load initial pending count
-        supabase.from('moments').select('id', { count: 'exact', head: true })
-            .eq('status', 'pending')
-            .then(({ count }) => setUnreadCount(count || 0))
+        loadUnreadCount()
 
-        // Realtime: update count when moments change
-        const channel = supabase.channel('admin_notif_badge')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'moments' }, () => {
-                supabase.from('moments').select('id', { count: 'exact', head: true })
-                    .eq('status', 'pending')
-                    .then(({ count }) => setUnreadCount(count || 0))
-            })
-            .subscribe()
-        return () => supabase.removeChannel(channel)
+        // Realtime: update count on any relevant table change
+        const channels = [
+            supabase.channel('admin_badge_moments')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'moments' }, loadUnreadCount)
+                .subscribe(),
+            supabase.channel('admin_badge_profiles')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, loadUnreadCount)
+                .subscribe(),
+            supabase.channel('admin_badge_matches')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, loadUnreadCount)
+                .subscribe(),
+            supabase.channel('admin_badge_payments')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, loadUnreadCount)
+                .subscribe(),
+        ]
+        return () => channels.forEach(c => supabase.removeChannel(c))
     }, [authed])
 
     if (!authed) {
@@ -85,7 +105,7 @@ export default function AdminApp() {
                     <div className="flex-1 overflow-y-auto pb-24">
                         <Screen />
                     </div>
-                    <AdminBottomNav tab={tab} setTab={(t) => { setTab(t); if (t === 'notifications') setUnreadCount(0) }} lang={lang} unreadCount={unreadCount} />
+                    <AdminBottomNav tab={tab} setTab={setTab} lang={lang} unreadCount={unreadCount} />
                 </div>
             </AdminCtx.Provider>
         </ErrorBoundary>
