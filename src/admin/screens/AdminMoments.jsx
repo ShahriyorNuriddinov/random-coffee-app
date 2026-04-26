@@ -107,10 +107,10 @@ export default function AdminMoments() {
             getMomentsAdmin({ status: 'approved', page: 0, limit: 1 }),
             getMomentsAdmin({ status: 'rejected', page: 0, limit: 1 }),
         ]).then(([p, a, r]) => setStatCounts({
-            pending: p.total,
-            approved: a.total,
-            rejected: r.total,
-        }))
+            pending: p?.total || 0,
+            approved: a?.total || 0,
+            rejected: r?.total || 0,
+        })).catch(() => {})
     }, [])
 
     const handleApprove = async (id) => {

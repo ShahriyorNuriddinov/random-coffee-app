@@ -39,10 +39,10 @@ export default function AdminMembers() {
             getMembers({ status: 'active', limit: 100 }),
             getMembers({ status: 'inactive', limit: 100 }),
         ]).then(([activeRes, inactiveRes]) => {
-            const activeToday = activeRes.members.filter(m => new Date(m.created_at).toDateString() === today).length
-            const inactiveToday = inactiveRes.members.filter(m => new Date(m.created_at).toDateString() === today).length
+            const activeToday = (activeRes?.members || []).filter(m => new Date(m.created_at).toDateString() === today).length
+            const inactiveToday = (inactiveRes?.members || []).filter(m => new Date(m.created_at).toDateString() === today).length
             setNewToday(activeToday + inactiveToday)
-        })
+        }).catch(() => {})
     }, [])
 
     const statusTabs = [
