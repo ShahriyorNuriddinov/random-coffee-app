@@ -100,10 +100,13 @@ export function AppProvider({ children }) {
                 setNotifImportantNews(db.notif_important_news ?? true)
                 setProfileWelcomeSeen(true)
                 setScreen('profile')
-            } else {
+            } else if (db !== null) {
+                // Profile row exists but name not filled — new user
                 setUser({ id: uid, email })
+                userRef.current = { id: uid, email }
                 setScreen('personal')
             }
+            // db === null means network error or no profile — stay on onboarding
         } catch { /* silent */ }
     }
 
@@ -113,8 +116,12 @@ export function AppProvider({ children }) {
         // This is the fast path — no network needed on refresh
         const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
+                console.log('[useAppStore] auth event:', event, 'session:', !!session)
                 if (event === 'INITIAL_SESSION') {
-                    if (session?.user) await restoreFromUser(session.user)
+                    if (session?.user) {
+                        console.log('[useAppStore] restoring from session:', session.user.email)
+                        await restoreFromUser(session.user)
+                    }
                     setSessionLoading(false)
                 } else if (event === 'SIGNED_OUT') {
                     setUser(null)

@@ -52,9 +52,9 @@ export const saveProfile = async (userId, profileData) => {
 }
 
 export const getProfile = async (userId) => {
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
     if (error) return null
-    return data
+    return data // null if not found, object if found
 }
 
 // ─── AVATAR UPLOAD ────────────────────────────────────────────────────────────
