@@ -61,16 +61,16 @@ export default function AdminApp() {
         const channels = [
             supabase.channel('admin_badge_moments')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moments' }, bump)
-                .subscribe(),
+                .subscribe((status) => console.log('[badge] moments:', status)),
             supabase.channel('admin_badge_profiles')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, bump)
-                .subscribe(),
+                .subscribe((status) => console.log('[badge] profiles:', status)),
             supabase.channel('admin_badge_matches')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, bump)
-                .subscribe(),
+                .subscribe((status) => console.log('[badge] matches:', status)),
             supabase.channel('admin_badge_payments')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, bump)
-                .subscribe(),
+                .subscribe((status) => console.log('[badge] payments:', status)),
         ]
         return () => channels.forEach(c => supabase.removeChannel(c))
     }, [authed])
