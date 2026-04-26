@@ -409,3 +409,15 @@ export const completeMeeting = async (matchId) => {
     }
     return { success: true }
 }
+
+export const cancelMeeting = async (matchId) => {
+    const { error } = await supabase
+        .from('matches')
+        .update({ status: 'cancelled' })
+        .eq('id', matchId)
+    if (error) {
+        console.error('[cancelMeeting] error:', error.message)
+        return { success: false, error: error.message }
+    }
+    return { success: true }
+}
