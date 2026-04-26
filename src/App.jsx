@@ -13,6 +13,21 @@ import PeopleScreen from '@/screens/PeopleScreen'
 import MeetingsScreen from '@/screens/MeetingsScreen'
 import MomentsScreen from '@/screens/MomentsScreen'
 
+function OfflineBanner() {
+  const { isOnline } = useApp()
+  if (isOnline) return null
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+      background: '#ff3b30', color: '#fff', textAlign: 'center',
+      padding: '8px 16px', fontSize: 13, fontWeight: 700,
+      fontFamily: '-apple-system, sans-serif',
+    }}>
+      No internet connection
+    </div>
+  )
+}
+
 function Router() {
   const { screen } = useApp()
 
@@ -37,6 +52,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AppProvider>
+        <OfflineBanner />
         <Router />
         <Toaster
           position="top-center"
