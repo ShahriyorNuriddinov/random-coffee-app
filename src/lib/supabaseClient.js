@@ -401,8 +401,11 @@ export const getMeetingHistory = async (userId) => {
 export const completeMeeting = async (matchId) => {
     const { error } = await supabase
         .from('matches')
-        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .update({ status: 'completed' })
         .eq('id', matchId)
-    if (error) return { success: false, error: error.message }
+    if (error) {
+        console.error('[completeMeeting] error:', error.message)
+        return { success: false, error: error.message }
+    }
     return { success: true }
 }

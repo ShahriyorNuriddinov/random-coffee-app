@@ -52,12 +52,16 @@ export default function MeetingsScreen() {
         }).catch(() => { })
     }, [user?.id])
 
-    const loadHistory = () => {
+    const loadHistory = async () => {
         if (!user?.id) { setLoading(false); return }
-        getMeetingHistory(user.id)
-            .then(data => setHistory(data))
-            .catch(() => setHistory([]))
-            .finally(() => setLoading(false))
+        try {
+            const data = await getMeetingHistory(user.id)
+            setHistory(data)
+        } catch {
+            setHistory([])
+        } finally {
+            setLoading(false)
+        }
     }
 
     useEffect(() => { loadHistory() }, [user?.id])
@@ -112,7 +116,7 @@ export default function MeetingsScreen() {
             {showFeedback && (
                 <FeedbackModal
                     matchId={feedbackMatchId}
-                    onClose={() => { setShowFeedback(false); loadHistory() }}
+                    onClose={async () => { setShowFeedback(false); await loadHistory() }}
                     onPost={handleFeedbackPost}
                 />
             )}
