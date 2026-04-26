@@ -85,7 +85,7 @@ export default function MomentsScreen() {
         load()
         // Check if user has any COMPLETED meetings (or old matches without status)
         if (user?.id) {
-            getMeetingHistory(user.id).then(h => setHasMeetings(h.some(m => m.status === 'completed' || m.status == null)))
+            getMeetingHistory(user.id).then(h => setHasMeetings(Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null))).catch(() => {})
         }
 
         // Realtime — update reactions without full reload
@@ -108,16 +108,21 @@ export default function MomentsScreen() {
 
     const load = async () => {
         setLoading(true)
-        const data = await getMoments()
-        momentsRef.current = data
-        setMoments(data)
-        setDisplayMoments(data)
+        try {
+            const data = await getMoments()
+            momentsRef.current = data
+            setMoments(data)
+            setDisplayMoments(data)
 
-        if (user?.id && data.length > 0) {
-            const userR = await getUserMomentReactions(user.id, data.map(m => m.id))
-            setUserReactions(userR)
+            if (user?.id && data.length > 0) {
+                const userR = await getUserMomentReactions(user.id, data.map(m => m.id))
+                setUserReactions(userR)
+            }
+        } catch (err) {
+            console.error('[MomentsScreen] load error:', err)
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     const handlePosted = (newMoment) => {
