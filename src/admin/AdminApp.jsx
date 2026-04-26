@@ -29,6 +29,20 @@ const SCREENS = {
 const ADMIN_SESSION_KEY = 'rc_admin_session'
 const SESSION_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
 
+// ─── Supabase-based seen_at helpers ──────────────────────────────────────────
+const SETTINGS_KEY = 'notif_seen_at'
+
+async function getSeenAt(sb) {
+    const { data } = await sb.from('admin_settings').select('value').eq('key', SETTINGS_KEY).single()
+    return data?.value || new Date(0).toISOString()
+}
+
+async function markAllSeen(sb) {
+    const now = new Date().toISOString()
+    await sb.from('admin_settings').upsert({ key: SETTINGS_KEY, value: now }, { onConflict: 'key' })
+    return now
+}
+
 function getStoredSession() {
     try {
         const raw = localStorage.getItem(ADMIN_SESSION_KEY)
@@ -54,12 +68,14 @@ export default function AdminApp() {
     const [unreadCount, setUnreadCount] = useState(0)
 
     const loadUnreadCount = async () => {
+        const seenAt = await getSeenAt(supabase)
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const since = seenAt > weekAgo ? seenAt : weekAgo
         const [momentsRes, profilesRes, matchesRes, paymentsRes] = await Promise.all([
-            supabase.from('moments').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-            supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
-            supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
-            supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+            supabase.from('moments').select('id', { count: 'exact', head: true }).eq('status', 'pending').gte('created_at', since),
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', since),
+            supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', since),
+            supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', since),
         ])
         const total =
             (momentsRes.count || 0) +
@@ -67,6 +83,14 @@ export default function AdminApp() {
             (matchesRes.count || 0) +
             (paymentsRes.count || 0)
         setUnreadCount(total)
+    }
+
+    const handleTabChange = async (t) => {
+        setTab(t)
+        if (t === 'notifications') {
+            await markAllSeen(supabase)
+            setUnreadCount(0)
+        }
     }
 
     useEffect(() => {
@@ -105,7 +129,7 @@ export default function AdminApp() {
                     <div className="flex-1 overflow-y-auto pb-24">
                         <Screen />
                     </div>
-                    <AdminBottomNav tab={tab} setTab={setTab} lang={lang} unreadCount={unreadCount} />
+                    <AdminBottomNav tab={tab} setTab={handleTabChange} lang={lang} unreadCount={unreadCount} />
                 </div>
             </AdminCtx.Provider>
         </ErrorBoundary>
