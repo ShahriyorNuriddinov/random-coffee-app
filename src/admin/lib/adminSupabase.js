@@ -140,7 +140,17 @@ export const getMemberById = async (id) => {
         console.error('[getMemberById]', error.message)
         return null
     }
-    return data
+    // Count moments and meetings in parallel
+    const [{ count: momentsCount }, { count: meetingsCount }] = await Promise.all([
+        supabase.from('moments').select('id', { count: 'exact', head: true }).eq('user_id', id),
+        supabase.from('matches').select('id', { count: 'exact', head: true })
+            .or(`user1_id.eq.${id},user2_id.eq.${id}`)
+    ])
+    return {
+        ...data,
+        moments_count: momentsCount || 0,
+        meetings_count: meetingsCount || 0,
+    }
 }
 
 export const updateMember = async (id, updates) => {
