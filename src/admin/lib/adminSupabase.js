@@ -67,6 +67,10 @@ export const getDashboardStats = async (incomeTab = 'week') => {
     const cancelledMatches = matches.filter(m => m.status === 'cancelled').length
     const activeMatches = matches.filter(m => !m.status || m.status === 'active').length
 
+    // Also count cancelled from feedback (in case matches.status update fails due to RLS)
+    const cancelledFromFeedback = feedbacks.filter(f => f.status === 'fail').length
+    const effectiveCancelled = Math.max(cancelledMatches, cancelledFromFeedback)
+
     // Meeting satisfaction ratings from real meeting_feedback table
     // Ratings: 'Not great 😒', 'Fine 😐', 'Good 😊', 'Excellent 🤩'
     const feedbacks = feedbackRes.data || []
@@ -96,7 +100,7 @@ export const getDashboardStats = async (incomeTab = 'week') => {
         totalMatches: matchesRes.count || 0,
         successfulMatches,
         activeMatches,
-        cancelledMatches,
+        cancelledMatches: effectiveCancelled,
         totalMoments: momentsCountRes.count || 0,
         revenueByDay,
         membersByDay,
