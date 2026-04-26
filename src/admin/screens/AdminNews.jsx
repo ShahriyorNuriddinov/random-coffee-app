@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, MoreHorizontal, Pin, Pencil, Trash2, X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { getNews, createNews, updateNews, deleteNews } from '../lib/adminSupabase'
+import { getNews, createNews, updateNews, deleteNews, supabase } from '../lib/adminSupabase'
 import { uploadMomentImage } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
 import { useAdmin } from '../AdminApp'
@@ -207,6 +207,18 @@ export default function AdminNews() {
             : await createNews(payload)
         if (res.success) {
             toast.success(editorItem?.id ? getT('common', lang).saved : t.publishedMsg)
+            // If new post — also publish to moments feed as approved
+            if (!editorItem?.id) {
+                await supabase.from('moments').insert({
+                    text: payload.text || payload.text_zh || '',
+                    text_zh: payload.text_zh || '',
+                    image_url: payload.image_url || null,
+                    image_urls: payload.image_url ? [payload.image_url] : [],
+                    status: 'approved',
+                    user_id: null,
+                    is_admin_post: true,
+                })
+            }
             load()
         } else toast.error(res.error)
         setEditorItem(undefined)

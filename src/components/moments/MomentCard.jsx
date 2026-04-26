@@ -39,7 +39,7 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
 
     const author = moment.author || {}
     const isOwn = user?.id && author.id === user.id
-    const isOfficial = author.name === 'Random Coffee Team' || author.name === 'MaGollz Team'
+    const isOfficial = moment.is_admin_post || author.name === 'Random Coffee Team' || author.name === 'MaGollz Team'
 
     // Show translated text if available in DB, else fall back to AI translate on demand
     const currentLang = i18n.language // 'en' or 'zh'
@@ -196,7 +196,7 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                         {!author.avatar_url && (isOfficial ? 'R' : '👤')}
                     </div>
                     <div>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--app-text)' }}>{author.name || 'Unknown'}</div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--app-text)' }}>{isOfficial ? 'Random Coffee Team' : (author.name || 'Unknown')}</div>
                         <div style={{ fontSize: 12, color: 'var(--app-hint)' }}>{timeAgo(moment.created_at)}</div>
                     </div>
                 </div>
