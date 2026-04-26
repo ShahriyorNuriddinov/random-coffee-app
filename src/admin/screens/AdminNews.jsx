@@ -209,15 +209,15 @@ export default function AdminNews() {
             toast.success(editorItem?.id ? getT('common', lang).saved : t.publishedMsg)
             // If new post — also publish to moments feed as approved
             if (!editorItem?.id) {
-                await supabase.from('moments').insert({
+                const { error: mErr } = await supabase.from('moments').insert({
                     text: payload.text || payload.text_zh || '',
                     text_zh: payload.text_zh || '',
                     image_url: payload.image_url || null,
                     image_urls: payload.image_url ? [payload.image_url] : [],
                     status: 'approved',
-                    user_id: null,
                     is_admin_post: true,
                 })
+                if (mErr) console.error('[AdminNews] moments insert error:', mErr)
             }
             load()
         } else toast.error(res.error)
