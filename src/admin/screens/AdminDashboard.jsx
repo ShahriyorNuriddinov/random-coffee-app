@@ -154,8 +154,8 @@ function CancelledModal({ onClose, t, cancelReasons = {} }) {
 
 
 // ─── Meetings breakdown — HTML style ─────────────────────────────────────────
-function MeetingsSection({ successful, cancelled, t, onCancelledClick }) {
-    const total = successful + cancelled
+function MeetingsSection({ successful, active, cancelled, t, onCancelledClick }) {
+    const total = successful + active + cancelled
     return (
         <Card className="p-4 flex flex-col gap-3">
             <div className="flex justify-between text-[12px] uppercase tracking-wide font-semibold text-gray-400">
@@ -166,6 +166,10 @@ function MeetingsSection({ successful, cancelled, t, onCancelledClick }) {
                 <div className="flex-1 flex flex-col items-center py-3 rounded-xl bg-[#f0fdf4]">
                     <span className="text-[22px] font-extrabold text-[#34c759]">{successful.toLocaleString()}</span>
                     <span className="text-[11px] font-semibold text-gray-400 mt-0.5">{t.successful}</span>
+                </div>
+                <div className="flex-1 flex flex-col items-center py-3 rounded-xl bg-[#f0f8ff]">
+                    <span className="text-[22px] font-extrabold text-[#007aff]">{active.toLocaleString()}</span>
+                    <span className="text-[11px] font-semibold text-gray-400 mt-0.5">Active</span>
                 </div>
                 <button
                     onClick={onCancelledClick}
@@ -311,6 +315,7 @@ export default function AdminDashboard() {
                 <SectionLabel>{t.meetings}</SectionLabel>
                 <MeetingsSection
                     successful={stats.successfulMatches}
+                    active={stats.activeMatches}
                     cancelled={stats.cancelledMatches}
                     t={t}
                     onCancelledClick={() => setShowCancelModal(true)}

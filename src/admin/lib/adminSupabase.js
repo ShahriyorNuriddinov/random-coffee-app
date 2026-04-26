@@ -62,9 +62,10 @@ export const getDashboardStats = async (incomeTab = 'week') => {
         return { day: dayStr, count }
     })
 
-    // matches status — null/undefined status means active/pending match (counts as successful)
-    const successfulMatches = matches.filter(m => !m.status || m.status === 'completed' || m.status === 'active').length
+    // matches status — only completed = successful, null/active = pending (not yet confirmed)
+    const successfulMatches = matches.filter(m => m.status === 'completed').length
     const cancelledMatches = matches.filter(m => m.status === 'cancelled').length
+    const activeMatches = matches.filter(m => !m.status || m.status === 'active').length
 
     // Meeting satisfaction ratings from real meeting_feedback table
     // Ratings: 'Not great 😒', 'Fine 😐', 'Good 😊', 'Excellent 🤩'
@@ -94,6 +95,7 @@ export const getDashboardStats = async (incomeTab = 'week') => {
         newThisWeek,
         totalMatches: matchesRes.count || 0,
         successfulMatches,
+        activeMatches,
         cancelledMatches,
         totalMoments: momentsCountRes.count || 0,
         revenueByDay,
