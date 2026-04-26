@@ -334,12 +334,16 @@ export default function AdminNotifications() {
 
     const handleReject = async (momentId) => {
         if (!momentId) return
-        const res = await rejectMoment(momentId, 'Rejected by admin')
-        if (res.success) {
+        const { error } = await supabase
+            .from('moments')
+            .update({ status: 'rejected' })
+            .eq('id', momentId)
+        if (!error) {
             toast.success(lang === 'en' ? 'Rejected!' : '已拒绝！')
             setNotifs(n => n.filter(x => x.momentId !== momentId))
         } else {
-            toast.error(res.error || 'Failed')
+            console.error('[reject]', error)
+            toast.error(error.message)
         }
     }
 
