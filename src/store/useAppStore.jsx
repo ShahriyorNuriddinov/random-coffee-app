@@ -114,11 +114,15 @@ export function AppProvider({ children }) {
     useEffect(() => {
         const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                if (event === 'INITIAL_SESSION') {
+                    if (session?.user) {
+                        await restoreFromUser(session.user)
+                    }
+                    setSessionLoading(false)
+                } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     if (session?.user && !userRef.current) {
                         await restoreFromUser(session.user)
                     }
-                    if (event === 'INITIAL_SESSION') setSessionLoading(false)
                 } else if (event === 'SIGNED_OUT') {
                     setUser(null)
                     userRef.current = null
@@ -217,7 +221,22 @@ export function AppProvider({ children }) {
         })
     }
 
-    if (sessionLoading) return null
+    if (sessionLoading) return (
+        <div style={{
+            position: 'fixed', inset: 0,
+            background: 'var(--app-bg, #f2f4f7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999,
+        }}>
+            <div style={{
+                width: 36, height: 36, borderRadius: '50%',
+                border: '3px solid #e5e5ea',
+                borderTopColor: '#007aff',
+                animation: 'spin 0.7s linear infinite',
+            }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+    )
 
     return (
         <AppContext.Provider value={{
