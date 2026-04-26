@@ -39,7 +39,7 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
 
     const author = moment.author || {}
     const isOwn = user?.id && author.id === user.id
-    const isOfficial = moment.is_admin_post || !moment.user_id || author.name === 'Random Coffee Team' || author.name === 'MaGollz Team'
+    const isOfficial = moment.is_admin_post === true || author.name === 'Random Coffee Team' || author.name === 'MaGollz Team'
 
     // Show translated text if available in DB, else fall back to AI translate on demand
     const currentLang = i18n.language // 'en' or 'zh'
