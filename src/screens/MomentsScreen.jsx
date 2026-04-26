@@ -101,15 +101,12 @@ export default function MomentsScreen() {
             .channel('moments_status_rt')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'moments' }, (payload) => {
                 const updated = payload.new
-                const old = payload.old
-                // Only react to status changes, not likes_count or other field updates
-                if (updated.status === old?.status) return
-                if (updated.status === 'approved') {
-                    load()
-                } else if (updated.status === 'rejected') {
+                if (updated.status === 'rejected') {
                     setMoments(prev => prev.filter(m => m.id !== updated.id))
                     setDisplayMoments(prev => prev.filter(m => m.id !== updated.id))
                 }
+                // approved: will appear on next manual refresh or page reload
+                // likes_count updates: ignored (handled by likesChannel)
             })
             .subscribe()
 
