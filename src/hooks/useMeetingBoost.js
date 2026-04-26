@@ -4,6 +4,19 @@ import { getMeetingHistory, getPeople, supabase } from '@/lib/supabaseClient'
 import { calcMatchScoresBatch } from '@/lib/aiUtils'
 import toast from 'react-hot-toast'
 
+// Cache the AI prompt from DB (refreshed once per session)
+let _cachedAiPrompt = null
+const getAiPrompt = async () => {
+    if (_cachedAiPrompt !== null) return _cachedAiPrompt
+    const { data } = await supabase
+        .from('app_settings')
+        .select('ai_matching_prompt')
+        .eq('id', 1)
+        .single()
+    _cachedAiPrompt = data?.ai_matching_prompt || ''
+    return _cachedAiPrompt
+}
+
 export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveFilters, onBuyCredits, onMatchFound }) {
     const { user, subscription, setSubscription, profile } = useApp()
     const [boosting, setBoosting] = useState(false)
@@ -58,7 +71,14 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
             let partner
             try {
                 if (myProfile.gives || myProfile.wants || searchFilters.prompt?.trim()) {
-                    const scores = await calcMatchScoresBatch(myProfile, candidates, searchFilters.prompt?.trim() || '')
+                    // Load admin-configured AI prompt from DB
+                    const systemPrompt = await getAiPrompt()
+                    const scores = await calcMatchScoresBatch(
+                        myProfile,
+                        candidates,
+                        searchFilters.prompt?.trim() || '',
+                        systemPrompt
+                    )
                     const bestIdx = (scores?.length > 0) ? scores.indexOf(Math.max(...scores)) : 0
                     partner = candidates[bestIdx] || candidates[0]
                 } else {

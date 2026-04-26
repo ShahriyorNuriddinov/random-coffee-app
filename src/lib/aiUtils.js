@@ -166,9 +166,11 @@ function extractTagsFallback(about, gives, wants) {
  *
  * @param {object} myProfile - { gives, wants, about }
  * @param {object[]} candidates - array of { gives, wants, about }
+ * @param {string} customPrompt - user's custom search request (boost)
+ * @param {string} systemPrompt - admin-configured AI prompt from app_settings
  * @returns {number[]} - scores array in same order as candidates
  */
-export async function calcMatchScoresBatch(myProfile = {}, candidates = [], customPrompt = '') {
+export async function calcMatchScoresBatch(myProfile = {}, candidates = [], customPrompt = '', systemPrompt = '') {
     if (!candidates.length) return []
 
     const { gives: myGives = '', wants: myWants = '', about: myAbout = '' } = myProfile
@@ -182,20 +184,25 @@ export async function calcMatchScoresBatch(myProfile = {}, candidates = [], cust
         `${i + 1}. About: "${(p.about || 'n/a').slice(0, 100)}" | Offers: "${(p.gives || 'n/a').slice(0, 120)}" | Needs: "${(p.wants || 'n/a').slice(0, 120)}"`
     ).join('\n')
 
-    const prompt = `SYSTEM: You are a smart matching engine for professional coffee meetings.
+    // Use admin-configured system prompt if available, otherwise use default
+    const basePrompt = systemPrompt?.trim()
+        ? systemPrompt.trim()
+        : `SYSTEM: You are a smart matching engine for professional coffee meetings.
 Your task is to score how well each candidate matches Person A for a 1-on-1 meeting.
 
 RULES:
 - Do NOT give random scores. Base score ONLY on real overlap and mutual value exchange.
 - If there is low synergy, do not force a high score.
 - Focus on "mutual benefit": what A gives B AND what B gives A.
-- Be realistic, not optimistic.${customPrompt ? `\n- Special request from Person A: "${customPrompt.slice(0, 200)}" — heavily prioritize this.` : ''}
+- Be realistic, not optimistic.
 
 SCORING (0-100):
 - 80-100: Strong mutual benefit — A gives what B needs AND B gives what A needs
 - 50-79: One side benefits more, but still a useful meeting
 - 20-49: Weak match, some common ground
-- 0-19: Poor match, no clear mutual value
+- 0-19: Poor match, no clear mutual value`
+
+    const prompt = `${basePrompt}${customPrompt ? `\n\nSpecial request from Person A: "${customPrompt.slice(0, 200)}" — heavily prioritize this.` : ''}
 
 Person A:
 - About: ${(myAbout || 'n/a').slice(0, 150)}
