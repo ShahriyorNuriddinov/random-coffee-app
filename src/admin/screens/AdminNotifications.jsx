@@ -244,7 +244,7 @@ function NotifCard({ notif, lang, onApprove, onBan, onViewProfile }) {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function AdminNotifications() {
-    const { lang } = useAdmin()
+    const { lang, tab, setUnreadCount } = useAdmin()
     const [notifs, setNotifs] = useState([])
     const [filter, setFilter] = useState('all')
     const [loading, setLoading] = useState(true)
@@ -295,6 +295,13 @@ export default function AdminNotifications() {
 
         return () => channels.forEach(c => supabase.removeChannel(c))
     }, [])
+
+    // Badge: when not on notifications tab, count new notifs
+    useEffect(() => {
+        if (tab !== 'notifications') {
+            setUnreadCount(notifs.length)
+        }
+    }, [notifs, tab])
 
     const handleApprove = async (momentId) => {
         const { error } = await supabase.from('moments').update({ status: 'approved' }).eq('id', momentId)

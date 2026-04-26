@@ -53,22 +53,6 @@ export default function AdminApp() {
     const [lang, setLang] = useState('en')
     const [unreadCount, setUnreadCount] = useState(0)
 
-    useEffect(() => {
-        if (!authed) return
-
-        const bump = () => setUnreadCount(n => n + 1)
-
-        const ch = supabase
-            .channel('admin_unread_badge')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moments' }, bump)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, bump)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, bump)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, bump)
-            .subscribe()
-
-        return () => supabase.removeChannel(ch)
-    }, [authed])
-
     const handleTabChange = (t) => {
         setTab(t)
         if (t === 'notifications') setUnreadCount(0)
@@ -82,7 +66,7 @@ export default function AdminApp() {
 
     return (
         <ErrorBoundary>
-            <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) } }}>
+            <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount }}>
                 <div className="flex flex-col h-screen bg-[#f5f7fb] overflow-hidden">
                     <AdminHeader tab={tab} lang={lang} setLang={setLang} />
                     <div className="flex-1 overflow-y-auto pb-24">
