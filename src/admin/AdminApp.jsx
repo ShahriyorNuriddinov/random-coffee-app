@@ -82,8 +82,8 @@ export default function AdminApp() {
     return (
         <ErrorBoundary>
             <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount }}>
-                <div style={{ display: 'flex', justifyContent: 'center', minHeight: '100vh', background: '#ffffff' }}>
-                    <div className="flex flex-col bg-[#f5f7fb] overflow-hidden" style={{ width: '100%', maxWidth: 430, minHeight: '100vh', position: 'relative', boxShadow: '0 0 40px rgba(0,0,0,0.08)' }}>
+                <div style={{ minHeight: '100vh', background: '#f5f7fb' }}>
+                    <div className="flex flex-col" style={{ width: '100%', maxWidth: 1200, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
                         <AdminHeader tab={tab} lang={lang} setLang={setLang} />
                         <div className="flex-1 overflow-y-auto pb-24">
                             <Screen />
