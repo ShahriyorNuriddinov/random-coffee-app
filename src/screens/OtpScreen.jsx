@@ -49,43 +49,50 @@ export default function OtpScreen() {
         if (loading) return  // prevent double-call
         if (!code || code.length < 6) return
         setLoading(true)
-        const res = await verifyOtp(phone, code)
-        setLoading(false)
-        if (res?.success) {
-            loginUser(res.user, phone, '')
-            await saveProfile(res.user.id, { email: phone })
-            const existingProfile = await getProfile(res.user.id)
-            if (existingProfile && existingProfile.name) {
-                setProfile(p => ({
-                    ...p,
-                    name: existingProfile.name,
-                    dob: existingProfile.dob,
-                    gender: existingProfile.gender,
-                    about: existingProfile.about || '',
-                    gives: existingProfile.gives || '',
-                    wants: existingProfile.wants || '',
-                    balance: existingProfile.balance || '50_50',
-                    wechat: existingProfile.wechat || '',
-                    whatsapp: existingProfile.whatsapp || '',
-                    showAge: existingProfile.show_age ?? true,
-                    datingMode: existingProfile.dating_mode ?? false,
-                    datingGender: existingProfile.dating_gender || 'women',
-                    languages: existingProfile.languages || ['EN'],
-                    region: existingProfile.region || 'Hong Kong',
-                    city: existingProfile.city || '',
-                    email: existingProfile.email || phone,
-                    avatar: existingProfile.avatar_url || null,
-                    photos: existingProfile.photos || [null, null, null, null],
-                    tags: existingProfile.tags || [],
-                }))
-                setScreen('profile')
+        try {
+            const res = await verifyOtp(phone, code)
+            if (res?.success) {
+                loginUser(res.user, phone, '')
+                await saveProfile(res.user.id, { email: phone })
+                const existingProfile = await getProfile(res.user.id)
+                if (existingProfile && existingProfile.name) {
+                    setProfile(p => ({
+                        ...p,
+                        name: existingProfile.name,
+                        dob: existingProfile.dob,
+                        gender: existingProfile.gender,
+                        about: existingProfile.about || '',
+                        gives: existingProfile.gives || '',
+                        wants: existingProfile.wants || '',
+                        balance: existingProfile.balance || '50_50',
+                        wechat: existingProfile.wechat || '',
+                        whatsapp: existingProfile.whatsapp || '',
+                        showAge: existingProfile.show_age ?? true,
+                        datingMode: existingProfile.dating_mode ?? false,
+                        datingGender: existingProfile.dating_gender || 'women',
+                        languages: existingProfile.languages || ['EN'],
+                        region: existingProfile.region || 'Hong Kong',
+                        city: existingProfile.city || '',
+                        email: existingProfile.email || phone,
+                        avatar: existingProfile.avatar_url || null,
+                        photos: existingProfile.photos || [null, null, null, null],
+                        tags: existingProfile.tags || [],
+                    }))
+                    setScreen('profile')
+                } else {
+                    setScreen('personal')
+                }
             } else {
-                setScreen('personal')
+                toast.error(t('err_otp'))
+                setDigits(['', '', '', '', '', ''])
+                inputs.current[0]?.focus()
             }
-        } else {
+        } catch {
             toast.error(t('err_otp'))
             setDigits(['', '', '', '', '', ''])
             inputs.current[0]?.focus()
+        } finally {
+            setLoading(false)
         }
     }
 

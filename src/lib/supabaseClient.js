@@ -22,9 +22,17 @@ export const sendOtp = async (email) => {
 }
 
 export const verifyOtp = async (email, token) => {
-    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
-    if (error) return { success: false, error: error.message }
-    return { success: true, user: { id: data.user?.id, email: data.user?.email } }
+    try {
+        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+        const { data, error } = await Promise.race([
+            supabase.auth.verifyOtp({ email, token, type: 'email' }),
+            timeout
+        ])
+        if (error) return { success: false, error: error.message }
+        return { success: true, user: { id: data.user?.id, email: data.user?.email } }
+    } catch (e) {
+        return { success: false, error: e.message }
+    }
 }
 
 export const signOut = async () => { await supabase.auth.signOut() }

@@ -122,6 +122,7 @@ export function AppProvider({ children }) {
                     setProfile(EMPTY_PROFILE)
                     setScreen('onboarding')
                 } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    // Only restore if not already handled by OtpScreen
                     if (session?.user && !userRef.current) {
                         await restoreFromUser(session.user)
                     }
