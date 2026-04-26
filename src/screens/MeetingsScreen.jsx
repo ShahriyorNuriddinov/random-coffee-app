@@ -49,7 +49,7 @@ export default function MeetingsScreen() {
                     end: data.subscription_end || null,
                 })
             }
-        })
+        }).catch(() => {})
     }, [user?.id])
 
     const loadHistory = () => {

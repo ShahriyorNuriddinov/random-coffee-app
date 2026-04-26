@@ -22,7 +22,7 @@ export default function ProfileScreen() {
 
     useEffect(() => {
         if (!user?.id) return
-        getReferralCode(user.id).then(d => { if (d?.referral_code) setReferralCode(d.referral_code) })
+        getReferralCode(user.id).then(d => { if (d?.referral_code) setReferralCode(d.referral_code) }).catch(() => {})
         // Always fetch fresh credits from DB
         getSubscription(user.id).then(data => {
             if (data) setSubscription({
@@ -31,7 +31,7 @@ export default function ProfileScreen() {
                 start: data.subscription_start || null,
                 end: data.subscription_end || null,
             })
-        })
+        }).catch(() => {})
     }, [user?.id])
 
     const effectiveStatus = (subscription.credits ?? 0) === 0 ? 'empty'

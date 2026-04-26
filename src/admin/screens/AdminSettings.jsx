@@ -42,8 +42,8 @@ export default function AdminSettings() {
     useEffect(() => {
         getSettings().then(s => {
             if (s) setSettings(prev => ({ ...prev, ...s, ai_matching_prompt: s.ai_matching_prompt || DEFAULT_AI_PROMPT }))
-        })
-        getStaff().then(setStaff)
+        }).catch(() => {})
+        getStaff().then(setStaff).catch(() => {})
     }, [])
 
     const handleSave = async () => {

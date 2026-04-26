@@ -215,7 +215,7 @@ export default function AdminDashboard() {
     // Initial load
     useEffect(() => {
         setLoading(true)
-        getDashboardStats('week').then(s => { setStats(s); setLoading(false) })
+        getDashboardStats('week').then(s => { setStats(s); setLoading(false) }).catch(() => setLoading(false))
     }, [])
 
     // Income tab change — only update revenue, no full spinner
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
         getDashboardStats(incomeTab).then(s => {
             setStats(prev => ({ ...prev, totalRevenue: s.totalRevenue }))
             setRevenueLoading(false)
-        })
+        }).catch(() => setRevenueLoading(false))
     }, [incomeTab])
 
     if (loading) {

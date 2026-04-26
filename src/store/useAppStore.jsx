@@ -63,41 +63,78 @@ export function AppProvider({ children }) {
     const [notifImportantNews, setNotifImportantNews] = useState(true)
     const [profileWelcomeSeen, setProfileWelcomeSeen] = useState(false)
     const [sessionLoading, setSessionLoading] = useState(true)
+    const [isOnline, setIsOnline] = useState(navigator.onLine)
     const userRef = useRef(null)
 
-    // ── On app start: restore session from Supabase Auth ─────────
+    // ── Online/Offline detection ───────────────────────────────────
+    useEffect(() => {
+        const goOnline = () => setIsOnline(true)
+        const goOffline = () => setIsOnline(false)
+        window.addEventListener('online', goOnline)
+        window.addEventListener('offline', goOffline)
+        return () => {
+            window.removeEventListener('online', goOnline)
+            window.removeEventListener('offline', goOffline)
+        }
+    }, [])
+
+    // ── Restore session from user object ─────────────────────────
+    const restoreFromUser = async (authUser) => {
+        if (!authUser) return
+        try {
+            const uid = authUser.id
+            const email = authUser.email
+            const db = await getProfile(uid)
+            if (db && db.name) {
+                const u = { id: uid, email }
+                setUser(u)
+                userRef.current = u
+                setProfile(dbToProfile(db))
+                setSubscription({
+                    status: db.subscription_status || 'trial',
+                    credits: db.coffee_credits ?? 2,
+                    start: db.subscription_start || null,
+                    end: db.subscription_end || null,
+                })
+                setNotifNewMatches(db.notif_new_matches ?? true)
+                setNotifImportantNews(db.notif_important_news ?? true)
+                setProfileWelcomeSeen(true)
+                setScreen('profile')
+            } else {
+                setUser({ id: uid, email })
+                setScreen('personal')
+            }
+        } catch { /* silent */ }
+    }
+
+    // ── On app start: restore session + listen for auth changes ──
     useEffect(() => {
         const restore = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession()
-                if (session?.user) {
-                    const uid = session.user.id
-                    const email = session.user.email
-                    const db = await getProfile(uid)
-                    if (db && db.name) {
-                        const u = { id: uid, email }
-                        setUser(u)
-                        userRef.current = u
-                        setProfile(dbToProfile(db))
-                        setSubscription({
-                            status: db.subscription_status || 'trial',
-                            credits: db.coffee_credits ?? 2,
-                            start: db.subscription_start || null,
-                            end: db.subscription_end || null,
-                        })
-                        setNotifNewMatches(db.notif_new_matches ?? true)
-                        setNotifImportantNews(db.notif_important_news ?? true)
-                        setProfileWelcomeSeen(true)
-                        setScreen('profile')
-                    } else {
-                        setUser({ id: uid, email })
-                        setScreen('personal')
-                    }
-                }
+                if (session?.user) await restoreFromUser(session.user)
             } catch { /* silent */ }
             finally { setSessionLoading(false) }
         }
         restore()
+
+        // Listen for auth state changes (token refresh, sign-in, sign-out)
+        const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                if (event === 'SIGNED_OUT') {
+                    setUser(null)
+                    userRef.current = null
+                    setProfile(EMPTY_PROFILE)
+                    setScreen('onboarding')
+                } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    if (session?.user && !userRef.current) {
+                        await restoreFromUser(session.user)
+                    }
+                }
+            }
+        )
+
+        return () => authSub.unsubscribe()
     }, [])
 
     // ── Real-time: notify when new match arrives ──────────────────
@@ -200,6 +237,7 @@ export function AppProvider({ children }) {
             notifNewMatches, setNotifNewMatches,
             notifImportantNews, setNotifImportantNews,
             profileWelcomeSeen, setProfileWelcomeSeen,
+            isOnline,
         }}>
             {children}
         </AppContext.Provider>

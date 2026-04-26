@@ -196,8 +196,10 @@ export default function AdminNews() {
 
     const load = async () => {
         setLoading(true)
-        setNews(await getNews())
-        setLoading(false)
+        try {
+            setNews(await getNews())
+        } catch { setNews([]) }
+        finally { setLoading(false) }
     }
 
     useEffect(() => { load() }, [])

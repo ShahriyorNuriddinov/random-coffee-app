@@ -255,20 +255,25 @@ export default function AdminNotifications() {
     useEffect(() => {
         const load = async () => {
             setLoading(true)
-            const [profilesRes, matchesRes, momentsRes, paymentsRes] = await Promise.all([
-                supabase.from('profiles').select('id, name, email, created_at').order('created_at', { ascending: false }).limit(20),
-                supabase.from('matches').select('id, created_at, user1:user1_id(id,name), user2:user2_id(id,name)').order('created_at', { ascending: false }).limit(10),
-                supabase.from('moments').select('id, text, created_at, status, author:user_id(id,name,avatar_url)').order('created_at', { ascending: false }).limit(10),
-                supabase.from('payments').select('id, amount, credits, created_at').order('created_at', { ascending: false }).limit(10),
-            ])
-            const built = buildNotifications(
-                profilesRes.data || [],
-                matchesRes.data || [],
-                momentsRes.data || [],
-                paymentsRes.data || [],
-            )
-            setNotifs(built)
-            setLoading(false)
+            try {
+                const [profilesRes, matchesRes, momentsRes, paymentsRes] = await Promise.all([
+                    supabase.from('profiles').select('id, name, email, created_at').order('created_at', { ascending: false }).limit(20),
+                    supabase.from('matches').select('id, created_at, user1:user1_id(id,name), user2:user2_id(id,name)').order('created_at', { ascending: false }).limit(10),
+                    supabase.from('moments').select('id, text, created_at, status, author:user_id(id,name,avatar_url)').order('created_at', { ascending: false }).limit(10),
+                    supabase.from('payments').select('id, amount, credits, created_at').order('created_at', { ascending: false }).limit(10),
+                ])
+                const built = buildNotifications(
+                    profilesRes.data || [],
+                    matchesRes.data || [],
+                    momentsRes.data || [],
+                    paymentsRes.data || [],
+                )
+                setNotifs(built)
+            } catch (err) {
+                console.error('[AdminNotifications] load error:', err)
+            } finally {
+                setLoading(false)
+            }
         }
         load()
     }, [])
