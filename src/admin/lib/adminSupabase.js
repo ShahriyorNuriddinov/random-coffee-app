@@ -62,8 +62,8 @@ export const getDashboardStats = async (incomeTab = 'week') => {
         return { day: dayStr, count }
     })
 
-    // matches status
-    const successfulMatches = matches.filter(m => m.status === 'completed').length
+    // matches status — null/undefined status means active/pending match (counts as successful)
+    const successfulMatches = matches.filter(m => !m.status || m.status === 'completed' || m.status === 'active').length
     const cancelledMatches = matches.filter(m => m.status === 'cancelled').length
 
     // Meeting satisfaction ratings from real meeting_feedback table
