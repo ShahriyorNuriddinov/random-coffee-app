@@ -93,7 +93,7 @@ export default function AdminLogin({ onLogin, lang, setLang }) {
         setLoading(false)
         if (!stillStaff) { setError(t.errNotAdmin); return }
 
-        onLogin()
+        onLogin(email.trim().toLowerCase())
     }
 
     const handleOtpChange = (val, idx) => {
