@@ -3,13 +3,7 @@ import { sendOtp, verifyOtp, supabase } from '@/lib/supabaseClient'
 import LangSwitcher from '../components/LangSwitcher'
 import { getT } from '../i18n'
 
-// ─── Layer 1: Frontend whitelist ──────────────────────────────────────────────
-const ADMIN_WHITELIST = [
-    'admin@magollz.com',
-    'yunna@magollz.com',
-]
-
-// ─── Layer 2: DB staff check ──────────────────────────────────────────────────
+// ─── Staff check (single source of truth: DB staff table) ────────────────────
 const checkIsStaff = async (email) => {
     const { data } = await supabase
         .from('staff')
@@ -65,11 +59,6 @@ export default function AdminLogin({ onLogin, lang, setLang }) {
     const handleSendOtp = async () => {
         setError('')
         const trimmed = email.trim().toLowerCase()
-
-        if (!ADMIN_WHITELIST.includes(trimmed)) {
-            setError(t.errNotAdmin)
-            return
-        }
 
         setLoading(true)
         const isStaff = await checkIsStaff(trimmed)

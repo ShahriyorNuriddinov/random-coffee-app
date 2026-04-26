@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
@@ -13,6 +14,7 @@ const QUICK_REACTIONS = ['👍', '❤️', '🔥', '🎉', '👏']
 
 export default function MomentCard({ moment, userReaction, onReactionChange, onDeleted }) {
     const { user } = useApp()
+    const { t } = useTranslation()
 
     // reactions from DB: moment.reactions = { '❤️': 5, '🔥': 2 }
     const [reactions, setReactions] = useState(moment.reactions || {})
@@ -120,7 +122,7 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
             .from('moments').delete()
             .eq('id', moment.id).eq('user_id', user.id)
         if (error) {
-            toast.error('Failed to delete')
+            toast.error(t('toast_delete_failed', 'Failed to delete'))
         } else {
             // Deduct the credit that was earned for this post
             const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', user.id).single()
@@ -130,7 +132,7 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
             }
             setDeleted(true)
             onDeleted?.(moment.id)
-            toast.success('Post deleted')
+            toast.success(t('toast_post_deleted', 'Post deleted'))
         }
     }
 
@@ -147,11 +149,11 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                 setTranslatedText(result)
                 setTranslated(true)
             } else {
-                toast.error('Translation failed. Please try again later.')
+                toast.error(t('toast_translate_failed', 'Translation failed'))
             }
         } catch (e) {
             console.error('[translate]', e)
-            toast.error('Translation failed')
+            toast.error(t('toast_translate_failed', 'Translation failed'))
         } finally {
             setTranslating(false)
         }
