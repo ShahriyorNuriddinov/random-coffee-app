@@ -101,20 +101,13 @@ export default function MomentsScreen() {
             .channel('moments_status_rt')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'moments' }, (payload) => {
                 const updated = payload.new
-                setMoments(prev => {
-                    // If approved — keep it (it's now visible to all)
-                    // If rejected — remove from own list
-                    if (updated.status === 'rejected') {
-                        return prev.filter(m => m.id !== updated.id)
-                    }
-                    return prev.map(m => m.id === updated.id ? { ...m, status: updated.status } : m)
-                })
-                setDisplayMoments(prev => {
-                    if (updated.status === 'rejected') {
-                        return prev.filter(m => m.id !== updated.id)
-                    }
-                    return prev.map(m => m.id === updated.id ? { ...m, status: updated.status } : m)
-                })
+                if (updated.status === 'approved') {
+                    // Reload to get full author data for newly approved posts
+                    load()
+                } else if (updated.status === 'rejected') {
+                    setMoments(prev => prev.filter(m => m.id !== updated.id))
+                    setDisplayMoments(prev => prev.filter(m => m.id !== updated.id))
+                }
             })
             .subscribe()
 
