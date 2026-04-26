@@ -84,7 +84,8 @@ export function AppProvider({ children }) {
         try {
             const uid = authUser.id
             const email = authUser.email
-            const db = await getProfile(uid)
+            const { data: db, error: dbErr } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
+            console.log('[restore] uid:', uid, 'db:', db?.name, 'error:', dbErr?.message)
             if (db && db.name) {
                 const u = { id: uid, email }
                 setUser(u)
@@ -100,14 +101,14 @@ export function AppProvider({ children }) {
                 setNotifImportantNews(db.notif_important_news ?? true)
                 setProfileWelcomeSeen(true)
                 setScreen('profile')
-            } else if (db !== null) {
-                // Profile row exists but name not filled — new user
+            } else if (db !== null && db !== undefined) {
                 setUser({ id: uid, email })
                 userRef.current = { id: uid, email }
                 setScreen('personal')
             }
-            // db === null means network error or no profile — stay on onboarding
-        } catch { /* silent */ }
+        } catch (e) {
+            console.error('[restore] catch:', e)
+        }
     }
 
     // ── On app start: restore session + listen for auth changes ──
