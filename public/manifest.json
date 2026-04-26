@@ -1,13 +1,16 @@
 {
     "name": "Random Coffee HK",
     "short_name": "Random Coffee",
-    "description": "AI-powered professional networking over coffee in Hong Kong",
+    "description": "AI-powered professional networking over coffee in Hong Kong, Macau and Mainland China.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#f4f7f9",
     "theme_color": "#007aff",
     "orientation": "portrait-primary",
     "lang": "en",
+    "dir": "ltr",
+    "scope": "/",
+    "id": "random-coffee-hk",
     "categories": [
         "business",
         "social",
@@ -38,7 +41,32 @@
             "type": "image/svg+xml"
         }
     ],
-    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Find a Match",
+            "short_name": "Meetings",
+            "description": "Find your next coffee meeting partner",
+            "url": "/?screen=meetings",
+            "icons": [
+                {
+                    "src": "/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Browse People",
+            "short_name": "People",
+            "description": "Browse professionals in Hong Kong",
+            "url": "/?screen=people",
+            "icons": [
+                {
+                    "src": "/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ],
     "related_applications": [],
     "prefer_related_applications": false
 }
