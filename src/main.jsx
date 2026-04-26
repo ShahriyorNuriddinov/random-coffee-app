@@ -18,6 +18,6 @@ if (isAdmin) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {isAdmin ? <AdyoqminApp /> : <App />}
+    {isAdmin ? <AdminApp /> : <App />}
   </React.StrictMode>
 )
