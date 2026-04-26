@@ -203,6 +203,13 @@ export const getPeople = async (currentUserId) => {
         .neq('id', currentUserId)
         .not('name', 'is', null)
         .neq('banned', true)
+        .not('about', 'is', null)
+        .not('gives', 'is', null)
+        .not('wants', 'is', null)
+        .not('avatar_url', 'is', null)
+        .neq('about', '')
+        .neq('gives', '')
+        .neq('wants', '')
     if (error) return []
     return data || []
 }
