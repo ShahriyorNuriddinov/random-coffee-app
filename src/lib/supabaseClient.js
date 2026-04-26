@@ -266,13 +266,21 @@ export const saveTags = async (userId, tags) => {
 
 // ─── MOMENTS ──────────────────────────────────────────────────────────────────
 
-export const getMoments = async (limit = 30) => {
-    const { data, error } = await supabase
+export const getMoments = async (limit = 30, userId = null) => {
+    // Fetch approved posts + current user's own pending posts
+    let query = supabase
         .from('moments')
         .select(`id, text, text_en, text_zh, image_url, image_urls, likes_count, created_at, status, author:user_id(id, name, avatar_url, region)`)
-        .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .limit(limit)
+
+    if (userId) {
+        query = query.or(`status.eq.approved,and(user_id.eq.${userId},status.eq.pending)`)
+    } else {
+        query = query.eq('status', 'approved')
+    }
+
+    const { data, error } = await query
     if (error) return []
 
     const moments = data || []

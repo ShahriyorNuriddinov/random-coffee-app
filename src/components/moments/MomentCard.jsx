@@ -208,6 +208,13 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                             background: 'rgba(0,122,255,0.1)', color: 'var(--app-primary)',
                         }}>Official</span>
                     )}
+                    {moment.status === 'pending' && isOwn && (
+                        <span style={{
+                            fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                            padding: '3px 8px', borderRadius: 5,
+                            background: 'rgba(255,149,0,0.12)', color: '#ff9500',
+                        }}>⏳ Pending</span>
+                    )}
                 </div>
             </div>
 
