@@ -34,7 +34,11 @@ const SETTINGS_KEY = 'notif_seen_at'
 
 async function getSeenAt(sb) {
     const { data } = await sb.from('admin_settings').select('value').eq('key', SETTINGS_KEY).single()
-    return data?.value || new Date(0).toISOString()
+    if (data?.value) return data.value
+    // First time ever — mark now as seen so old data doesn't flood the badge
+    const now = new Date().toISOString()
+    await sb.from('admin_settings').upsert({ key: SETTINGS_KEY, value: now }, { onConflict: 'key' })
+    return now
 }
 
 async function markAllSeen(sb) {
