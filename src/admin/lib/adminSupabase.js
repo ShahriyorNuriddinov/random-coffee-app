@@ -176,7 +176,7 @@ export const unbanMember = async (id) => {
 export const getMomentsAdmin = async ({ status = 'pending', page = 0, limit = 20 } = {}) => {
     let query = supabase
         .from('moments')
-        .select(`id, text, image_url, image_urls, created_at, status, author:user_id(id, name, avatar_url)`, { count: 'exact' })
+        .select(`id, text, image_url, image_urls, created_at, status, is_admin_post, author:user_id(id, name, avatar_url)`, { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(page * limit, (page + 1) * limit - 1)
 

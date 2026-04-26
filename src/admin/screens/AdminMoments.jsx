@@ -42,7 +42,7 @@ function MomentCard({ moment: m, onApprove, onReject, showActions, lang }) {
                             {(m.author?.name || '?')[0]}
                         </div>
                     }
-                    <span className="text-[13px] font-semibold text-gray-700">{m.author?.name || '—'}</span>
+                    <span className="text-[13px] font-semibold text-gray-700">{m.is_admin_post ? 'Random Coffee Team' : (m.author?.name || '—')}</span>
                     <span className="text-[11px] text-gray-400 ml-auto">{new Date(m.created_at).toLocaleDateString()}</span>
                 </div>
 
