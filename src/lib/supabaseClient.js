@@ -195,6 +195,7 @@ export const getPeople = async (currentUserId) => {
         .select('id, name, dob, gender, region, city, avatar_url, photos, about, gives, wants, about_zh, gives_zh, wants_zh, tags, languages, balance')
         .neq('id', currentUserId)
         .not('name', 'is', null)
+        .neq('banned', true)
     if (error) return []
     return data || []
 }
