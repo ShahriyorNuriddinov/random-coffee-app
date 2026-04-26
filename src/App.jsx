@@ -54,7 +54,7 @@ export default function App() {
       <AppProvider>
         <OfflineBanner />
         <div style={{ minHeight: '100vh', background: '#f5f7fb', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 480, minHeight: '100vh', background: '#ffffff', position: 'relative' }}>
+          <div style={{ width: '100%', maxWidth: 1000, minHeight: '100vh', background: '#ffffff', position: 'relative' }}>
             <Router />
           </div>
         </div>
