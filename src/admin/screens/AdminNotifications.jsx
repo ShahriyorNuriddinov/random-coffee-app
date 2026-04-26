@@ -148,13 +148,13 @@ const buildNotifications = (profiles, matches, moments, payments) => {
 }
 
 // ─── Time formatter ───────────────────────────────────────────────────────────
-const formatTime = (iso) => {
+const formatTime = (iso, lang = 'en') => {
     const d = new Date(iso)
     const now = new Date()
     const diff = Math.floor((now - d) / 1000)
-    if (diff < 60) return 'Just now'
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    if (diff < 60) return lang === 'zh' ? '刚刚' : 'Just now'
+    if (diff < 3600) return lang === 'zh' ? `${Math.floor(diff / 60)}分钟前` : `${Math.floor(diff / 60)}m ago`
+    if (diff < 86400) return lang === 'zh' ? `${Math.floor(diff / 3600)}小时前` : `${Math.floor(diff / 3600)}h ago`
     return d.toLocaleDateString()
 }
 
@@ -183,7 +183,7 @@ function NotifCard({ notif, lang, onApprove, onBan, onViewProfile }) {
                 <div className="flex items-start justify-between gap-2">
                     <div>
                         <p className="text-[15px] font-bold text-gray-900 leading-tight">{title}</p>
-                        <p className="text-[11px] text-gray-400 font-medium mt-0.5">{formatTime(notif.time)}</p>
+                        <p className="text-[11px] text-gray-400 font-medium mt-0.5">{formatTime(notif.time, lang)}</p>
                     </div>
                     {/* Eye icon for posts */}
                     {notif.category === 'post' && (

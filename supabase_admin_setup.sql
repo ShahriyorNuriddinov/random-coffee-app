@@ -152,14 +152,14 @@ ALTER TABLE news ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "news_public_read" ON news;
 DROP POLICY IF EXISTS "news_auth_write"  ON news;
 CREATE POLICY "news_public_read" ON news FOR SELECT USING (true);
-CREATE POLICY "news_auth_write"  ON news FOR ALL    USING (auth.role() = 'authenticated');
+CREATE POLICY "news_auth_write"  ON news FOR ALL    USING (is_staff());
 
 -- ─── app_settings ─────────────────────────────────────────────────
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "settings_public_read" ON app_settings;
 DROP POLICY IF EXISTS "settings_auth_write"  ON app_settings;
 CREATE POLICY "settings_public_read" ON app_settings FOR SELECT USING (true);
-CREATE POLICY "settings_auth_write"  ON app_settings FOR ALL    USING (auth.role() = 'authenticated');
+CREATE POLICY "settings_auth_write"  ON app_settings FOR ALL    USING (is_staff());
 
 -- ─── staff ────────────────────────────────────────────────────────
 ALTER TABLE staff ENABLE ROW LEVEL SECURITY;

@@ -134,38 +134,4 @@ export function GenderBar({ men, women, total, t }) {
     )
 }
 
-// ─── Cancelled meetings modal ─────────────────────────────────────────────────
-export function CancelledModal({ onClose, t }) {
-    const reasons = [
-        { label: t.cancelR1, count: '40%' },
-        { label: t.cancelR2, count: '30%' },
-        { label: t.cancelR3, count: '15%' },
-        { label: t.cancelR4, count: '10%' },
-    ]
-    return (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-[#f2f4f7] rounded-t-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                <div className="bg-white px-5 py-4 flex items-center justify-between border-b border-black/5 rounded-t-2xl">
-                    <span className="text-[17px] font-bold">{t.cancelTitle}</span>
-                    <button onClick={onClose} className="text-[#007aff] font-semibold text-[15px]">{t.cancelDone}</button>
-                </div>
-                <div className="overflow-y-auto p-5 flex flex-col gap-4 pb-8">
-                    <p className="text-[12px] uppercase tracking-wide font-semibold text-gray-400 pl-1">{t.cancelMainReasons}</p>
-                    <div className="flex flex-col gap-2">
-                        {reasons.map((r, i) => (
-                            <div key={i} className="bg-white rounded-xl px-4 py-3 flex justify-between items-center border border-black/5">
-                                <span className="text-[14px] font-semibold text-gray-800">{r.label}</span>
-                                <span className="text-[13px] text-gray-400 font-medium">{r.count}</span>
-                            </div>
-                        ))}
-                    </div>
-                    <p className="text-[12px] uppercase tracking-wide font-semibold text-gray-400 pl-1 mt-2">{t.cancelFeedback}</p>
-                    <div className="bg-white rounded-xl p-4 border border-black/5 flex flex-col gap-1">
-                        <span className="text-[13px] font-bold text-[#007aff]">@user_example</span>
-                        <p className="text-[14px] text-gray-600 leading-relaxed">{t.cancelFeedbackText}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-}
+

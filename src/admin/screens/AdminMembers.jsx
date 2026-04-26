@@ -32,16 +32,16 @@ export default function AdminMembers() {
 
     useEffect(() => { load() }, [load])
 
-    // New today count
+    // New today count — use Promise.all to avoid race condition
     useEffect(() => {
         const today = new Date().toDateString()
-        getMembers({ status: 'active', limit: 100 }).then(res => {
-            setNewToday(res.members.filter(m => new Date(m.created_at).toDateString() === today).length)
-        })
-        // Also check inactive members registered today
-        getMembers({ status: 'inactive', limit: 100 }).then(res => {
-            const count = res.members.filter(m => new Date(m.created_at).toDateString() === today).length
-            setNewToday(prev => prev + count)
+        Promise.all([
+            getMembers({ status: 'active', limit: 100 }),
+            getMembers({ status: 'inactive', limit: 100 }),
+        ]).then(([activeRes, inactiveRes]) => {
+            const activeToday = activeRes.members.filter(m => new Date(m.created_at).toDateString() === today).length
+            const inactiveToday = inactiveRes.members.filter(m => new Date(m.created_at).toDateString() === today).length
+            setNewToday(activeToday + inactiveToday)
         })
     }, [])
 
