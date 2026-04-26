@@ -281,6 +281,21 @@ export default function AdminNotifications() {
     const handleApprove = async (momentId) => {
         const { error } = await supabase.from('moments').update({ status: 'approved' }).eq('id', momentId)
         if (!error) {
+            // Give +1 credit to the post author
+            const { data: moment } = await supabase
+                .from('moments').select('user_id').eq('id', momentId).single()
+            if (moment?.user_id) {
+                const { data: profile } = await supabase
+                    .from('profiles').select('coffee_credits').eq('id', moment.user_id).single()
+                if (profile) {
+                    const newCredits = (profile.coffee_credits ?? 0) + 1
+                    await supabase.from('profiles').update({
+                        coffee_credits: newCredits,
+                        subscription_status: 'active',
+                        updated_at: new Date().toISOString(),
+                    }).eq('id', moment.user_id)
+                }
+            }
             toast.success(lang === 'en' ? 'Approved!' : '已通过！')
             setNotifs(n => n.filter(x => x.momentId !== momentId))
         }

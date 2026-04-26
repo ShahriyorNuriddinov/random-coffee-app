@@ -109,19 +109,14 @@ export function AppProvider({ children }) {
 
     // ── On app start: restore session + listen for auth changes ──
     useEffect(() => {
-        const restore = async () => {
-            try {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (session?.user) await restoreFromUser(session.user)
-            } catch { /* silent */ }
-            finally { setSessionLoading(false) }
-        }
-        restore()
-
-        // Listen for auth state changes (token refresh, sign-in, sign-out)
+        // onAuthStateChange fires INITIAL_SESSION immediately from localStorage cache
+        // This is the fast path — no network needed on refresh
         const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                if (event === 'SIGNED_OUT') {
+                if (event === 'INITIAL_SESSION') {
+                    if (session?.user) await restoreFromUser(session.user)
+                    setSessionLoading(false)
+                } else if (event === 'SIGNED_OUT') {
                     setUser(null)
                     userRef.current = null
                     setProfile(EMPTY_PROFILE)
@@ -134,7 +129,10 @@ export function AppProvider({ children }) {
             }
         )
 
-        return () => authSub.unsubscribe()
+        // Safety fallback: if INITIAL_SESSION never fires, stop loading after 3s
+        const fallback = setTimeout(() => setSessionLoading(false), 3000)
+
+        return () => { authSub.unsubscribe(); clearTimeout(fallback) }
     }, [])
 
     // ── Real-time: notify when new match arrives ──────────────────
