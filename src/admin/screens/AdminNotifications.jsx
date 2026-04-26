@@ -334,12 +334,12 @@ export default function AdminNotifications() {
 
     const handleReject = async (momentId) => {
         if (!momentId) return
-        const { error } = await rejectMoment(momentId, 'Rejected by admin')
-        if (!error) {
+        const res = await rejectMoment(momentId, 'Rejected by admin')
+        if (res.success) {
             toast.success(lang === 'en' ? 'Rejected!' : '已拒绝！')
             setNotifs(n => n.filter(x => x.momentId !== momentId))
         } else {
-            toast.error(error)
+            toast.error(res.error || 'Failed')
         }
     }
 
