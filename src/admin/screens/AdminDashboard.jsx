@@ -112,14 +112,17 @@ function MeetingRatings({ t, ratings }) {
     )
 }
 
-// ─── Cancelled meetings bottom sheet (from HTML: openCancelModal) ─────────────
-function CancelledModal({ onClose, t }) {
-    const reasons = [
-        { label: t.cancelR1, count: '40%' },
-        { label: t.cancelR2, count: '30%' },
-        { label: t.cancelR3, count: '15%' },
-        { label: t.cancelR4, count: '10%' },
-    ]
+// ─── Cancelled meetings bottom sheet (real data from meeting_feedback) ────────
+function CancelledModal({ onClose, t, cancelReasons = {} }) {
+    const total = Object.values(cancelReasons).reduce((s, c) => s + c, 0) || 1
+    const reasons = Object.entries(cancelReasons)
+        .sort(([, a], [, b]) => b - a)
+        .map(([label, count]) => ({
+            label,
+            pct: `${Math.round(count / total * 100)}%`,
+            count,
+        }))
+
     return (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
             <div className="bg-[#f2f4f7] rounded-t-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -129,19 +132,20 @@ function CancelledModal({ onClose, t }) {
                 </div>
                 <div className="overflow-y-auto p-5 flex flex-col gap-4 pb-8">
                     <p className="text-[12px] uppercase tracking-wide font-semibold text-gray-400 pl-1">{t.cancelMainReasons}</p>
-                    <div className="flex flex-col gap-2">
-                        {reasons.map((r, i) => (
-                            <div key={i} className="bg-white rounded-xl px-4 py-3 flex justify-between items-center border border-black/5">
-                                <span className="text-[14px] font-semibold text-gray-800">{r.label}</span>
-                                <span className="text-[13px] text-gray-400 font-medium">{r.count}</span>
-                            </div>
-                        ))}
-                    </div>
-                    <p className="text-[12px] uppercase tracking-wide font-semibold text-gray-400 pl-1 mt-2">{t.cancelFeedback}</p>
-                    <div className="bg-white rounded-xl p-4 border border-black/5 flex flex-col gap-1">
-                        <span className="text-[13px] font-bold text-[#007aff]">@user_example</span>
-                        <p className="text-[14px] text-gray-600 leading-relaxed">{t.cancelFeedbackText}</p>
-                    </div>
+                    {reasons.length === 0 ? (
+                        <div className="bg-white rounded-xl px-4 py-3 border border-black/5">
+                            <p className="text-[14px] text-gray-400 text-center">{t.noData || 'No data yet'}</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-2">
+                            {reasons.map((r, i) => (
+                                <div key={i} className="bg-white rounded-xl px-4 py-3 flex justify-between items-center border border-black/5">
+                                    <span className="text-[14px] font-semibold text-gray-800">{r.label}</span>
+                                    <span className="text-[13px] text-gray-400 font-medium">{r.pct} ({r.count})</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -239,7 +243,7 @@ export default function AdminDashboard() {
         <div className="p-5 flex flex-col gap-5 pb-8">
 
             {showCancelModal && (
-                <CancelledModal onClose={() => setShowCancelModal(false)} t={t} />
+                <CancelledModal onClose={() => setShowCancelModal(false)} t={t} cancelReasons={stats.cancelReasons} />
             )}
 
             {/* ── Revenue ── */}
@@ -285,11 +289,11 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-3">
                     <StatCard icon={TrendingUp} label={t.active}
                         value={stats.activeMembers.toLocaleString()}
-                        sub={`${Math.round(stats.activeMembers / (stats.totalMembers || 1) * 100)}% of total`}
+                        sub={`${Math.round(stats.activeMembers / (stats.totalMembers || 1) * 100)}% ${t.ofTotal || 'of total'}`}
                         color="#34c759" />
                     <StatCard icon={Users} label={t.newThisWeek}
                         value={`+${stats.newThisWeek}`}
-                        sub="Growing fast!"
+                        sub={t.growingFast || ''}
                         color="#007aff" />
                 </div>
             </div>
