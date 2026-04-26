@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
 import { useApp } from '@/store/useAppStore'
 import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
@@ -7,7 +8,8 @@ import { Card, CardRow } from '@/components/ui/Card'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import PhotoGrid from '@/components/profile/PhotoGrid'
 import { RefModal, GiftModal } from '@/components/profile/ProfileModals'
-import { signOut, updateNotifications, getReferralCode, getSubscription } from '@/lib/supabaseClient'
+import { signOut, updateNotifications, getReferralCode, getSubscription, supabase } from '@/lib/supabaseClient'
+
 const SUB_CONFIG = {
     trial: { border: '1.5px solid #ff9500', background: 'rgba(255,149,0,0.08)', titleColor: '#ff9500', title: 'Trial Period Active', desc: 'Enjoy 2 free coffee credits!', btnLabel: 'Upgrade', btnBg: '#ff9500' },
     empty: { border: '1.5px solid #ff3b30', background: 'rgba(255,59,48,0.08)', titleColor: '#ff3b30', title: 'No Credits Left', desc: 'Top up your balance.', btnLabel: 'Buy Credits', btnBg: '#ff3b30' },
@@ -22,7 +24,7 @@ export default function ProfileScreen() {
 
     useEffect(() => {
         if (!user?.id) return
-        getReferralCode(user.id).then(d => { if (d?.referral_code) setReferralCode(d.referral_code) }).catch(() => {})
+        getReferralCode(user.id).then(d => { if (d?.referral_code) setReferralCode(d.referral_code) }).catch(() => { })
         // Always fetch fresh credits from DB
         getSubscription(user.id).then(data => {
             if (data) setSubscription({
@@ -31,7 +33,7 @@ export default function ProfileScreen() {
                 start: data.subscription_start || null,
                 end: data.subscription_end || null,
             })
-        }).catch(() => {})
+        }).catch(() => { })
     }, [user?.id])
 
     const effectiveStatus = (subscription.credits ?? 0) === 0 ? 'empty'
@@ -63,7 +65,6 @@ export default function ProfileScreen() {
                     <PhotoGrid
                         photos={(() => {
                             const p = Array.isArray(profile.photos) ? [...profile.photos, null, null, null, null].slice(0, 4) : [null, null, null, null]
-                            // If photos[0] is empty but avatar exists, show avatar there
                             if (!p[0] && profile.avatar) p[0] = profile.avatar
                             return p
                         })()}
@@ -80,13 +81,19 @@ export default function ProfileScreen() {
                         <CardRow label={t('edit_profile')} onClick={() => setScreen('profile-edit')} isLast />
                     </Card>
 
-                    {/* Subscription */}
-                    <div style={{ borderRadius: 14, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: sub.border, background: sub.background }}>
+                    {/* Subscription — click opens info modal */}
+                    <div
+                        onClick={() => setModal(effectiveStatus === 'trial' ? 'trial-info' : effectiveStatus === 'active' ? 'active-info' : 'buy')}
+                        style={{ borderRadius: 14, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: sub.border, background: sub.background, cursor: 'pointer' }}
+                    >
                         <div>
                             <div style={{ fontWeight: 700, fontSize: 15, color: sub.titleColor }}>{sub.title}</div>
                             <div style={{ fontSize: 13, color: 'var(--app-hint)', marginTop: 2 }}>{subDesc}</div>
                         </div>
-                        <button onClick={() => setModal('buy')} style={{ background: sub.btnBg, color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, marginLeft: 12 }}>
+                        <button
+                            onClick={e => { e.stopPropagation(); setModal('buy') }}
+                            style={{ background: sub.btnBg, color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, marginLeft: 12 }}
+                        >
                             {sub.btnLabel}
                         </button>
                     </div>
@@ -99,7 +106,21 @@ export default function ProfileScreen() {
                     <Card>
                         <CardRow label={t('notif_new_pairs')} right={<IosToggle checked={notifNewMatches} onChange={() => handleToggleNotif('matches')} />} />
                         <CardRow label={t('notif_news')} right={<IosToggle checked={notifImportantNews} onChange={() => handleToggleNotif('news')} />} />
-                        <CardRow label="Email" value={<span style={{ color: 'var(--app-hint)', fontSize: 14 }}>{profile.email || '—'}</span>} isLast />
+                        <CardRow
+                            label="Email"
+                            value={
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ color: 'var(--app-hint)', fontSize: 13 }}>{profile.email || '—'}</span>
+                                    {profile.email && (
+                                        <span style={{ background: 'rgba(52,199,89,0.15)', color: '#34c759', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 8 }}>
+                                            Verified
+                                        </span>
+                                    )}
+                                </span>
+                            }
+                            onClick={() => setModal('email')}
+                            isLast
+                        />
                     </Card>
 
                     <Card>
@@ -123,6 +144,44 @@ export default function ProfileScreen() {
             {modal === 'gift' && <GiftModal onClose={() => setModal(null)} />}
             {modal === 'privacy' && <LegalModal title="Privacy Policy" type="privacy" onClose={() => setModal(null)} />}
             {modal === 'terms' && <LegalModal title="Terms of Service" type="terms" onClose={() => setModal(null)} />}
+            {modal === 'email' && <EmailModal email={profile.email} userId={user?.id} onClose={() => setModal(null)} />}
+            {modal === 'trial-info' && (
+                <InfoModal
+                    title="Trial Activated! 🎉"
+                    onClose={() => setModal(null)}
+                    onAction={() => setModal('buy')}
+                    actionLabel="Buy More Credits"
+                >
+                    <p style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 12 }}>
+                        We've credited 2 free coffee cups to your account. Every Monday, 1 credit is deducted to find you a perfect match.
+                    </p>
+                    <div style={{ background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.2)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#ff9500', fontWeight: 600, marginBottom: 12 }}>
+                        Balance: {subscription.credits} Coffee Credits
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--app-hint)', lineHeight: 1.4 }}>
+                        You can upgrade and add more credits at any time without losing trial ones.
+                    </p>
+                </InfoModal>
+            )}
+            {modal === 'active-info' && (
+                <InfoModal
+                    title="Your Premium Status"
+                    onClose={() => setModal(null)}
+                    onAction={() => setModal('buy')}
+                    actionLabel="Top Up Balance"
+                >
+                    <p style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 12 }}>
+                        You are in the game! The system automatically deducts 1 credit on Monday and schedules your meeting.
+                    </p>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: '#34c759', marginBottom: 4 }}>
+                        {subscription.credits}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--app-hint)', marginBottom: 12 }}>Coffee credits remaining</div>
+                    <div style={{ background: 'rgba(120,120,128,0.08)', padding: '10px 12px', borderRadius: 12, fontSize: 12, lineHeight: 1.4, color: 'var(--app-text)' }}>
+                        🔥 <b>Using Boost?</b> If you activate "Boost Mode" in meetings, it will consume additional credits, finding you matches immediately!
+                    </div>
+                </InfoModal>
+            )}
 
             <BottomNav active="profile" />
         </div>
@@ -135,6 +194,63 @@ function IosToggle({ checked, onChange }) {
             <input type="checkbox" checked={checked} onChange={onChange} />
             <span className="ios-track" />
         </label>
+    )
+}
+
+function InfoModal({ title, children, onClose, onAction, actionLabel }) {
+    return (
+        <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--app-card)', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxSizing: 'border-box', textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 16 }}>{title}</div>
+                {children}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+                    {onAction && (
+                        <button onClick={onAction} className="btn-gradient" style={{ borderRadius: 14 }}>{actionLabel}</button>
+                    )}
+                    <button onClick={onClose} style={{ width: '100%', padding: '13px 0', borderRadius: 14, border: 'none', background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function EmailModal({ email, userId, onClose }) {
+    const [newEmail, setNewEmail] = useState(email || '')
+    const [saving, setSaving] = useState(false)
+
+    const handleSave = async () => {
+        if (!newEmail.trim() || !newEmail.includes('@')) return
+        setSaving(true)
+        const { error } = await supabase.from('profiles').update({ email: newEmail.trim() }).eq('id', userId)
+        setSaving(false)
+        if (!error) {
+            toast.success('Email updated!')
+            onClose()
+        } else {
+            toast.error(error.message)
+        }
+    }
+
+    return (
+        <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--app-card)', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxSizing: 'border-box', textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>Change Email Address</div>
+                <p style={{ fontSize: 14, color: 'var(--app-hint)', marginBottom: 16 }}>Enter your new email address below.</p>
+                <input
+                    type="email"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                    placeholder="new@email.com"
+                    style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--app-border)', background: 'var(--app-bg)', color: 'var(--app-text)', fontSize: 15, boxSizing: 'border-box', marginBottom: 12, fontFamily: 'inherit', outline: 'none', textAlign: 'center' }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <button onClick={handleSave} disabled={saving} className="btn-gradient" style={{ borderRadius: 14 }}>{saving ? '...' : 'Save'}</button>
+                    <button onClick={onClose} style={{ width: '100%', padding: '13px 0', borderRadius: 14, border: 'none', background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                </div>
+            </div>
+        </div>
     )
 }
 
