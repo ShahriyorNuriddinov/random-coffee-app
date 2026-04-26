@@ -70,54 +70,67 @@ export default function AdminApp() {
     const [tab, setTab] = useState('dashboard')
     const [lang, setLang] = useState('en')
     const [unreadCount, setUnreadCount] = useState(0)
+    const [seenAt, setSeenAt] = useState(null)
 
-    const loadUnreadCount = async () => {
-        const seenAt = await getSeenAt(supabase)
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        const since = seenAt > weekAgo ? seenAt : weekAgo
+    // Count rows newer than seenAt across all 4 tables
+    const countUnread = async (since) => {
         const [momentsRes, profilesRes, matchesRes, paymentsRes] = await Promise.all([
             supabase.from('moments').select('id', { count: 'exact', head: true }).eq('status', 'pending').gte('created_at', since),
             supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', since),
             supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', since),
             supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', since),
         ])
-        const total =
-            (momentsRes.count || 0) +
-            (profilesRes.count || 0) +
-            (matchesRes.count || 0) +
-            (paymentsRes.count || 0)
-        setUnreadCount(total)
+        return (momentsRes.count || 0) + (profilesRes.count || 0) + (matchesRes.count || 0) + (paymentsRes.count || 0)
     }
+
+    // Init: load seen_at once, then count
+    useEffect(() => {
+        if (!authed) return
+        let cancelled = false
+
+        const init = async () => {
+            const since = await getSeenAt(supabase)
+            if (cancelled) return
+            setSeenAt(since)
+            const total = await countUnread(since)
+            if (!cancelled) setUnreadCount(total)
+        }
+        init()
+
+        return () => { cancelled = true }
+    }, [authed])
+
+    // Realtime: increment badge by 1 for each new event (don't re-fetch seen_at)
+    useEffect(() => {
+        if (!authed || seenAt === null) return
+
+        const bump = () => setUnreadCount(n => n + 1)
+
+        const channels = [
+            supabase.channel('admin_badge_moments')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moments' }, bump)
+                .subscribe(),
+            supabase.channel('admin_badge_profiles')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, bump)
+                .subscribe(),
+            supabase.channel('admin_badge_matches')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, bump)
+                .subscribe(),
+            supabase.channel('admin_badge_payments')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, bump)
+                .subscribe(),
+        ]
+        return () => channels.forEach(c => supabase.removeChannel(c))
+    }, [authed, seenAt])
 
     const handleTabChange = async (t) => {
         setTab(t)
         if (t === 'notifications') {
-            await markAllSeen(supabase)
+            const now = await markAllSeen(supabase)
+            setSeenAt(now)
             setUnreadCount(0)
         }
     }
-
-    useEffect(() => {
-        if (!authed) return
-        loadUnreadCount()
-
-        // Realtime: update count on any relevant table change
-        const channels = [
-            supabase.channel('admin_badge_moments')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'moments' }, loadUnreadCount)
-                .subscribe(),
-            supabase.channel('admin_badge_profiles')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, loadUnreadCount)
-                .subscribe(),
-            supabase.channel('admin_badge_matches')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, loadUnreadCount)
-                .subscribe(),
-            supabase.channel('admin_badge_payments')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, loadUnreadCount)
-                .subscribe(),
-        ]
-        return () => channels.forEach(c => supabase.removeChannel(c))
-    }, [authed])
 
     if (!authed) {
         return <AdminLogin onLogin={(email) => { saveSession(email); setAuthed(true) }} lang={lang} setLang={setLang} />
