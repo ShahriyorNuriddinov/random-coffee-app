@@ -77,10 +77,9 @@ export default function NewMomentModal({ onClose, onPosted }) {
             text_en = trimmedText
             text_zh = await translateText(trimmedText, 'zh').catch((e) => { console.error('[translate en→zh]', e); return null })
         }
-        console.log('[moment] lang:', currentLang, '| text_en:', text_en, '| text_zh:', text_zh)
+        console.log('[moment] lang:', currentLang, '| text_en:', text_en?.slice(0, 30), '| text_zh:', text_zh?.slice(0, 30))
 
         const result = await postMoment(user.id, trimmedText, imageUrl, text_en, text_zh, imageUrls)
-            || await postMoment(user.id, trimmedText, imageUrl, null, null, imageUrls)
         setLoading(false)
 
         if (result) {

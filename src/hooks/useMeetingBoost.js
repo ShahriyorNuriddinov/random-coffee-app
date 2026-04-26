@@ -100,18 +100,21 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
             const u2 = user.id < partner.id ? partner.id : user.id
             const { data: existing } = await supabase.from('matches')
                 .select('id').eq('user1_id', u1).eq('user2_id', u2).maybeSingle()
+
+            // Only deduct credit if this is a NEW match
             if (!existing) {
                 await supabase.from('matches').insert({ user1_id: u1, user2_id: u2 })
-            }
 
-            // Deduct credit — always (including trial)
-            const newCredits = Math.max(0, (subscription.credits ?? 2) - 1)
-            const newStatus = newCredits === 0 ? 'empty' : (subscription.status === 'trial' ? 'trial' : 'active')
-            setSubscription(s => ({ ...s, credits: newCredits, status: newStatus }))
-            await supabase.from('profiles').update({
-                coffee_credits: newCredits,
-                subscription_status: newStatus,
-            }).eq('id', user.id)
+                const newCredits = Math.max(0, (subscription.credits ?? 2) - 1)
+                const newStatus = newCredits === 0 ? 'empty' : (subscription.status === 'trial' ? 'trial' : 'active')
+                const { error: creditError } = await supabase.from('profiles').update({
+                    coffee_credits: newCredits,
+                    subscription_status: newStatus,
+                }).eq('id', user.id)
+                if (!creditError) {
+                    setSubscription(s => ({ ...s, credits: newCredits, status: newStatus }))
+                }
+            }
 
             const updated = await getMeetingHistory(user.id)
             setHistory(updated)

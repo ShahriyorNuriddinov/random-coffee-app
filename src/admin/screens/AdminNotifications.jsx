@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { UserPlus, FileText, CreditCard, Shuffle, AlertTriangle, ChevronRight, Eye } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { supabase, rejectMoment } from '../lib/adminSupabase'
+import { supabase } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import Spinner from '../components/ui/Spinner'
 import MemberSheet from '../components/members/MemberSheet'

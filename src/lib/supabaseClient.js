@@ -155,11 +155,24 @@ export const createPaymentIntent = async ({ userId, amount, currency = 'HKD', cr
     }
 }
 export const confirmPayment = async ({ userId, paymentIntentId, credits, amount, method }) => {
+    // Idempotency check — prevent double-crediting for same payment intent
+    const { data: existing } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('provider_ref', paymentIntentId)
+        .maybeSingle()
+    if (existing) {
+        // Already processed — return current credits
+        const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', userId).single()
+        return { success: true, newCredits: profile?.coffee_credits || 0 }
+    }
+
     const { error: payError } = await supabase.from('payments').insert({
         user_id: userId, amount, currency: 'HKD', credits,
         payment_method: method, provider: 'airwallex',
         provider_ref: paymentIntentId, status: 'success',
     })
+    if (payError) return { success: false, error: payError.message }
 
     const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', userId).single()
     const newCredits = (profile?.coffee_credits || 0) + credits

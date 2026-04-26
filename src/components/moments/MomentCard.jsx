@@ -124,11 +124,13 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
         if (error) {
             toast.error(t('toast_delete_failed', 'Failed to delete'))
         } else {
-            // Deduct the credit that was earned for this post
-            const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', user.id).single()
-            if (profile) {
-                const newCredits = Math.max(0, (profile.coffee_credits ?? 0) - 1)
-                await supabase.from('profiles').update({ coffee_credits: newCredits }).eq('id', user.id)
+            // Only deduct credit if post was approved (credit was earned)
+            if (moment.status === 'approved') {
+                const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', user.id).single()
+                if (profile) {
+                    const newCredits = Math.max(0, (profile.coffee_credits ?? 0) - 1)
+                    await supabase.from('profiles').update({ coffee_credits: newCredits }).eq('id', user.id)
+                }
             }
             setDeleted(true)
             onDeleted?.(moment.id)
