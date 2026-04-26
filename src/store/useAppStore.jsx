@@ -3,10 +3,7 @@ import { supabase } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
 const AppContext = createContext(null)
-
 const DARK_KEY = 'rc_dark'
-const USER_SESSION_KEY = 'rc_user_session'
-const SESSION_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 const EMPTY_PROFILE = {
     name: '', dob: '', gender: 'male',
@@ -17,33 +14,6 @@ const EMPTY_PROFILE = {
     email: '', avatar: null,
     photos: [null, null, null, null],
     tags: [],
-}
-
-// ── localStorage session helpers ──────────────────────────────────────────────
-function saveUserSession(uid, email, profileData, subscriptionData) {
-    try {
-        localStorage.setItem(USER_SESSION_KEY, JSON.stringify({
-            uid, email, profile: profileData, subscription: subscriptionData,
-            exp: Date.now() + SESSION_TTL,
-        }))
-    } catch { }
-}
-
-function loadUserSession() {
-    try {
-        const raw = localStorage.getItem(USER_SESSION_KEY)
-        if (!raw) return null
-        const data = JSON.parse(raw)
-        if (!data.uid || Date.now() > data.exp) {
-            localStorage.removeItem(USER_SESSION_KEY)
-            return null
-        }
-        return data
-    } catch { return null }
-}
-
-function clearUserSession() {
-    localStorage.removeItem(USER_SESSION_KEY)
 }
 
 function dbToProfile(db) {
@@ -71,10 +41,7 @@ function dbToProfile(db) {
 }
 
 export function AppProvider({ children }) {
-    // ── Try restore from localStorage immediately (synchronous, no network) ──
-    const cachedSession = loadUserSession()
-
-    const [screen, setScreen] = useState(cachedSession?.profile?.name ? 'profile' : 'onboarding')
+    const [screen, setScreen] = useState('onboarding')
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem(DARK_KEY)
         const isDark = saved === 'true'
@@ -83,82 +50,65 @@ export function AppProvider({ children }) {
     })
     const [phone, setPhone] = useState('')
     const [countryCode, setCountryCode] = useState('+852')
-    const [user, setUser] = useState(cachedSession ? { id: cachedSession.uid, email: cachedSession.email } : null)
-    const [profile, setProfile] = useState(cachedSession?.profile || EMPTY_PROFILE)
-    const [subscription, setSubscription] = useState(cachedSession?.subscription || {
-        status: 'trial', credits: 2, start: null, end: null,
-    })
+    const [user, setUser] = useState(null)
+    const [profile, setProfile] = useState(EMPTY_PROFILE)
+    const [subscription, setSubscription] = useState({ status: 'trial', credits: 2, start: null, end: null })
     const [notifNewMatches, setNotifNewMatches] = useState(true)
     const [notifImportantNews, setNotifImportantNews] = useState(true)
-    const [profileWelcomeSeen, setProfileWelcomeSeen] = useState(!!cachedSession?.profile?.name)
-    const [sessionLoading, setSessionLoading] = useState(!cachedSession) // skip loading if cached
+    const [profileWelcomeSeen, setProfileWelcomeSeen] = useState(false)
+    const [sessionLoading, setSessionLoading] = useState(true)
     const [isOnline, setIsOnline] = useState(navigator.onLine)
-    const userRef = useRef(cachedSession ? { id: cachedSession.uid, email: cachedSession.email } : null)
+    const userRef = useRef(null)
 
-    // ── Online/Offline detection ───────────────────────────────────
     useEffect(() => {
         const goOnline = () => setIsOnline(true)
         const goOffline = () => setIsOnline(false)
         window.addEventListener('online', goOnline)
         window.addEventListener('offline', goOffline)
-        return () => {
-            window.removeEventListener('online', goOnline)
-            window.removeEventListener('offline', goOffline)
-        }
+        return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline) }
     }, [])
 
-    // ── Restore + refresh from Supabase in background ─────────────
     const restoreFromUser = async (authUser) => {
         if (!authUser) return
-        try {
-            const uid = authUser.id
-            const email = authUser.email
-            const { data: db } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
-            if (db && db.name) {
-                const u = { id: uid, email }
-                const profileData = dbToProfile(db)
-                const subscriptionData = {
-                    status: db.subscription_status || 'trial',
-                    credits: db.coffee_credits ?? 2,
-                    start: db.subscription_start || null,
-                    end: db.subscription_end || null,
-                }
-                setUser(u)
-                userRef.current = u
-                setProfile(profileData)
-                setSubscription(subscriptionData)
-                setNotifNewMatches(db.notif_new_matches ?? true)
-                setNotifImportantNews(db.notif_important_news ?? true)
-                setProfileWelcomeSeen(true)
-                setScreen('profile')
-                // Save to localStorage for next refresh
-                saveUserSession(uid, email, profileData, subscriptionData)
-            } else if (db !== null && db !== undefined) {
-                setUser({ id: uid, email })
-                userRef.current = { id: uid, email }
-                setScreen('personal')
-            }
-        } catch { /* silent */ }
+        const uid = authUser.id
+        const email = authUser.email
+        const { data: db } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
+        if (db && db.name) {
+            const u = { id: uid, email }
+            setUser(u)
+            userRef.current = u
+            setProfile(dbToProfile(db))
+            setSubscription({
+                status: db.subscription_status || 'trial',
+                credits: db.coffee_credits ?? 2,
+                start: db.subscription_start || null,
+                end: db.subscription_end || null,
+            })
+            setNotifNewMatches(db.notif_new_matches ?? true)
+            setNotifImportantNews(db.notif_important_news ?? true)
+            setProfileWelcomeSeen(true)
+            setScreen('profile')
+        } else if (db !== null && db !== undefined) {
+            setUser({ id: uid, email })
+            userRef.current = { id: uid, email }
+            setScreen('personal')
+        }
     }
 
-    // ── On app start: listen for auth changes ──
     useEffect(() => {
         const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (event === 'INITIAL_SESSION') {
                     try {
-                        if (session?.user && !userRef.current) {
-                            await restoreFromUser(session.user)
-                        }
+                        if (session?.user) await restoreFromUser(session.user)
                     } finally {
                         setSessionLoading(false)
                     }
                 } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                    if (session?.user) {
+                    if (session?.user && !userRef.current) {
                         await restoreFromUser(session.user)
                     }
                 } else if (event === 'SIGNED_OUT') {
-                    clearUserSession()
                     setUser(null)
                     userRef.current = null
                     setProfile(EMPTY_PROFILE)
@@ -166,61 +116,47 @@ export function AppProvider({ children }) {
                 }
             }
         )
-        const fallback = setTimeout(() => setSessionLoading(false), 5000)
+        const fallback = setTimeout(() => setSessionLoading(false), 8000)
         return () => { authSub.unsubscribe(); clearTimeout(fallback) }
     }, [])
 
-    // ── Real-time: profile credits + new matches ──────────────────
     useEffect(() => {
         if (!user?.id) return
         userRef.current = user
 
         const profileChannel = supabase
             .channel('profile_rt_' + user.id)
-            .on('postgres_changes', {
-                event: 'UPDATE', schema: 'public', table: 'profiles',
-                filter: `id=eq.${user.id}`,
-            }, (payload) => {
-                const db = payload.new
-                if (db.coffee_credits !== undefined) {
-                    const sub = {
-                        status: db.subscription_status || 'trial',
-                        credits: db.coffee_credits ?? 0,
-                        start: db.subscription_start || null,
-                        end: db.subscription_end || null,
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+                (payload) => {
+                    const db = payload.new
+                    if (db.coffee_credits !== undefined) {
+                        setSubscription({
+                            status: db.subscription_status || 'trial',
+                            credits: db.coffee_credits ?? 0,
+                            start: db.subscription_start || null,
+                            end: db.subscription_end || null,
+                        })
                     }
-                    setSubscription(sub)
-                    // Update cached session
-                    const cached = loadUserSession()
-                    if (cached) saveUserSession(cached.uid, cached.email, cached.profile, sub)
-                }
-            })
-            .subscribe()
-
-        const channel = supabase
-            .channel('matches_rt_' + user.id)
-            .on('postgres_changes', {
-                event: 'INSERT', schema: 'public', table: 'matches',
-            }, async (payload) => {
-                const m = payload.new
-                const uid = userRef.current?.id
-                if (!uid) return
-                if (m.user1_id !== uid && m.user2_id !== uid) return
-                const partnerId = m.user1_id === uid ? m.user2_id : m.user1_id
-                const { data: partner } = await supabase
-                    .from('profiles').select('name').eq('id', partnerId).maybeSingle()
-                toast.success(`🎉 New match: ${partner?.name || 'Someone'}!`, {
-                    duration: 5000,
-                    style: {
-                        background: 'linear-gradient(135deg, #007aff, #5856d6)',
-                        color: '#fff', borderRadius: 20, fontWeight: 700,
-                        fontSize: 15, padding: '14px 24px',
-                    },
                 })
-            })
             .subscribe()
 
-        return () => { supabase.removeChannel(profileChannel); supabase.removeChannel(channel) }
+        const matchChannel = supabase
+            .channel('matches_rt_' + user.id)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' },
+                async (payload) => {
+                    const m = payload.new
+                    const uid = userRef.current?.id
+                    if (!uid || (m.user1_id !== uid && m.user2_id !== uid)) return
+                    const partnerId = m.user1_id === uid ? m.user2_id : m.user1_id
+                    const { data: partner } = await supabase.from('profiles').select('name').eq('id', partnerId).maybeSingle()
+                    toast.success(`🎉 New match: ${partner?.name || 'Someone'}!`, {
+                        duration: 5000,
+                        style: { background: 'linear-gradient(135deg, #007aff, #5856d6)', color: '#fff', borderRadius: 20, fontWeight: 700, fontSize: 15, padding: '14px 24px' },
+                    })
+                })
+            .subscribe()
+
+        return () => { supabase.removeChannel(profileChannel); supabase.removeChannel(matchChannel) }
     }, [user?.id])
 
     const loginUser = (userData, phoneNum, code) => {
@@ -232,7 +168,6 @@ export function AppProvider({ children }) {
     const logoutUser = async () => {
         await supabase.auth.signOut()
         supabase.removeAllChannels()
-        clearUserSession()
         setUser(null)
         userRef.current = null
         setProfile(EMPTY_PROFILE)
@@ -254,32 +189,18 @@ export function AppProvider({ children }) {
     }
 
     if (sessionLoading) return (
-        <div style={{
-            position: 'fixed', inset: 0,
-            background: 'var(--app-bg, #f2f4f7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 9999,
-        }}>
-            <div style={{
-                width: 36, height: 36, borderRadius: '50%',
-                border: '3px solid #e5e5ea',
-                borderTopColor: '#007aff',
-                animation: 'spin 0.7s linear infinite',
-            }} />
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--app-bg, #fff)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #e5e5ea', borderTopColor: '#007aff', animation: 'spin 0.7s linear infinite' }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
     )
 
     return (
         <AppContext.Provider value={{
-            screen, setScreen,
-            darkMode, toggleDark,
-            phone, setPhone,
-            countryCode, setCountryCode,
-            user, setUser,
-            loginUser, logoutUser,
-            profile, setProfile,
-            subscription, setSubscription,
+            screen, setScreen, darkMode, toggleDark,
+            phone, setPhone, countryCode, setCountryCode,
+            user, setUser, loginUser, logoutUser,
+            profile, setProfile, subscription, setSubscription,
             notifNewMatches, setNotifNewMatches,
             notifImportantNews, setNotifImportantNews,
             profileWelcomeSeen, setProfileWelcomeSeen,
