@@ -101,8 +101,10 @@ export default function MomentsScreen() {
             .channel('moments_status_rt')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'moments' }, (payload) => {
                 const updated = payload.new
+                const old = payload.old
+                // Only react to status changes, not likes_count or other field updates
+                if (updated.status === old?.status) return
                 if (updated.status === 'approved') {
-                    // Reload to get full author data for newly approved posts
                     load()
                 } else if (updated.status === 'rejected') {
                     setMoments(prev => prev.filter(m => m.id !== updated.id))
