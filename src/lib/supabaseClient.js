@@ -278,7 +278,7 @@ export const getMoments = async (limit = 30, userId = null) => {
     // Fetch approved posts + current user's own pending posts
     let query = supabase
         .from('moments')
-        .select(`id, text, text_en, text_zh, image_url, image_urls, likes_count, created_at, status, is_admin_post, author:user_id(id, name, avatar_url, region)`)
+        .select(`id, text, text_en, text_zh, image_url, image_urls, likes_count, created_at, status, is_admin_post, user_id, author:user_id(id, name, avatar_url, region)`)
         .order('created_at', { ascending: false })
         .limit(limit)
 
