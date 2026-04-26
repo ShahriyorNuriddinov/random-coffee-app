@@ -115,10 +115,12 @@ export function AppProvider({ children }) {
         const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (event === 'INITIAL_SESSION') {
-                    if (session?.user) {
-                        await restoreFromUser(session.user)
-                    }
-                    setSessionLoading(false)
+                    try {
+                        if (session?.user) {
+                            await restoreFromUser(session.user)
+                        }
+                    } catch { /* silent */ }
+                    finally { setSessionLoading(false) }
                 } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     if (session?.user && !userRef.current) {
                         await restoreFromUser(session.user)
