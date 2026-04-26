@@ -53,31 +53,36 @@ export default function AdminApp() {
     const [lang, setLang] = useState('en')
     const [unreadCount, setUnreadCount] = useState(0)
 
+    // Track when admin last viewed notifications
+    const [lastSeen, setLastSeen] = useState(() => new Date().toISOString())
+
+    const fetchUnread = async (since) => {
+        try {
+            const [m, p, ma, pa] = await Promise.all([
+                supabase.from('moments').select('id', { count: 'exact', head: true }).gte('created_at', since),
+                supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', since),
+                supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', since),
+                supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', since),
+            ])
+            setUnreadCount((m.count || 0) + (p.count || 0) + (ma.count || 0) + (pa.count || 0))
+        } catch (e) {
+            console.error('[badge] fetch error', e)
+        }
+    }
+
     useEffect(() => {
         if (!authed) return
-
-        const bump = () => setUnreadCount(n => n + 1)
-
-        const channels = [
-            supabase.channel('admin_badge_moments')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moments' }, bump)
-                .subscribe((status) => console.log('[badge] moments:', status)),
-            supabase.channel('admin_badge_profiles')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, bump)
-                .subscribe((status) => console.log('[badge] profiles:', status)),
-            supabase.channel('admin_badge_matches')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, bump)
-                .subscribe((status) => console.log('[badge] matches:', status)),
-            supabase.channel('admin_badge_payments')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, bump)
-                .subscribe((status) => console.log('[badge] payments:', status)),
-        ]
-        return () => channels.forEach(c => supabase.removeChannel(c))
-    }, [authed])
+        fetchUnread(lastSeen)
+        const interval = setInterval(() => fetchUnread(lastSeen), 30_000)
+        return () => clearInterval(interval)
+    }, [authed, lastSeen])
 
     const handleTabChange = (t) => {
         setTab(t)
-        if (t === 'notifications') setUnreadCount(0)
+        if (t === 'notifications') {
+            setLastSeen(new Date().toISOString())
+            setUnreadCount(0)
+        }
     }
 
     if (!authed) {
