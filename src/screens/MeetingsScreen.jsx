@@ -49,7 +49,7 @@ export default function MeetingsScreen() {
                     end: data.subscription_end || null,
                 })
             }
-        }).catch(() => {})
+        }).catch(() => { })
     }, [user?.id])
 
     const loadHistory = () => {
@@ -99,6 +99,13 @@ export default function MeetingsScreen() {
                             onFeedback={() => { setFeedbackMatchId(m.matchId); setShowFeedback(true) }}
                         />
                     ))}
+
+                    {!loading && history.filter(m => m.status === 'completed').length > 0 && (
+                        <PreviousMeetings
+                            history={history.filter(m => m.status === 'completed')}
+                            onPost={() => setShowNewMoment(true)}
+                        />
+                    )}
                 </div>
             </div>
 

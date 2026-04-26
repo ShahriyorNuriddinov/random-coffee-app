@@ -264,7 +264,7 @@ export default function AdminNews() {
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
                 <Card className="p-4 text-center">
                     <p className="text-2xl font-extrabold text-[#007aff]">{news.length}</p>
                     <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400 mt-1">{t.totalPosts}</p>
@@ -272,6 +272,10 @@ export default function AdminNews() {
                 <Card className="p-4 text-center">
                     <p className="text-2xl font-extrabold text-[#ff9500]">{news.filter(n => n.pinned).length}</p>
                     <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400 mt-1">{t.pinned}</p>
+                </Card>
+                <Card className="p-4 text-center">
+                    <p className="text-2xl font-extrabold text-[#34c759]">{news.reduce((sum, n) => sum + (n.reactions_count || 0), 0)}</p>
+                    <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400 mt-1">{lang === 'zh' ? '总反应' : 'Reactions'}</p>
                 </Card>
             </div>            {/* Add button */}
             <button

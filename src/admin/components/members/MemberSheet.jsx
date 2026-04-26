@@ -150,7 +150,7 @@ export default function MemberSheet({ memberId, onClose, lang }) {
                                 { label: t.actMeetings, value: member?.meetings_count ?? '—' },
                                 { label: t.actPosts, value: member?.moments_count ?? '—' },
                                 { label: t.actReferrals, value: member?.referral_count ?? 0 },
-                                { label: t.actInvitedBy, value: member?.referred_by ? member.referred_by.slice(0, 8) + '...' : '—' },
+                                { label: t.actInvitedBy, value: member?.referred_by_phone || (member?.referred_by ? member.referred_by.slice(0, 8) + '...' : '—') },
                             ].map(({ label, value }, i, arr) => (
                                 <div key={label} className={`flex items-center justify-between px-4 py-3 ${i < arr.length - 1 ? 'border-b border-black/5' : ''}`}>
                                     <span className="text-[14px] font-medium text-gray-600">{label}</span>

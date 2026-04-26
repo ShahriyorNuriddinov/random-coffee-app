@@ -140,16 +140,20 @@ export const getMemberById = async (id) => {
         console.error('[getMemberById]', error.message)
         return null
     }
-    // Count moments and meetings in parallel
-    const [{ count: momentsCount }, { count: meetingsCount }] = await Promise.all([
+    // Count moments and meetings in parallel, also get referrer phone
+    const [{ count: momentsCount }, { count: meetingsCount }, referrerRes] = await Promise.all([
         supabase.from('moments').select('id', { count: 'exact', head: true }).eq('user_id', id),
         supabase.from('matches').select('id', { count: 'exact', head: true })
-            .or(`user1_id.eq.${id},user2_id.eq.${id}`)
+            .or(`user1_id.eq.${id},user2_id.eq.${id}`),
+        data.referred_by
+            ? supabase.from('profiles').select('email').eq('id', data.referred_by).single()
+            : Promise.resolve({ data: null }),
     ])
     return {
         ...data,
         moments_count: momentsCount || 0,
         meetings_count: meetingsCount || 0,
+        referred_by_phone: referrerRes?.data?.email || null,
     }
 }
 
