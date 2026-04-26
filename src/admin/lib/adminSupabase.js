@@ -240,23 +240,39 @@ export const getNews = async () => {
         return []
     }
 
-    // Get total reactions from moment_likes for all admin posts
+    // Get all admin moments with their likes
     const { data: adminMoments } = await supabase
         .from('moments')
-        .select('id')
+        .select('id, text, created_at')
         .eq('is_admin_post', true)
 
     let totalReactions = 0
+    const momentReactions = {}
+
     if (adminMoments?.length > 0) {
-        const { count } = await supabase
+        const { data: likes } = await supabase
             .from('moment_likes')
-            .select('id', { count: 'exact', head: true })
+            .select('moment_id, emoji')
             .in('moment_id', adminMoments.map(m => m.id))
-        totalReactions = count || 0
+
+        if (likes) {
+            totalReactions = likes.length
+            for (const like of likes) {
+                if (!momentReactions[like.moment_id]) momentReactions[like.moment_id] = {}
+                momentReactions[like.moment_id][like.emoji] = (momentReactions[like.moment_id][like.emoji] || 0) + 1
+            }
+        }
     }
 
-    const news = (data || []).map(n => ({ ...n, reactions: n.reactions || {}, reactions_count: 0 }))
-    // Put total reactions on the array itself for the stat card
+    // Match news posts to admin moments by text similarity (same text)
+    const news = (data || []).map(n => {
+        const matchedMoment = adminMoments?.find(m =>
+            m.text === n.text || m.text === n.text_zh
+        )
+        const reactions = matchedMoment ? (momentReactions[matchedMoment.id] || {}) : {}
+        return { ...n, reactions, reactions_count: Object.values(reactions).reduce((s, v) => s + v, 0) }
+    })
+
     news._totalReactions = totalReactions
     return news
 }
