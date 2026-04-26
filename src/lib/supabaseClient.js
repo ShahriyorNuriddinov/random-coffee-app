@@ -390,7 +390,6 @@ export const getMeetingHistory = async (userId) => {
         .from('matches')
         .select(`id, created_at, status, user1:user1_id(id, name, avatar_url, about, gives, wants, about_zh, gives_zh, wants_zh, balance, languages, region, wechat, whatsapp), user2:user2_id(id, name, avatar_url, about, gives, wants, about_zh, gives_zh, wants_zh, balance, languages, region, wechat, whatsapp)`)
         .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
-        .neq('status', 'completed')
         .order('created_at', { ascending: false })
     if (error) return []
     return (data || []).map(m => {
