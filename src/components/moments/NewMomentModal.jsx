@@ -84,11 +84,7 @@ export default function NewMomentModal({ onClose, onPosted }) {
         setLoading(false)
 
         if (result) {
-            const newCredits = (subscription.credits ?? 0) + 1
-            const newStatus = newCredits > 0 ? 'active' : 'empty'
-            setSubscription(s => ({ ...s, credits: newCredits, status: newStatus }))
-            await supabase.from('profiles').update({ coffee_credits: newCredits, subscription_status: newStatus }).eq('id', user.id)
-            toast.success(t('toast_moment_posted', 'Posted! Your moment is pending review. +1 credit earned ☕'))
+            toast.success(t('toast_moment_posted', 'Posted! Your moment is pending review ⏳'))
             onPosted?.(result)
             onClose()
         } else {

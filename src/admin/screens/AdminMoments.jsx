@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { CheckCircle, XCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { getMomentsAdmin, approveMoment, rejectMoment } from '../lib/adminSupabase'
+import { supabase } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
 import Spinner from '../components/ui/Spinner'
@@ -110,12 +111,26 @@ export default function AdminMoments() {
             pending: p?.total || 0,
             approved: a?.total || 0,
             rejected: r?.total || 0,
-        })).catch(() => {})
+        })).catch(() => { })
     }, [])
 
     const handleApprove = async (id) => {
         const res = await approveMoment(id)
         if (res.success) {
+            // Give +1 credit to the post author
+            const moment = moments.find(m => m.id === id)
+            if (moment?.author?.id) {
+                const { data: profile } = await supabase
+                    .from('profiles').select('coffee_credits').eq('id', moment.author.id).single()
+                if (profile) {
+                    const newCredits = (profile.coffee_credits ?? 0) + 1
+                    await supabase.from('profiles').update({
+                        coffee_credits: newCredits,
+                        subscription_status: 'active',
+                        updated_at: new Date().toISOString(),
+                    }).eq('id', moment.author.id)
+                }
+            }
             toast.success(t.approvedMsg)
             setMoments(m => m.filter(x => x.id !== id))
         } else toast.error(res.error)
