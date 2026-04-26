@@ -29,24 +29,6 @@ const SCREENS = {
 const ADMIN_SESSION_KEY = 'rc_admin_session'
 const SESSION_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
 
-// ─── Supabase-based seen_at helpers ──────────────────────────────────────────
-const SETTINGS_KEY = 'notif_seen_at'
-
-async function getSeenAt(sb) {
-    const { data } = await sb.from('admin_settings').select('value').eq('key', SETTINGS_KEY).single()
-    if (data?.value) return data.value
-    // First time ever — mark now as seen so old data doesn't flood the badge
-    const now = new Date().toISOString()
-    await sb.from('admin_settings').upsert({ key: SETTINGS_KEY, value: now }, { onConflict: 'key' })
-    return now
-}
-
-async function markAllSeen(sb) {
-    const now = new Date().toISOString()
-    await sb.from('admin_settings').upsert({ key: SETTINGS_KEY, value: now }, { onConflict: 'key' })
-    return now
-}
-
 function getStoredSession() {
     try {
         const raw = localStorage.getItem(ADMIN_SESSION_KEY)
@@ -70,39 +52,9 @@ export default function AdminApp() {
     const [tab, setTab] = useState('dashboard')
     const [lang, setLang] = useState('en')
     const [unreadCount, setUnreadCount] = useState(0)
-    const [seenAt, setSeenAt] = useState(null)
 
-    // Count rows newer than seenAt across all 4 tables
-    const countUnread = async (since) => {
-        const [momentsRes, profilesRes, matchesRes, paymentsRes] = await Promise.all([
-            supabase.from('moments').select('id', { count: 'exact', head: true }).eq('status', 'pending').gte('created_at', since),
-            supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', since),
-            supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', since),
-            supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', since),
-        ])
-        return (momentsRes.count || 0) + (profilesRes.count || 0) + (matchesRes.count || 0) + (paymentsRes.count || 0)
-    }
-
-    // Init: load seen_at once, then count
     useEffect(() => {
         if (!authed) return
-        let cancelled = false
-
-        const init = async () => {
-            const since = await getSeenAt(supabase)
-            if (cancelled) return
-            setSeenAt(since)
-            const total = await countUnread(since)
-            if (!cancelled) setUnreadCount(total)
-        }
-        init()
-
-        return () => { cancelled = true }
-    }, [authed])
-
-    // Realtime: increment badge by 1 for each new event (don't re-fetch seen_at)
-    useEffect(() => {
-        if (!authed || seenAt === null) return
 
         const bump = () => setUnreadCount(n => n + 1)
 
@@ -121,15 +73,11 @@ export default function AdminApp() {
                 .subscribe(),
         ]
         return () => channels.forEach(c => supabase.removeChannel(c))
-    }, [authed, seenAt])
+    }, [authed])
 
-    const handleTabChange = async (t) => {
+    const handleTabChange = (t) => {
         setTab(t)
-        if (t === 'notifications') {
-            const now = await markAllSeen(supabase)
-            setSeenAt(now)
-            setUnreadCount(0)
-        }
+        if (t === 'notifications') setUnreadCount(0)
     }
 
     if (!authed) {
