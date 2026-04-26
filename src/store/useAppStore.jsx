@@ -112,34 +112,23 @@ export function AppProvider({ children }) {
 
     // ── On app start: restore session + listen for auth changes ──
     useEffect(() => {
-        // onAuthStateChange fires INITIAL_SESSION immediately from localStorage cache
-        // This is the fast path — no network needed on refresh
         const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                console.log('[useAppStore] auth event:', event, 'session:', !!session)
-                if (event === 'INITIAL_SESSION') {
-                    if (session?.user) {
-                        console.log('[useAppStore] restoring from session:', session.user.email)
+                if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    if (session?.user && !userRef.current) {
                         await restoreFromUser(session.user)
                     }
-                    setSessionLoading(false)
+                    if (event === 'INITIAL_SESSION') setSessionLoading(false)
                 } else if (event === 'SIGNED_OUT') {
                     setUser(null)
                     userRef.current = null
                     setProfile(EMPTY_PROFILE)
                     setScreen('onboarding')
-                } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                    // Only restore if not already handled by OtpScreen
-                    if (session?.user && !userRef.current) {
-                        await restoreFromUser(session.user)
-                    }
                 }
             }
         )
 
-        // Safety fallback: if INITIAL_SESSION never fires, stop loading after 3s
-        const fallback = setTimeout(() => setSessionLoading(false), 3000)
-
+        const fallback = setTimeout(() => setSessionLoading(false), 5000)
         return () => { authSub.unsubscribe(); clearTimeout(fallback) }
     }, [])
 
