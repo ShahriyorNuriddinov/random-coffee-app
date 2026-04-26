@@ -88,34 +88,11 @@ export default function MomentsScreen() {
             getMeetingHistory(user.id).then(h => setHasMeetings(Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null))).catch(() => { })
         }
 
-        // Realtime — update reactions without full reload
-        const likesChannel = supabase
-            .channel('moment_likes_rt')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'moment_likes' }, () => {
-                reloadReactions()
-            })
-            .subscribe()
-
-        // Realtime — moment status changes (pending → approved/rejected by admin)
-        const momentsChannel = supabase
-            .channel('moments_status_rt')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'moments' }, (payload) => {
-                const updated = payload.new
-                if (updated.status === 'rejected') {
-                    setMoments(prev => prev.filter(m => m.id !== updated.id))
-                    setDisplayMoments(prev => prev.filter(m => m.id !== updated.id))
-                }
-                // approved: will appear on next manual refresh or page reload
-                // likes_count updates: ignored (handled by likesChannel)
-            })
-            .subscribe()
-
-        // Fallback polling every 15s
-        const pollInterval = setInterval(() => reloadReactions(), 15000)
+        // Realtime — reactions handled optimistically in MomentCard, no channel needed
+        // Fallback polling every 30s for reaction sync
+        const pollInterval = setInterval(() => reloadReactions(), 30000)
 
         return () => {
-            supabase.removeChannel(likesChannel)
-            supabase.removeChannel(momentsChannel)
             clearInterval(pollInterval)
         }
     }, [user?.id])
