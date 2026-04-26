@@ -283,7 +283,7 @@ export const getMoments = async (limit = 30, userId = null) => {
         .limit(limit)
 
     if (userId) {
-        query = query.or(`status.eq.approved,and(user_id.eq.${userId},status.eq.pending)`)
+        query = query.eq('status', 'approved')
     } else {
         query = query.eq('status', 'approved')
     }

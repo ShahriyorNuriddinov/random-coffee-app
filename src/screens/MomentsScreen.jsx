@@ -148,9 +148,7 @@ export default function MomentsScreen() {
     }
 
     const handlePosted = (newMoment) => {
-        const withReactions = { ...newMoment, reactions: {} }
-        setMoments(prev => [withReactions, ...prev])
-        setDisplayMoments(prev => [withReactions, ...prev])
+        // Don't show pending posts in feed — wait for admin approval
     }
 
     const handleReactionChange = (momentId, emoji) => {
