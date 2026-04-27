@@ -63,10 +63,10 @@ export default function PhoneScreen() {
                     </Button>
 
                     <p style={{ marginTop: 10, fontSize: 12, color: 'var(--app-hint)', lineHeight: 1.4, textAlign: 'center', padding: '0 15px' }}>
-                        By clicking "Next", you agree to the{' '}
-                        <a href="#" style={{ color: 'var(--app-primary)', textDecoration: 'none', fontWeight: 500 }}>Terms</a>
-                        {' '}and{' '}
-                        <a href="#" style={{ color: 'var(--app-primary)', textDecoration: 'none', fontWeight: 500 }}>Privacy Policy</a>.
+                        {t('privacy_hint')}{' '}
+                        <a href="#" style={{ color: 'var(--app-primary)', textDecoration: 'none', fontWeight: 500 }}>{t('terms')}</a>
+                        {' '}{t('and') || 'and'}{' '}
+                        <a href="#" style={{ color: 'var(--app-primary)', textDecoration: 'none', fontWeight: 500 }}>{t('privacy')}</a>.
                     </p>
                 </div>
             </div>

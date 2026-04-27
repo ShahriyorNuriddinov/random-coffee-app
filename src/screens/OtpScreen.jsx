@@ -161,7 +161,7 @@ export default function OtpScreen() {
                             padding: '10px 0', cursor: 'pointer', fontFamily: 'inherit',
                         }}
                     >
-                        {t('back')}
+                        {t('back_change_email') || t('back')}
                     </button>
                 </div>
             </div>
