@@ -98,12 +98,6 @@
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
-  <script>
-    // Update html[lang] when i18n language changes (accessibility + SEO)
-    document.addEventListener('i18n-lang-change', function (e) {
-      document.documentElement.lang = e.detail || 'en'
-    })
-  </script>
 </body>
 
 </html>

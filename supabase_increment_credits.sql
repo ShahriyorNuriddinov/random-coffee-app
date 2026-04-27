@@ -1,4 +1,4 @@
--- Atomic credit increment — prevents race condition on concurrent payments
+-- Atomic credit increment — prevents race condition on simultaneous payments
 -- Run this in Supabase SQL Editor
 
 create or replace function increment_credits(p_user_id uuid, p_credits int)
@@ -21,6 +21,3 @@ begin
   return new_credits;
 end;
 $$;
-
--- Grant execute to anon and authenticated roles
-grant execute on function increment_credits(uuid, int) to anon, authenticated;
