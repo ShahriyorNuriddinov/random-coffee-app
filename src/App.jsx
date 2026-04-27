@@ -7,9 +7,10 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000,        // 30s — don't refetch if data is fresh
-      gcTime: 5 * 60 * 1000,       // 5min — keep in cache
-      refetchOnWindowFocus: true,  // refresh when user comes back
+      staleTime: 0,               // always refetch in background when tab switches
+      gcTime: 5 * 60 * 1000,     // 5min — keep in cache so UI shows instantly
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,       // refetch when component mounts/screen switches
       retry: 1,
     },
   },

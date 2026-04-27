@@ -1,5 +1,6 @@
 import { useApp } from '@/store/useAppStore'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
 
 const icons = {
     moments: (
@@ -53,6 +54,16 @@ const tabs = [
 export default function BottomNav({ active }) {
     const { setScreen } = useApp()
     const { t } = useTranslation()
+    const queryClient = useQueryClient()
+
+    const handleTab = (key) => {
+        // Invalidate relevant query when switching to a data tab
+        const queryMap = { moments: 'moments', people: 'people', meetings: 'meeting-history' }
+        if (queryMap[key]) {
+            queryClient.invalidateQueries({ queryKey: [queryMap[key]] })
+        }
+        setScreen(key)
+    }
 
     return (
         <div style={{
@@ -71,7 +82,7 @@ export default function BottomNav({ active }) {
                 return (
                     <button
                         key={tab.key}
-                        onClick={() => setScreen(tab.key)}
+                        onClick={() => handleTab(tab.key)}
                         style={{
                             display: 'flex', flexDirection: 'column',
                             alignItems: 'center', gap: 3,
