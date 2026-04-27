@@ -7,17 +7,20 @@ import ScreenHeader from '@/components/ui/ScreenHeader'
 import PersonCard from '@/components/people/PersonCard'
 import PersonProfileSheet from '@/components/people/PersonProfileSheet'
 import PeopleFilterModal from '@/components/people/PeopleFilterModal'
-import { getPeople, getLikedUserIds, supabase } from '@/lib/supabaseClient'
+import { getPeople, getLikedUserIds, getMatches, supabase } from '@/lib/supabaseClient'
 import { calcMatchScoresBatch } from '@/lib/aiUtils'
 import { usePeopleLike } from '@/hooks/usePeopleLike'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import { Skeleton } from '@/components/ui/skeleton'
 
 async function fetchPeople(userId, profile) {
-    const [allPeople, liked] = await Promise.all([
+    const [allPeople, liked, matches] = await Promise.all([
         getPeople(userId),
         getLikedUserIds(userId),
+        getMatches(userId),
     ])
+
+    const matchedIds = new Set(matches.map(m => m.partner?.id).filter(Boolean))
 
     const myProfile = {
         gives: profile.gives || '',
@@ -57,7 +60,7 @@ async function fetchPeople(userId, profile) {
             return b.score - a.score
         })
 
-    return { people: sorted, likedIds: new Set(liked) }
+    return { people: sorted, likedIds: new Set(liked), matchedIds }
 }
 
 export default function PeopleScreen() {
@@ -79,6 +82,7 @@ export default function PeopleScreen() {
     })
 
     const people = data?.people ?? []
+    const matchedIds = data?.matchedIds ?? new Set()
 
     useEffect(() => {
         if (data?.likedIds) setLikedIds(data.likedIds)
@@ -161,7 +165,10 @@ export default function PeopleScreen() {
                 </>
             )}
 
-            {selected && <PersonProfileSheet person={selected} liked={likedIds.has(selected.id)}
+            {selected && <PersonProfileSheet
+                person={selected}
+                liked={likedIds.has(selected.id)}
+                matched={matchedIds.has(selected.id)}
                 onLike={() => { handleLike(selected); setSelected(null) }}
                 onClose={() => setSelected(null)} />}
             {showFilter && <PeopleFilterModal filters={filters} onApply={setFilters} onClose={() => setShowFilter(false)} />}

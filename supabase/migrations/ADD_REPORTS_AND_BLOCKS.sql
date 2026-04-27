@@ -5,28 +5,28 @@
 
 -- 1. CREATE REPORTS TABLE
 -- ============================================================================
--- Note: Using TEXT for user IDs to match profiles table structure
+-- Note: Using UUID for user IDs to match auth.users and ensure type consistency
 CREATE TABLE IF NOT EXISTS reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    reporter_id TEXT NOT NULL,
-    reported_id TEXT NOT NULL,
+    reporter_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    reported_id UUID NOT NULL,
     reason TEXT NOT NULL,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'resolved', 'dismissed')),
     admin_notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     
-    -- Prevent duplicate reports from same user for same target
+    -- Prevent duplicate reports from same user for same target and reason
     CONSTRAINT unique_report UNIQUE (reporter_id, reported_id, reason)
 );
 
 -- 2. CREATE BLOCKED USERS TABLE
 -- ============================================================================
--- Note: Using TEXT for user IDs to match profiles table structure
+-- Note: Using UUID for user IDs to match auth.users and ensure type consistency
 CREATE TABLE IF NOT EXISTS blocked_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    blocker_id TEXT NOT NULL,
-    blocked_id TEXT NOT NULL,
+    blocker_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    blocked_id UUID NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- Prevent duplicate blocks
@@ -59,13 +59,13 @@ ALTER TABLE blocked_users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can create reports"
     ON reports FOR INSERT
     TO authenticated
-    WITH CHECK (auth.uid()::text = reporter_id);
+    WITH CHECK (auth.uid() = reporter_id);
 
 -- Users can view their own reports
 CREATE POLICY "Users can view their own reports"
     ON reports FOR SELECT
     TO authenticated
-    USING (auth.uid()::text = reporter_id);
+    USING (auth.uid() = reporter_id);
 
 -- Admin can view all reports (add admin check if needed)
 CREATE POLICY "Admin can view all reports"
@@ -87,19 +87,19 @@ CREATE POLICY "Admin can update reports"
 CREATE POLICY "Users can block others"
     ON blocked_users FOR INSERT
     TO authenticated
-    WITH CHECK (auth.uid()::text = blocker_id);
+    WITH CHECK (auth.uid() = blocker_id);
 
 -- Users can view their own blocks
 CREATE POLICY "Users can view their blocks"
     ON blocked_users FOR SELECT
     TO authenticated
-    USING (auth.uid()::text = blocker_id);
+    USING (auth.uid() = blocker_id);
 
 -- Users can unblock others
 CREATE POLICY "Users can unblock"
     ON blocked_users FOR DELETE
     TO authenticated
-    USING (auth.uid()::text = blocker_id);
+    USING (auth.uid() = blocker_id);
 
 -- 7. GRANT PERMISSIONS
 -- ============================================================================
@@ -116,15 +116,16 @@ SELECT
     r.admin_notes,
     r.created_at,
     r.updated_at,
-    reporter.id as reporter_id,
+    r.reporter_id,
     reporter.name as reporter_name,
     reporter.email as reporter_email,
-    reported.id as reported_id,
+    r.reported_id,
     reported.name as reported_name,
     reported.email as reported_email
 FROM reports r
-LEFT JOIN profiles reporter ON r.reporter_id = reporter.id
-LEFT JOIN profiles reported ON r.reported_id = reported.id
+LEFT JOIN auth.users reporter_auth ON r.reporter_id = reporter_auth.id
+LEFT JOIN profiles reporter ON reporter_auth.id::text = reporter.id
+LEFT JOIN profiles reported ON r.reported_id::text = reported.id
 ORDER BY r.created_at DESC;
 
 -- Grant access to admin view

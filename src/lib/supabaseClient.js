@@ -458,23 +458,53 @@ export const cancelMeeting = async (matchId) => {
 
 // ─── BLOCK / REPORT USER ─────────────────────────────────────────────────────
 export const blockUser = async (blockerId, blockedId) => {
-    const { error } = await supabase.from('blocked_users').upsert(
-        { blocker_id: blockerId, blocked_id: blockedId },
-        { onConflict: 'blocker_id,blocked_id' }
-    )
-    if (error) return { success: false, error: error.message }
-    return { success: true }
+    try {
+        // Get the current user's UUID from auth
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, error: 'Not authenticated' }
+
+        const { error } = await supabase.from('blocked_users').insert({
+            blocker_id: user.id, // Use auth UUID
+            blocked_id: blockedId,
+        })
+
+        if (error) {
+            // Check for duplicate block
+            if (error.code === '23505') {
+                return { success: false, error: 'unique_block' }
+            }
+            return { success: false, error: error.message }
+        }
+        return { success: true }
+    } catch (err) {
+        return { success: false, error: err.message }
+    }
 }
 
 export const reportUser = async (reporterId, reportedId, reason = '') => {
-    const { error } = await supabase.from('reports').insert({
-        reporter_id: reporterId,
-        reported_id: reportedId,
-        reason,
-        created_at: new Date().toISOString(),
-    })
-    if (error) return { success: false, error: error.message }
-    return { success: true }
+    try {
+        // Get the current user's UUID from auth
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, error: 'Not authenticated' }
+
+        const { error } = await supabase.from('reports').insert({
+            reporter_id: user.id, // Use auth UUID
+            reported_id: reportedId,
+            reason,
+            created_at: new Date().toISOString(),
+        })
+
+        if (error) {
+            // Check for duplicate report
+            if (error.code === '23505') {
+                return { success: false, error: 'unique_report' }
+            }
+            return { success: false, error: error.message }
+        }
+        return { success: true }
+    } catch (err) {
+        return { success: false, error: err.message }
+    }
 }
 
 // ─── DELETE ACCOUNT ───────────────────────────────────────────────────────────

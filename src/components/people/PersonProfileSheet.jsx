@@ -12,7 +12,7 @@ import { blockUser, reportUser } from '@/lib/supabaseClient'
 import { useApp } from '@/store/useAppStore'
 import toast from 'react-hot-toast'
 
-export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
+export default function PersonProfileSheet({ person, liked, matched, onLike, onClose }) {
     const { t, i18n } = useTranslation()
     const { user } = useApp()
     const targetLang = i18n.language === 'zh' ? 'zh' : 'en'
@@ -44,20 +44,18 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
         const res = await blockUser(user.id, person.id)
         setBlocking(false)
         if (res.success) {
-            toast.success(`🚫 ${person.name} has been blocked. You won't see each other anymore.`, {
-                duration: 4000,
-                style: {
-                    background: '#ff3b30',
-                    color: '#fff',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    borderRadius: '12px',
-                    padding: '12px 16px',
-                },
-            })
+            toast.success('User blocked successfully')
             setTimeout(() => onClose(), 500)
         } else {
-            toast.error(res.error || 'Failed to block user. Please try again.')
+            // Check if it's a duplicate block error
+            if (res.error && res.error.includes('unique_block')) {
+                toast('You have already blocked this user.', {
+                    icon: 'ℹ️',
+                    duration: 3000,
+                })
+            } else {
+                toast.error('Failed to block user. Please try again.')
+            }
         }
     }
 
@@ -66,25 +64,19 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
         setShowReportMenu(false)
         const res = await reportUser(user.id, person.id, reason)
         if (res.success) {
-            const messages = {
-                'Spam': '📧 Spam report submitted. We\'ll review this profile shortly.',
-                'Inappropriate': '⚠️ Inappropriate content reported. Our team will investigate.',
-                'Fake profile': '🎭 Fake profile reported. Thank you for helping us maintain authenticity.',
-                'Harassment': '🚨 Harassment report submitted. We take this seriously and will act quickly.',
-            }
-            toast.success(messages[reason] || 'Report submitted. Thank you for keeping our community safe!', {
-                duration: 4000,
-                style: {
-                    background: '#34c759',
-                    color: '#fff',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    borderRadius: '12px',
-                    padding: '12px 16px',
-                },
+            toast.success('Report submitted. Thank you for keeping our community safe!', {
+                duration: 3000,
             })
         } else {
-            toast.error(res.error || 'Failed to submit report. Please try again.')
+            // Check if it's a duplicate report error
+            if (res.error && res.error.includes('unique_report')) {
+                toast('You have already reported this user for this reason.', {
+                    icon: 'ℹ️',
+                    duration: 3000,
+                })
+            } else {
+                toast.error('Failed to submit report. Please try again.')
+            }
         }
     }
 
@@ -385,16 +377,21 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                     )}
 
                     {/* Interest button */}
-                    <button onClick={onLike} style={{
+                    <button onClick={onLike} disabled={matched} style={{
                         width: '100%', padding: '16px 0', borderRadius: 16,
-                        border: 'none', cursor: 'pointer',
-                        background: liked ? 'rgba(255,59,48,0.08)' : 'linear-gradient(135deg, #007aff 0%, #5856d6 100%)',
-                        color: liked ? '#ff3b30' : '#fff',
+                        border: 'none', cursor: matched ? 'not-allowed' : 'pointer',
+                        background: matched
+                            ? 'linear-gradient(135deg, #34c759 0%, #30d158 100%)'
+                            : liked
+                                ? 'rgba(255,59,48,0.08)'
+                                : 'linear-gradient(135deg, #007aff 0%, #5856d6 100%)',
+                        color: matched ? '#fff' : liked ? '#ff3b30' : '#fff',
                         fontSize: 17, fontWeight: 700, fontFamily: 'inherit',
-                        boxShadow: liked ? 'none' : '0 6px 16px rgba(0,122,255,0.2)',
+                        boxShadow: matched || liked ? 'none' : '0 6px 16px rgba(0,122,255,0.2)',
                         transition: 'all 0.2s',
+                        opacity: matched ? 0.9 : 1,
                     }}>
-                        {liked ? '✕ Cancel Request' : '🤍 Send Interest'}
+                        {matched ? '✓ It\'s a Match!' : liked ? '✕ Cancel Request' : '🤍 Send Interest'}
                     </button>
                 </div>
             </div>
