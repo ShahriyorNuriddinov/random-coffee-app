@@ -112,9 +112,9 @@ html.dark body {
 /* ── Content container (not header/footer) ── */
 .screen-content {
   width: 80%;
-  max-width: 860px;
   margin: 0 auto;
   padding: 0 24px;
+  box-sizing: border-box;
 }
 
 /* ── Center inner content on wide screens ── */
