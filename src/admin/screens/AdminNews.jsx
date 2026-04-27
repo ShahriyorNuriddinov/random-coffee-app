@@ -10,6 +10,8 @@ import Spinner from '../components/ui/Spinner'
 import SectionLabel from '../components/ui/SectionLabel'
 import Card from '../components/ui/Card'
 import BottomSheet, { SheetHeader, SheetAction } from '../components/ui/BottomSheet'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // ─── Image uploader ───────────────────────────────────────────────────────────
 function ImageUploader({ imageUrl, setImageUrl, lang }) {
@@ -189,8 +191,10 @@ function NewsCard({ item, onActions, lang }) {
     return (
         <div className={`bg-white rounded-2xl border overflow-hidden shadow-sm ${item.pinned ? 'border-[#007aff]' : 'border-black/5'}`}>
             {item.pinned && (
-                <div className="flex items-center gap-1 px-4 pt-3 text-[12px] font-bold text-[#007aff]">
-                    <Pin size={12} /> {t.pinnedLabel}
+                <div className="flex items-center gap-1.5 px-4 pt-3">
+                    <Badge variant="default" className="text-[10px] gap-1">
+                        <Pin size={9} /> {t.pinnedLabel}
+                    </Badge>
                 </div>
             )}
             {item.image_url && (
@@ -203,14 +207,12 @@ function NewsCard({ item, onActions, lang }) {
                             : item.text || item.text_zh || item.text_ru || ''}
                 </p>
 
-                {/* Reactions row (from HTML: 🔥42, 🎉15, 👍30) */}
                 {item.reactions && Object.keys(item.reactions).length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-2 border-t border-black/5">
                         {Object.entries(item.reactions).map(([emoji, count]) => (
-                            <div key={emoji} className="flex items-center gap-1 bg-[#f1f2f6] rounded-xl px-2 py-1 text-[12px] font-semibold text-gray-600">
-                                <span>{emoji}</span>
-                                <span>{count}</span>
-                            </div>
+                            <Badge key={emoji} variant="secondary" className="text-[12px] gap-1 px-2">
+                                {emoji} {count}
+                            </Badge>
                         ))}
                     </div>
                 )}
@@ -345,7 +347,18 @@ export default function AdminNews() {
             </button>
 
             {loading ? (
-                <div className="flex items-center justify-center h-32"><Spinner /></div>
+                <div className="flex flex-col gap-4">
+                    {[1, 2].map(i => (
+                        <div key={i} className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-sm" style={{ opacity: 1 - i * 0.3 }}>
+                            <Skeleton className="h-40 w-full rounded-none" />
+                            <div className="p-4 flex flex-col gap-2">
+                                <Skeleton className="h-3.5 w-full" />
+                                <Skeleton className="h-3.5 w-3/4" />
+                                <Skeleton className="h-3 w-20 mt-1" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
             ) : news.length === 0 ? (
                 <div className="text-center text-gray-400 py-12 text-[14px]">{t.noPosts}</div>
             ) : (

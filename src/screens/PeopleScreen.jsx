@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApp } from '@/store/useAppStore'
 import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
@@ -10,114 +11,98 @@ import { getPeople, getLikedUserIds, supabase } from '@/lib/supabaseClient'
 import { calcMatchScoresBatch } from '@/lib/aiUtils'
 import { usePeopleLike } from '@/hooks/usePeopleLike'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+
+async function fetchPeople(userId, profile) {
+    const [allPeople, liked] = await Promise.all([
+        getPeople(userId),
+        getLikedUserIds(userId),
+    ])
+
+    const myProfile = {
+        gives: profile.gives || '',
+        wants: profile.wants || '',
+        about: profile.about || '',
+        tags: Array.isArray(profile.tags) ? profile.tags : [],
+    }
+
+    const candidates = allPeople.filter(p => p.name)
+    const ids = candidates.map(p => p.id).sort().join(',')
+    const hash = ids.length > 50 ? `${ids.length}_${ids.slice(0, 40)}_${ids.slice(-40)}` : ids
+    const cacheKey = `ai_scores_${userId}_${hash}`
+    let scores
+    try {
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+            const { data, ts } = JSON.parse(cached)
+            if (Date.now() - ts < 30 * 60 * 1000) scores = data
+        }
+    } catch { sessionStorage.removeItem(cacheKey) }
+
+    if (!scores) {
+        try { scores = await calcMatchScoresBatch(myProfile, candidates) } catch { scores = [] }
+        if (!Array.isArray(scores)) scores = []
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: scores, ts: Date.now() })) } catch { }
+    }
+
+    const { data: likedMeData } = await supabase.from('likes').select('from_user_id').eq('to_user_id', userId)
+    const likedMeIds = new Set((likedMeData || []).map(r => r.from_user_id))
+
+    const sorted = candidates
+        .map((p, i) => ({ ...p, score: Array.isArray(scores) ? (scores[i] ?? 0) : 0 }))
+        .sort((a, b) => {
+            const aLikedMe = likedMeIds.has(a.id) ? 1 : 0
+            const bLikedMe = likedMeIds.has(b.id) ? 1 : 0
+            if (bLikedMe !== aLikedMe) return bLikedMe - aLikedMe
+            return b.score - a.score
+        })
+
+    return { people: sorted, likedIds: new Set(liked) }
+}
 
 export default function PeopleScreen() {
     const { t, i18n } = useTranslation()
     const { user, profile, subscription } = useApp()
+    const queryClient = useQueryClient()
     const hasCredits = (subscription.credits ?? 0) > 0
-    const [people, setPeople] = useState([])
     const { likedIds, setLikedIds, handleLike } = usePeopleLike()
-    const [loading, setLoading] = useState(true)
     const [selected, setSelected] = useState(null)
     const [showFilter, setShowFilter] = useState(false)
     const [filters, setFilters] = useState({ regions: [], langs: [] })
     const [search, setSearch] = useState('')
+    const [showBuyCredits, setShowBuyCredits] = useState(false)
+
+    const { data, isLoading } = useQuery({
+        queryKey: ['people', user?.id],
+        queryFn: () => fetchPeople(user.id, profile),
+        enabled: !!user?.id,
+        staleTime: 2 * 60 * 1000, // 2 min — people list doesn't change often
+    })
+
+    const people = data?.people ?? []
 
     useEffect(() => {
-        if (!user?.id) return
-        load()
-        const onVisible = () => { if (document.visibilityState === 'visible') load() }
-        document.addEventListener('visibilitychange', onVisible)
-        return () => document.removeEventListener('visibilitychange', onVisible)
-    }, [user?.id, profile?.tags?.length]) // eslint-disable-line react-hooks/exhaustive-deps
+        if (data?.likedIds) setLikedIds(data.likedIds)
+    }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const displayPeople = useMemo(() => {
-        if (i18n.language === 'zh') return people.map(p => ({
-            ...p,
-            about: p.about_zh || p.about,
-            gives: p.gives_zh || p.gives,
-            wants: p.wants_zh || p.wants,
-        }))
-        if (i18n.language === 'ru') return people.map(p => ({
-            ...p,
-            about: p.about_ru || p.about,
-            gives: p.gives_ru || p.gives,
-            wants: p.wants_ru || p.wants,
-        }))
+        if (i18n.language === 'zh') return people.map(p => ({ ...p, about: p.about_zh || p.about, gives: p.gives_zh || p.gives, wants: p.wants_zh || p.wants }))
+        if (i18n.language === 'ru') return people.map(p => ({ ...p, about: p.about_ru || p.about, gives: p.gives_ru || p.gives, wants: p.wants_ru || p.wants }))
         return people
     }, [people, i18n.language])
-
-    const load = useCallback(async () => {
-        setLoading(true)
-        try {
-            const [allPeople, liked] = await Promise.all([
-                getPeople(user.id),
-                getLikedUserIds(user.id),
-            ])
-            setLikedIds(new Set(liked))
-
-            const myProfile = {
-                gives: profile.gives || '',
-                wants: profile.wants || '',
-                about: profile.about || '',
-                tags: Array.isArray(profile.tags) ? profile.tags : [],
-            }
-
-            const candidates = allPeople.filter(p => p.name)
-            const ids = candidates.map(p => p.id).sort().join(',')
-            const hash = ids.length > 50 ? `${ids.length}_${ids.slice(0, 40)}_${ids.slice(-40)}` : ids
-            const cacheKey = `ai_scores_${user.id}_${hash}`
-            let scores
-            try {
-                const cached = sessionStorage.getItem(cacheKey)
-                if (cached) {
-                    const { data, ts } = JSON.parse(cached)
-                    if (Date.now() - ts < 30 * 60 * 1000) scores = data
-                }
-            } catch { sessionStorage.removeItem(cacheKey) }
-
-            if (!scores) {
-                try { scores = await calcMatchScoresBatch(myProfile, candidates) }
-                catch { scores = [] }
-                if (!Array.isArray(scores)) scores = []
-                try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: scores, ts: Date.now() })) } catch { }
-            }
-
-            // Get users who liked ME (they should appear first — mutual interest priority)
-            const { data: likedMeData } = await supabase.from('likes').select('from_user_id').eq('to_user_id', user.id)
-            const likedMeIds = new Set((likedMeData || []).map(r => r.from_user_id))
-
-            setPeople(
-                candidates
-                    .map((p, i) => ({ ...p, score: Array.isArray(scores) ? (scores[i] ?? 0) : 0 }))
-                    .sort((a, b) => {
-                        // Users who liked me come first (mutual interest)
-                        const aLikedMe = likedMeIds.has(a.id) ? 1 : 0
-                        const bLikedMe = likedMeIds.has(b.id) ? 1 : 0
-                        if (bLikedMe !== aLikedMe) return bLikedMe - aLikedMe
-                        return b.score - a.score
-                    })
-            )
-        } catch (e) {
-            console.error('[PeopleScreen load]', e)
-        } finally {
-            setLoading(false)
-        }
-    }, [user?.id, profile?.gives, profile?.wants, profile?.about, profile?.tags]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const hasActiveFilters = filters.regions.length > 0 || filters.langs.length > 0
 
     const filtered = useMemo(() => {
         return displayPeople.filter(p => {
             const q = search.toLowerCase()
-            const matchSearch = !q || p.name?.toLowerCase().includes(q) || p.about?.toLowerCase().includes(q) || p.region?.toLowerCase().includes(q) || p.city?.toLowerCase().includes(q)
+            const matchSearch = !q || p.name?.toLowerCase().includes(q) || p.about?.toLowerCase().includes(q) || p.region?.toLowerCase().includes(q)
             const matchRegion = !filters.regions.length || filters.regions.includes(p.region)
             const matchLang = !filters.langs.length || (Array.isArray(p.languages) && p.languages.some(l => filters.langs.includes(l)))
             return matchSearch && matchRegion && matchLang
         })
     }, [displayPeople, search, filters])
-
-    const [showBuyCredits, setShowBuyCredits] = useState(false)
 
     return (
         <div className="app-screen">
@@ -159,7 +144,7 @@ export default function PeopleScreen() {
                         />
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
-                        {loading ? <LoadingSkeleton /> : filtered.length === 0 ? <EmptyState hasSearch={!!search || hasActiveFilters} /> : (
+                        {isLoading && !people.length ? <LoadingSkeleton /> : filtered.length === 0 ? <EmptyState hasSearch={!!search || hasActiveFilters} /> : (
                             <div className="screen-content" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
                                 <div style={{ fontSize: 13, color: 'var(--app-hint)', textAlign: 'center', lineHeight: 1.4, padding: '0 10px' }}>
                                     {t('people_ai_hint')}
@@ -190,9 +175,21 @@ export default function PeopleScreen() {
 
 function LoadingSkeleton() {
     return (
-        <div className="screen-content" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
+        <div className="screen-content flex flex-col gap-4 pt-4">
             {[1, 2, 3].map(i => (
-                <div key={i} style={{ height: 180, borderRadius: 20, background: 'var(--app-card)', border: '0.5px solid var(--app-border)', opacity: 1 - i * 0.2 }} />
+                <div key={i} className="rounded-2xl border border-border bg-card p-4 flex gap-3" style={{ opacity: 1 - i * 0.2 }}>
+                    <Skeleton className="size-14 rounded-full shrink-0" />
+                    <div className="flex flex-col gap-2 flex-1">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-3 w-full mt-1" />
+                        <Skeleton className="h-3 w-4/5" />
+                        <div className="flex gap-2 mt-1">
+                            <Skeleton className="h-5 w-14 rounded-full" />
+                            <Skeleton className="h-5 w-14 rounded-full" />
+                        </div>
+                    </div>
+                </div>
             ))}
         </div>
     )

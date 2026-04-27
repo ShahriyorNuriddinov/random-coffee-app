@@ -1,7 +1,19 @@
 import { lazy, Suspense } from 'react'
 import { Toaster } from 'react-hot-toast'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppProvider, useApp } from '@/store/useAppStore'
 import ErrorBoundary from '@/components/ErrorBoundary'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000,        // 30s — don't refetch if data is fresh
+      gcTime: 5 * 60 * 1000,       // 5min — keep in cache
+      refetchOnWindowFocus: true,  // refresh when user comes back
+      retry: 1,
+    },
+  },
+})
 
 // Critical screens — loaded immediately
 import OnboardingScreen from '@/screens/OnboardingScreen'
@@ -71,7 +83,7 @@ function Router() {
 
   return (
     <Suspense fallback={<ScreenFallback />}>
-      <LazyScreen key={screen} />
+      <LazyScreen />
     </Suspense>
   )
 }
@@ -79,25 +91,27 @@ function Router() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <OfflineBanner />
-        <Router />
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            style: {
-              background: 'rgba(0,0,0,0.82)',
-              color: '#fff',
-              borderRadius: 20,
-              fontWeight: 600,
-              fontSize: 14,
-              padding: '12px 24px',
-            },
-            success: { iconTheme: { primary: '#34c759', secondary: '#fff' } },
-            error: { style: { background: '#ff3b30' } },
-          }}
-        />
-      </AppProvider>
+      <QueryClientProvider client={queryClient}>
+        <AppProvider>
+          <OfflineBanner />
+          <Router />
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: 'rgba(0,0,0,0.82)',
+                color: '#fff',
+                borderRadius: 20,
+                fontWeight: 600,
+                fontSize: 14,
+                padding: '12px 24px',
+              },
+              success: { iconTheme: { primary: '#34c759', secondary: '#fff' } },
+              error: { style: { background: '#ff3b30' } },
+            }}
+          />
+        </AppProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   )
 }

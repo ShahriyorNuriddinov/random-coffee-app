@@ -1,150 +1,82 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApp } from '@/store/useAppStore'
 import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import MomentCard from '@/components/moments/MomentCard'
 import NewMomentModal from '@/components/moments/NewMomentModal'
 import { getMoments, getUserMomentReactions, getMeetingHistory, supabase } from '@/lib/supabaseClient'
-import { translateText } from '@/lib/aiUtils'
+import { Skeleton } from '@/components/ui/skeleton'
+
 export default function MomentsScreen() {
     const { t, i18n } = useTranslation()
     const { user } = useApp()
-    const [moments, setMoments] = useState([])
-    const [displayMoments, setDisplayMoments] = useState([])
+    const queryClient = useQueryClient()
     const [userReactions, setUserReactions] = useState({})
-    const [loading, setLoading] = useState(true)
     const [showNew, setShowNew] = useState(false)
     const [hasMeetings, setHasMeetings] = useState(true)
     const [showNoMeetingHint, setShowNoMeetingHint] = useState(false)
-    const momentsRef = useRef([])
+    const channelRef = useRef(null)
 
-    // Auto-translate when language changes
+    // ── Main query ──────────────────────────────────────────────────────────────
+    const { data: moments = [], isLoading } = useQuery({
+        queryKey: ['moments', user?.id],
+        queryFn: () => getMoments(undefined, user?.id),
+        enabled: !!user?.id,
+        staleTime: 20 * 1000,
+    })
+
+    // ── Derived: display text by language ──────────────────────────────────────
+    const lang = i18n.language
+    const displayMoments = moments.map(m => ({
+        ...m,
+        text: lang === 'zh' ? (m.text_zh || m.text_en || m.text)
+            : lang === 'ru' ? (m.text_ru || m.text_en || m.text)
+                : (m.text_en || m.text),
+    }))
+
+    // ── Load reactions ──────────────────────────────────────────────────────────
     useEffect(() => {
-        if (moments.length === 0) return
-        const lang = i18n.language
-        if (lang === 'zh') {
-            translateMoments(moments, 'zh')
-        } else if (lang === 'ru') {
-            translateMoments(moments, 'ru')
-        } else {
-            setDisplayMoments(moments.map(m => ({ ...m, text: m.text_en || m.text })))
-        }
-    }, [i18n.language, moments]) // eslint-disable-line react-hooks/exhaustive-deps
-
-    const translateMoments = async (list, lang) => {
-        const textKey = lang === 'zh' ? 'text_zh' : 'text_ru'
-        const allHaveTranslation = list.every(m => m[textKey])
-        if (allHaveTranslation) {
-            setDisplayMoments(list.map(m => ({ ...m, text: m[textKey] })))
-            return
-        }
-
-        const cacheKey = `translated_moments_${lang}_${list.map(m => m.id).join(',').slice(0, 80)}`
-        try {
-            const cached = sessionStorage.getItem(cacheKey)
-            if (cached) { setDisplayMoments(JSON.parse(cached)); return }
-        } catch { }
-
-        const withStored = list.map(m => ({ ...m, text: m[textKey] || m.text }))
-        setDisplayMoments(withStored)
-
-        const needsAI = list.filter(m => !m[textKey])
-        const translated = [...withStored]
-        for (const m of needsAI) {
-            try {
-                const text = await translateText(m.text_en || m.text, lang)
-                const idx = translated.findIndex(t => t.id === m.id)
-                if (idx !== -1) translated[idx] = { ...translated[idx], text: text || m.text }
-            } catch { }
-        }
-        setDisplayMoments([...translated])
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(translated)) } catch { }
-    }
-
-    const reloadReactions = useCallback(async (data) => {
-        const momentList = data || momentsRef.current
-        if (!user?.id || !momentList?.length) return
-
-        const momentIds = momentList.map(m => m.id)
-        const { data: allLikes } = await supabase
-            .from('moment_likes')
-            .select('moment_id, emoji, user_id')
-            .in('moment_id', momentIds)
-
-        const reactionCounts = {}
-        const userR = {}
-        if (allLikes) {
-            for (const r of allLikes) {
-                if (!reactionCounts[r.moment_id]) reactionCounts[r.moment_id] = {}
-                reactionCounts[r.moment_id][r.emoji] = (reactionCounts[r.moment_id][r.emoji] || 0) + 1
-                if (r.user_id === user.id) userR[r.moment_id] = r.emoji
-            }
-        }
-
-        const updatedMoments = momentList.map(m => ({ ...m, reactions: reactionCounts[m.id] || {} }))
-        momentsRef.current = updatedMoments
-        setMoments(updatedMoments)
-        setUserReactions(userR)
-    }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-    const load = useCallback(async (silent = false) => {
-        if (!silent) setLoading(true)
-        try {
-            const data = await getMoments(undefined, user?.id)
-            momentsRef.current = data
-            setMoments(data)
-
-            const lang = i18n.language
-            if (lang === 'zh') {
-                setDisplayMoments(data.map(m => ({ ...m, text: m.text_zh || m.text_en || m.text })))
-            } else if (lang === 'ru') {
-                setDisplayMoments(data.map(m => ({ ...m, text: m.text_ru || m.text_en || m.text })))
-            } else {
-                setDisplayMoments(data.map(m => ({ ...m, text: m.text_en || m.text })))
-            }
-
-            if (user?.id && data.length > 0) {
-                const userR = await getUserMomentReactions(user.id, data.map(m => m.id))
+        if (!user?.id || !moments.length) return
+        const ids = moments.map(m => m.id)
+        supabase.from('moment_likes').select('moment_id,emoji,user_id').in('moment_id', ids)
+            .then(({ data }) => {
+                const userR = {}
+                if (data) for (const r of data) {
+                    if (r.user_id === user.id) userR[r.moment_id] = r.emoji
+                }
                 setUserReactions(userR)
-            }
-        } catch (err) {
-            console.error('[MomentsScreen] load error:', err)
-        } finally {
-            setLoading(false)
-        }
-    }, [user?.id, i18n.language]) // eslint-disable-line react-hooks/exhaustive-deps
+            })
+    }, [moments, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+    // ── Meeting history check ───────────────────────────────────────────────────
     useEffect(() => {
-        let cancelled = false
-        load()
+        if (!user?.id) return
+        getMeetingHistory(user.id)
+            .then(h => setHasMeetings(Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null)))
+            .catch(() => { })
+    }, [user?.id])
 
-        if (user?.id) {
-            getMeetingHistory(user.id)
-                .then(h => { if (!cancelled) setHasMeetings(Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null)) })
-                .catch(() => { })
-        }
-
-        // Realtime: moment likes yangilanganda reactions refresh
-        const channel = supabase
-            .channel('moments_likes_rt')
-            .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'moment_likes' },
-                () => { reloadReactions() })
+    // ── Realtime: invalidate query when moments table changes ───────────────────
+    useEffect(() => {
+        if (!user?.id) return
+        const ch = supabase
+            .channel('moments_rt_' + user.id)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'moments' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['moments', user.id] })
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'moment_likes' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['moments', user.id] })
+            })
             .subscribe()
-
-        return () => {
-            cancelled = true
-            supabase.removeChannel(channel)
-        }
-    }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-    const handlePosted = () => {
-        // Post pending — realtime will add it when admin approves
-    }
+        channelRef.current = ch
+        return () => { supabase.removeChannel(ch) }
+    }, [user?.id, queryClient])
 
     const handleReactionChange = (momentId, emoji) => {
         setUserReactions(prev => ({ ...prev, [momentId]: emoji }))
+        queryClient.invalidateQueries({ queryKey: ['moments', user?.id] })
     }
 
     return (
@@ -152,7 +84,6 @@ export default function MomentsScreen() {
             <ScreenHeader
                 title={t('nav_moments')}
                 right={
-                    /* Plus button — HTML: .plus-btn */
                     <button
                         aria-label="New moment"
                         onClick={() => {
@@ -167,20 +98,14 @@ export default function MomentsScreen() {
                             position: 'relative',
                         }}
                     >
-                        <span style={{
-                            position: 'absolute', width: 14, height: 2,
-                            background: 'var(--app-primary)', borderRadius: 1,
-                        }} />
-                        <span style={{
-                            position: 'absolute', width: 2, height: 14,
-                            background: 'var(--app-primary)', borderRadius: 1,
-                        }} />
+                        <span style={{ position: 'absolute', width: 14, height: 2, background: 'var(--app-primary)', borderRadius: 1 }} />
+                        <span style={{ position: 'absolute', width: 2, height: 14, background: 'var(--app-primary)', borderRadius: 1 }} />
                     </button>
                 }
             />
 
             <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
-                {loading ? (
+                {isLoading && !moments.length ? (
                     <LoadingSkeleton />
                 ) : displayMoments.length === 0 ? (
                     <EmptyState onNew={() => setShowNew(true)} />
@@ -193,8 +118,9 @@ export default function MomentsScreen() {
                                 userReaction={userReactions[m.id] || null}
                                 onReactionChange={(emoji) => handleReactionChange(m.id, emoji)}
                                 onDeleted={(id) => {
-                                    setMoments(prev => prev.filter(p => p.id !== id))
-                                    setDisplayMoments(prev => prev.filter(p => p.id !== id))
+                                    queryClient.setQueryData(['moments', user?.id], old =>
+                                        (old || []).filter(p => p.id !== id)
+                                    )
                                 }}
                             />
                         ))}
@@ -205,11 +131,10 @@ export default function MomentsScreen() {
             {showNew && (
                 <NewMomentModal
                     onClose={() => setShowNew(false)}
-                    onPosted={handlePosted}
+                    onPosted={() => queryClient.invalidateQueries({ queryKey: ['moments', user?.id] })}
                 />
             )}
 
-            {/* No meeting hint modal — HTML style */}
             {showNoMeetingHint && (
                 <div onClick={() => setShowNoMeetingHint(false)} style={{
                     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
@@ -219,28 +144,11 @@ export default function MomentsScreen() {
                     <div onClick={e => e.stopPropagation()} style={{
                         background: 'var(--app-card)', borderRadius: 24, padding: '28px 24px',
                         maxWidth: 360, width: '100%', textAlign: 'center',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
                     }}>
-                        <div style={{
-                            width: 52, height: 52, borderRadius: 14,
-                            background: 'linear-gradient(135deg, #ffd700, #ffa500)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 26, margin: '0 auto 16px',
-                            boxShadow: '0 4px 12px rgba(255,165,0,0.3)',
-                        }}>🎁</div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 10, letterSpacing: -0.3 }}>
-                            Share Your Story
-                        </div>
-                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 16 }}>
-                            After every successful coffee meeting you attend, you will have the opportunity to write a review post about it.
-                        </div>
-                        <div style={{
-                            background: 'rgba(0,122,255,0.06)', borderRadius: 12,
-                            padding: '12px 14px', marginBottom: 20,
-                            border: '0.5px solid rgba(0,122,255,0.15)',
-                            fontSize: 13, color: '#0055b3', lineHeight: 1.5, textAlign: 'left',
-                        }}>
-                            🎉 Your post will be published after passing moderation, and you will receive <strong>+1 coffee cup</strong> to your balance!
+                        <div style={{ fontSize: 40, marginBottom: 12 }}>🎁</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 10 }}>Share Your Story</div>
+                        <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>
+                            After every successful coffee meeting, you can write a review post and earn <strong>+1 coffee cup</strong>!
                         </div>
                         <button onClick={() => setShowNoMeetingHint(false)} className="btn-gradient" style={{ borderRadius: 14 }}>
                             Awesome
@@ -256,14 +164,20 @@ export default function MomentsScreen() {
 
 function LoadingSkeleton() {
     return (
-        <div className="screen-content" style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 20 }}>
+        <div className="screen-content flex flex-col gap-5 pt-5">
             {[1, 2, 3].map(i => (
-                <div key={i} style={{
-                    height: 140, borderRadius: 14,
-                    background: 'var(--app-card)',
-                    border: '0.5px solid var(--app-border)',
-                    opacity: 1 - i * 0.2,
-                }} />
+                <div key={i} className="rounded-2xl overflow-hidden border border-border bg-card p-4 flex flex-col gap-3" style={{ opacity: 1 - i * 0.2 }}>
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="size-10 rounded-full" />
+                        <div className="flex flex-col gap-2 flex-1">
+                            <Skeleton className="h-3.5 w-32" />
+                            <Skeleton className="h-3 w-20" />
+                        </div>
+                    </div>
+                    <Skeleton className="h-40 w-full rounded-xl" />
+                    <Skeleton className="h-3.5 w-full" />
+                    <Skeleton className="h-3.5 w-3/4" />
+                </div>
             ))}
         </div>
     )
@@ -277,17 +191,11 @@ function EmptyState({ onNew }) {
             padding: 40, textAlign: 'center', marginTop: 80,
         }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>✨</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>
-                No moments yet
-            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>No moments yet</div>
             <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, maxWidth: 260, marginBottom: 24 }}>
                 Share your coffee meeting experience and earn +1 credit!
             </div>
-            <button
-                onClick={onNew}
-                className="btn-gradient"
-                style={{ borderRadius: 14, maxWidth: 200 }}
-            >
+            <button onClick={onNew} className="btn-gradient" style={{ borderRadius: 14, maxWidth: 200 }}>
                 Share a Moment
             </button>
         </div>

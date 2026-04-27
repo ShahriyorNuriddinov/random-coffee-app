@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApp } from '@/store/useAppStore'
+import { Skeleton as SkeletonUI } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import MatchCard from '@/components/meetings/MatchCard'
@@ -19,8 +22,18 @@ export default function MeetingsScreen() {
     const { user, setScreen, profile, subscription: _sub, setSubscription } = useApp()
     const { t } = useTranslation()
 
-    const [history, setHistory] = useState([])
-    const [loading, setLoading] = useState(true)
+    const queryClient = useQueryClient()
+
+    const { data: history = [], isLoading: loading } = useQuery({
+        queryKey: ['meeting-history', user?.id],
+        queryFn: () => getMeetingHistory(user.id),
+        enabled: !!user?.id,
+        staleTime: 30 * 1000,
+    })
+
+    // Sync history to local state for boost hook mutations
+    const [historyLocal, setHistoryLocal] = useState([])
+    useEffect(() => { setHistoryLocal(history) }, [history])
     const [searchFilters, setSearchFilters] = useState({ regions: [], langs: [], prompt: '' })
     const [showFeedback, setShowFeedback] = useState(false)
     const [feedbackMatchId, setFeedbackMatchId] = useState(null)
@@ -32,7 +45,7 @@ export default function MeetingsScreen() {
     const hasActiveFilters = searchFilters.regions.length > 0 || searchFilters.langs.length > 0 || !!searchFilters.prompt.trim()
 
     const { boosting, hasCredits, handleBoost } = useMeetingBoost({
-        history, setHistory, searchFilters, hasActiveFilters,
+        history: historyLocal, setHistory: setHistoryLocal, searchFilters, hasActiveFilters,
         onBuyCredits: () => setShowBuyCredits(true),
         onMatchFound: () => setShowBoostModal(true),
     })
@@ -41,41 +54,14 @@ export default function MeetingsScreen() {
     useEffect(() => {
         if (!user?.id) return
         getSubscription(user.id).then(data => {
-            if (data) {
-                setSubscription({
-                    status: data.subscription_status || 'trial',
-                    credits: data.coffee_credits ?? 2,
-                    start: data.subscription_start || null,
-                    end: data.subscription_end || null,
-                })
-            }
+            if (data) setSubscription({ status: data.subscription_status || 'trial', credits: data.coffee_credits ?? 2, start: data.subscription_start || null, end: data.subscription_end || null })
         }).catch(() => { })
     }, [user?.id])
-
-    const loadHistory = async () => {
-        if (!user?.id) { setLoading(false); return }
-        try {
-            const data = await getMeetingHistory(user.id)
-            setHistory(data)
-        } catch {
-            setHistory([])
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        loadHistory()
-        const onVisible = () => { if (document.visibilityState === 'visible') loadHistory() }
-        document.addEventListener('visibilitychange', onVisible)
-        return () => document.removeEventListener('visibilitychange', onVisible)
-    }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleFeedbackPost = () => {
         setShowFeedback(false)
         setShowNewMoment(true)
-        // Reload history after feedback
-        loadHistory()
+        queryClient.invalidateQueries({ queryKey: ['meeting-history', user?.id] })
     }
 
     return (
@@ -100,7 +86,7 @@ export default function MeetingsScreen() {
                             : <NoCreditsBlock onTopUp={() => setShowBuyCredits(true)} />
                     )}
 
-                    {!loading && history.filter(m => m.status !== 'completed').map(m => (
+                    {!loading && historyLocal.filter(m => m.status !== 'completed').map(m => (
                         <MatchCard
                             key={m.matchId}
                             match={m}
@@ -108,9 +94,9 @@ export default function MeetingsScreen() {
                         />
                     ))}
 
-                    {!loading && history.filter(m => m.status === 'completed').length > 0 && (
+                    {!loading && historyLocal.filter(m => m.status === 'completed').length > 0 && (
                         <PreviousMeetings
-                            history={history.filter(m => m.status === 'completed')}
+                            history={historyLocal.filter(m => m.status === 'completed')}
                             onPost={() => setShowNewMoment(true)}
                         />
                     )}
@@ -120,7 +106,7 @@ export default function MeetingsScreen() {
             {showFeedback && (
                 <FeedbackModal
                     matchId={feedbackMatchId}
-                    onClose={async () => { setShowFeedback(false); await loadHistory() }}
+                    onClose={async () => { setShowFeedback(false); queryClient.invalidateQueries({ queryKey: ['meeting-history', user?.id] }) }}
                     onPost={handleFeedbackPost}
                 />
             )}
@@ -191,7 +177,17 @@ function Skeleton() {
     return (
         <>
             {[1, 2].map(i => (
-                <div key={i} style={{ height: 120, borderRadius: 20, background: 'var(--app-card)', border: '0.5px solid var(--app-border)', opacity: 1 - i * 0.3 }} />
+                <div key={i} className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3" style={{ opacity: 1 - i * 0.3 }}>
+                    <div className="flex items-center gap-3">
+                        <SkeletonUI className="size-12 rounded-full" />
+                        <div className="flex flex-col gap-2 flex-1">
+                            <SkeletonUI className="h-4 w-32" />
+                            <SkeletonUI className="h-3 w-24" />
+                        </div>
+                    </div>
+                    <SkeletonUI className="h-3 w-full" />
+                    <SkeletonUI className="h-3 w-3/4" />
+                </div>
             ))}
         </>
     )

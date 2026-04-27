@@ -1,43 +1,49 @@
 import PropTypes from 'prop-types'
 import { ChevronRight } from 'lucide-react'
 import { getT } from '../../i18n'
-import Avatar, { getAvatarColor } from '../ui/Avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import Card from '../ui/Card'
+
+const COLORS = ['#007aff', '#ff9500', '#34c759', '#5856d6', '#ff3b30', '#ff2d55']
+const getColor = (id = '') => COLORS[id.codePointAt(0) % COLORS.length]
 
 // ─── Single member row ────────────────────────────────────────────────────────
 export function MemberRow({ member, onClick, lang, isLast }) {
     const t = getT('members', lang)
+    const initials = (member.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+
     return (
         <button
             onClick={onClick}
             className={`w-full flex items-center justify-between px-4 py-3 text-left active:bg-black/[0.02] transition-colors ${!isLast ? 'border-b border-black/5' : ''}`}
         >
             <div className="flex items-center gap-3">
-                <Avatar name={member.name} url={member.avatar_url} size={36} color={getAvatarColor(member.id)} />
+                <Avatar size="default">
+                    <AvatarImage src={member.avatar_url} alt={member.name} />
+                    <AvatarFallback style={{ background: getColor(member.id), color: '#fff' }}>
+                        {initials}
+                    </AvatarFallback>
+                </Avatar>
                 <div>
                     <p className="text-[15px] font-semibold text-gray-900 flex items-center gap-2">
                         {member.name || '—'}
-                        {member.banned && (
-                            <span className="text-[10px] bg-red-100 text-red-500 font-bold px-1.5 py-0.5 rounded">BAN</span>
-                        )}
+                        {member.banned && <Badge variant="destructive" className="text-[10px] h-4">BAN</Badge>}
                     </p>
                     <p className="text-[12px] text-gray-400">{member.email || member.region || '—'}</p>
                 </div>
             </div>
             <div className="flex items-center gap-2">
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${member.subscription_status === 'active'
-                    ? 'bg-green-100 text-green-600'
-                    : 'bg-gray-100 text-gray-400'
-                    }`}>
+                <Badge variant={member.subscription_status === 'active' ? 'default' : 'secondary'} className="text-[11px]">
                     {member.subscription_status === 'active' ? t.active : t.free}
-                </span>
+                </Badge>
                 <ChevronRight size={16} className="text-gray-300" />
             </div>
         </button>
     )
 }
 
-// ─── Members grouped by date: Today / Yesterday / Earlier ────────────────────
+// ─── Members grouped by date ──────────────────────────────────────────────────
 export function GroupedMemberList({ members, onSelect, lang }) {
     const today = new Date().toDateString()
     const yesterday = new Date(Date.now() - 86400000).toDateString()

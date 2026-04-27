@@ -3,11 +3,11 @@ import { Search } from 'lucide-react'
 import { getMembers, supabase } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
-import Spinner from '../components/ui/Spinner'
 import SectionLabel from '../components/ui/SectionLabel'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import MemberSheet from '../components/members/MemberSheet'
 import { GroupedMemberList } from '../components/members/MemberRow'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function AdminMembers() {
     const { lang } = useAdmin()
@@ -80,7 +80,18 @@ export default function AdminMembers() {
 
             {/* List */}
             {loading ? (
-                <div className="flex items-center justify-center h-32"><Spinner /></div>
+                <div className="flex flex-col gap-3">
+                    {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="bg-white rounded-2xl border border-black/5 px-4 py-3 flex items-center gap-3" style={{ opacity: 1 - i * 0.15 }}>
+                            <Skeleton className="size-9 rounded-full shrink-0" />
+                            <div className="flex flex-col gap-2 flex-1">
+                                <Skeleton className="h-3.5 w-32" />
+                                <Skeleton className="h-3 w-24" />
+                            </div>
+                            <Skeleton className="h-5 w-14 rounded-full" />
+                        </div>
+                    ))}
+                </div>
             ) : members.length === 0 ? (
                 <div className="text-center text-gray-400 py-12 text-[14px]">{t.noResults}</div>
             ) : (

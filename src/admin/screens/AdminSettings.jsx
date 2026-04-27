@@ -6,11 +6,12 @@ import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
 import SectionLabel from '../components/ui/SectionLabel'
 import Card from '../components/ui/Card'
-import Toggle from '../components/ui/Toggle'
 import { PrimaryButton, SecondaryButton } from '../components/ui/PrimaryButton'
 import AiPromptEditor, { DEFAULT_AI_PROMPT } from '../components/settings/AiPromptEditor'
 import AddStaffSheet from '../components/settings/AddStaffSheet'
 import StaffRow from '../components/settings/StaffRow'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 
 // ─── Number field row ─────────────────────────────────────────────────────────
 function SettingField({ label, value, onChange, isLast }) {
@@ -107,7 +108,7 @@ export default function AdminSettings() {
                         .map(({ key, label }, i, arr) => (
                             <div key={key} className={`flex items-center justify-between px-4 py-3 ${i < arr.length - 1 ? 'border-b border-black/5' : ''}`}>
                                 <span className="text-[14px] font-medium text-gray-600">{label}</span>
-                                <Toggle checked={!!settings[key]} onChange={set(key)} />
+                                <Switch checked={!!settings[key]} onCheckedChange={set(key)} />
                             </div>
                         ))}
                 </Card>

@@ -8,6 +8,9 @@ import Spinner from '../components/ui/Spinner'
 import SectionLabel from '../components/ui/SectionLabel'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import BottomSheet, { SheetHeader, SheetAction } from '../components/ui/BottomSheet'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // ─── Reject reason sheet ──────────────────────────────────────────────────────
 function RejectSheet({ onConfirm, onClose, lang }) {
@@ -27,6 +30,8 @@ function RejectSheet({ onConfirm, onClose, lang }) {
 function MomentCard({ moment: m, onApprove, onReject, showActions, lang }) {
     const t = getT('moments', lang)
     const image = m.image_url || m.image_urls?.[0]
+    const authorName = m.is_admin_post ? 'Random Coffee Team' : (m.author?.name || '—')
+    const initials = authorName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
     return (
         <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-sm">
@@ -35,13 +40,13 @@ function MomentCard({ moment: m, onApprove, onReject, showActions, lang }) {
             <div className="p-4 flex flex-col gap-3">
                 {/* Author row */}
                 <div className="flex items-center gap-2">
-                    {m.author?.avatar_url
-                        ? <img src={m.author.avatar_url} className="w-7 h-7 rounded-full object-cover" alt="" />
-                        : <div className="w-7 h-7 rounded-full bg-[#007aff] flex items-center justify-center text-white text-[11px] font-bold">
-                            {(m.author?.name || '?')[0]}
-                        </div>
-                    }
-                    <span className="text-[13px] font-semibold text-gray-700">{m.is_admin_post ? 'Random Coffee Team' : (m.author?.name || '—')}</span>
+                    <Avatar size="sm">
+                        <AvatarImage src={m.author?.avatar_url} alt={authorName} />
+                        <AvatarFallback className={m.is_admin_post ? 'bg-primary text-primary-foreground text-[10px]' : 'text-[10px]'}>
+                            {initials}
+                        </AvatarFallback>
+                    </Avatar>
+                    <span className="text-[13px] font-semibold text-gray-700">{authorName}</span>
                     <span className="text-[11px] text-gray-400 ml-auto">{new Date(m.created_at).toLocaleDateString()}</span>
                 </div>
 
@@ -50,10 +55,12 @@ function MomentCard({ moment: m, onApprove, onReject, showActions, lang }) {
 
                 {/* Status badge */}
                 {m.status && m.status !== 'pending' && (
-                    <span className={`self-start text-[11px] font-bold px-2 py-0.5 rounded-lg uppercase ${m.status === 'approved' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
-                        }`}>
+                    <Badge
+                        variant={m.status === 'approved' ? 'default' : 'destructive'}
+                        className="self-start uppercase text-[10px]"
+                    >
                         {m.status}
-                    </span>
+                    </Badge>
                 )}
 
                 {/* Moderation actions */}
@@ -189,7 +196,20 @@ export default function AdminMoments() {
             <SectionLabel>{t[status] || t.all} ({total})</SectionLabel>
 
             {loading ? (
-                <div className="flex items-center justify-center h-32"><Spinner /></div>
+                <div className="flex flex-col gap-4">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="bg-white rounded-2xl border border-black/5 p-4 flex flex-col gap-3" style={{ opacity: 1 - i * 0.2 }}>
+                            <div className="flex items-center gap-2">
+                                <Skeleton className="size-7 rounded-full" />
+                                <Skeleton className="h-3 w-28" />
+                                <Skeleton className="h-3 w-16 ml-auto" />
+                            </div>
+                            <Skeleton className="h-32 w-full rounded-xl" />
+                            <Skeleton className="h-3 w-full" />
+                            <Skeleton className="h-3 w-3/4" />
+                        </div>
+                    ))}
+                </div>
             ) : moments.length === 0 ? (
                 <div className="text-center text-gray-400 py-12 text-[14px]">{t.noItems}</div>
             ) : (

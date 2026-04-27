@@ -9,6 +9,8 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { Pagination } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/pagination'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 
 const QUICK_REACTIONS = ['👍', '❤️', '🔥', '🎉', '👏']
 
@@ -186,35 +188,23 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                        width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                        backgroundImage: author.avatar_url ? `url(${author.avatar_url})` : 'none',
-                        backgroundSize: 'cover', backgroundPosition: 'center',
-                        backgroundColor: isOfficial ? 'var(--app-primary)' : 'rgba(120,120,128,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#fff', fontWeight: 700, fontSize: 18,
-                    }}>
-                        {!author.avatar_url && (isOfficial ? 'R' : '👤')}
-                    </div>
+                    <Avatar size="lg">
+                        <AvatarImage src={author.avatar_url} alt={author.name} />
+                        <AvatarFallback className={isOfficial ? 'bg-primary text-primary-foreground' : ''}>
+                            {isOfficial ? 'RC' : (author.name?.[0]?.toUpperCase() || '?')}
+                        </AvatarFallback>
+                    </Avatar>
                     <div>
                         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--app-text)' }}>{isOfficial ? 'Random Coffee Team' : (author.name || 'Unknown')}</div>
                         <div style={{ fontSize: 12, color: 'var(--app-hint)' }}>{timeAgo(moment.created_at)}</div>
                     </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {isOfficial && (
-                        <span style={{
-                            fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                            padding: '3px 6px', borderRadius: 5,
-                            background: 'rgba(0,122,255,0.1)', color: 'var(--app-primary)',
-                        }}>Official</span>
+                        <Badge variant="default" className="text-[10px]">Official</Badge>
                     )}
                     {moment.status === 'pending' && isOwn && (
-                        <span style={{
-                            fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                            padding: '3px 8px', borderRadius: 5,
-                            background: 'rgba(255,149,0,0.12)', color: '#ff9500',
-                        }}>⏳ Pending</span>
+                        <Badge variant="outline" className="text-[10px] border-orange-300 text-orange-500">⏳ Pending</Badge>
                     )}
                     {isOwn && (
                         <button
