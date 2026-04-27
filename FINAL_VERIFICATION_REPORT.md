@@ -369,7 +369,29 @@ Agar muammo bo'lsa:
 - ✅ Payment: Race condition fixed
 - ✅ Security: 95% improved
 - ✅ Performance: 80% improved
+- ✅ **Moment Posting: Faqat 1 marta per meeting** ← YANGI!
 
 **Loyiha production uchun tayyor!** 🚀
 
 Faqat API keys ni rotate qilish va Edge Functions ga ko'chirish qoldi (ixtiyoriy).
+
+---
+
+## 🆕 YANGI FIX: MOMENT POSTING LIMIT
+
+### Muammo:
+Foydalanuvchilar bir xil meeting uchun bir necha marta moment yozishlari mumkin edi.
+
+### Yechim:
+✅ `matches` table ga `moment_posted` column qo'shildi
+✅ Moment yozilgandan keyin tugma disabled bo'ladi
+✅ "✓ Moment Posted" badge ko'rsatiladi
+
+### Migration:
+```sql
+-- Run in Supabase SQL Editor:
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS moment_posted BOOLEAN DEFAULT FALSE;
+CREATE INDEX IF NOT EXISTS idx_matches_moment_posted ON matches(moment_posted);
+```
+
+**Batafsil**: `MOMENT_POSTED_FIX_SUMMARY.md` va `MOMENT_POSTED_MIGRATION.md`

@@ -410,13 +410,13 @@ export const uploadMomentImage = async (userId, file) => {
 export const getMeetingHistory = async (userId) => {
     const { data, error } = await supabase
         .from('matches')
-        .select(`id, created_at, status, user1:user1_id(id, name, avatar_url, about, gives, wants, about_zh, gives_zh, wants_zh, about_ru, gives_ru, wants_ru, balance, languages, region, wechat, whatsapp), user2:user2_id(id, name, avatar_url, about, gives, wants, about_zh, gives_zh, wants_zh, about_ru, gives_ru, wants_ru, balance, languages, region, wechat, whatsapp)`)
+        .select(`id, created_at, status, moment_posted, user1:user1_id(id, name, avatar_url, about, gives, wants, about_zh, gives_zh, wants_zh, about_ru, gives_ru, wants_ru, balance, languages, region, wechat, whatsapp), user2:user2_id(id, name, avatar_url, about, gives, wants, about_zh, gives_zh, wants_zh, about_ru, gives_ru, wants_ru, balance, languages, region, wechat, whatsapp)`)
         .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
         .order('created_at', { ascending: false })
     if (error) return []
     return (data || []).map(m => {
         const partner = m.user1?.id === userId ? m.user2 : m.user1
-        return { matchId: m.id, createdAt: m.created_at, status: m.status || 'active', partner }
+        return { matchId: m.id, createdAt: m.created_at, status: m.status || 'active', momentPosted: m.moment_posted || false, partner }
     }).filter(m => m.partner && m.partner.id && m.partner.id !== userId)
 }
 
@@ -427,6 +427,18 @@ export const completeMeeting = async (matchId) => {
         .eq('id', matchId)
     if (error) {
         console.error('[completeMeeting] error:', error.message)
+        return { success: false, error: error.message }
+    }
+    return { success: true }
+}
+
+export const markMomentPosted = async (matchId) => {
+    const { error } = await supabase
+        .from('matches')
+        .update({ moment_posted: true })
+        .eq('id', matchId)
+    if (error) {
+        console.error('[markMomentPosted] error:', error.message)
         return { success: false, error: error.message }
     }
     return { success: true }

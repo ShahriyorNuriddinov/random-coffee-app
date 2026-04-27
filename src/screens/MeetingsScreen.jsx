@@ -40,6 +40,7 @@ export default function MeetingsScreen() {
     const [showSettings, setShowSettings] = useState(false)
     const [showBoostModal, setShowBoostModal] = useState(false)
     const [showNewMoment, setShowNewMoment] = useState(false)
+    const [currentMatchId, setCurrentMatchId] = useState(null)
 
     const hasActiveFilters = searchFilters.regions.length > 0 || searchFilters.langs.length > 0 || !!searchFilters.prompt.trim()
 
@@ -59,8 +60,14 @@ export default function MeetingsScreen() {
 
     const handleFeedbackPost = () => {
         setShowFeedback(false)
+        setCurrentMatchId(feedbackMatchId)
         setShowNewMoment(true)
         queryClient.invalidateQueries({ queryKey: ['meeting-history', user?.id] })
+    }
+
+    const handlePostFromHistory = (matchId) => {
+        setCurrentMatchId(matchId)
+        setShowNewMoment(true)
     }
 
     return (
@@ -96,7 +103,7 @@ export default function MeetingsScreen() {
                     {!loading && historyLocal.filter(m => m.status === 'completed').length > 0 && (
                         <PreviousMeetings
                             history={historyLocal.filter(m => m.status === 'completed')}
-                            onPost={() => setShowNewMoment(true)}
+                            onPost={handlePostFromHistory}
                         />
                     )}
                 </div>
@@ -114,8 +121,14 @@ export default function MeetingsScreen() {
             {showSettings && <SearchSettingsModal filters={searchFilters} onApply={setSearchFilters} onClose={() => setShowSettings(false)} />}
             {showNewMoment && (
                 <NewMomentModal
-                    onClose={() => setShowNewMoment(false)}
-                    onPosted={() => { setShowNewMoment(false); setScreen('moments') }}
+                    matchId={currentMatchId}
+                    onClose={() => { setShowNewMoment(false); setCurrentMatchId(null) }}
+                    onPosted={() => {
+                        setShowNewMoment(false)
+                        setCurrentMatchId(null)
+                        queryClient.invalidateQueries({ queryKey: ['meeting-history', user?.id] })
+                        setScreen('moments')
+                    }}
                 />
             )}
 
@@ -166,7 +179,7 @@ function PreviousMeetings({ history, onPost }) {
                 {t('prev_meetings')}
             </div>
             <div style={{ background: 'var(--app-card)', borderRadius: 20, padding: '10px 16px', border: '0.5px solid var(--app-border)' }}>
-                {history.map(m => <HistoryItem key={m.matchId} match={m} onPost={onPost} />)}
+                {history.map(m => <HistoryItem key={m.matchId} match={m} onPost={() => onPost(m.matchId)} />)}
             </div>
         </>
     )

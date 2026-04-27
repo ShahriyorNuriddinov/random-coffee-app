@@ -28,7 +28,7 @@ async function compressImage(file, maxWidth = 800, quality = 0.75) {
     })
 }
 
-export default function NewMomentModal({ onClose, onPosted }) {
+export default function NewMomentModal({ matchId, onClose, onPosted }) {
     const { t } = useTranslation()
     const { user } = useApp()
     const [text, setText] = useState('')
@@ -86,10 +86,18 @@ export default function NewMomentModal({ onClose, onPosted }) {
 
         // Post immediately — don't wait for translations
         const result = await postMoment(user.id, trimmedText, imageUrl, text_en, text_zh, imageUrls, text_ru)
+
+        // Mark moment as posted for this match
+        if (result && matchId) {
+            const { markMomentPosted } = await import('@/lib/supabaseClient')
+            await markMomentPosted(matchId)
+        }
+
         setLoading(false)
 
         if (result) {
             toast.success(t('toast_moment_posted', 'Posted! Your moment is pending review ⏳'))
+            if (onPosted) onPosted()
             onClose()
 
             // Background: translate to other 2 languages and update the row

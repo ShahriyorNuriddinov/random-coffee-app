@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 export default function HistoryItem({ match, onPost }) {
     const { t } = useTranslation()
     const [showNote, setShowNote] = useState(false)
-    const { partner, createdAt } = match
+    const { partner, createdAt, momentPosted } = match
     if (!partner) return null
 
     const regionFlag = partner.region === 'Macau' ? '🇲🇴'
@@ -62,18 +62,33 @@ export default function HistoryItem({ match, onPost }) {
             </button>
 
             {/* .btn-beautiful-post */}
-            <button onClick={onPost} style={{
-                marginTop: 8, width: '100%',
-                background: 'linear-gradient(135deg, rgba(0,122,255,0.1), rgba(0,198,255,0.1))',
-                color: 'var(--app-primary)',
-                border: '1px solid rgba(0,122,255,0.2)',
-                padding: 12, borderRadius: 12,
-                fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>
-                {t('write_post')}
-            </button>
+            {momentPosted ? (
+                <div style={{
+                    marginTop: 8, width: '100%',
+                    background: 'rgba(52,199,89,0.1)',
+                    color: '#34c759',
+                    border: '1px solid rgba(52,199,89,0.2)',
+                    padding: 12, borderRadius: 12,
+                    fontSize: 13, fontWeight: 700,
+                    fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                    ✓ {t('moment_already_posted', 'Moment Posted')}
+                </div>
+            ) : (
+                <button onClick={onPost} style={{
+                    marginTop: 8, width: '100%',
+                    background: 'linear-gradient(135deg, rgba(0,122,255,0.1), rgba(0,198,255,0.1))',
+                    color: 'var(--app-primary)',
+                    border: '1px solid rgba(0,122,255,0.2)',
+                    padding: 12, borderRadius: 12,
+                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                    {t('write_post')}
+                </button>
+            )}
         </div>
     )
 }
