@@ -64,7 +64,12 @@ export default function MeetingsScreen() {
         }
     }
 
-    useEffect(() => { loadHistory() }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        loadHistory()
+        const onVisible = () => { if (document.visibilityState === 'visible') loadHistory() }
+        document.addEventListener('visibilitychange', onVisible)
+        return () => document.removeEventListener('visibilitychange', onVisible)
+    }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleFeedbackPost = () => {
         setShowFeedback(false)

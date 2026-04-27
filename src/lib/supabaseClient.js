@@ -138,12 +138,23 @@ export const getReferralCode = async (userId) => {
 }
 
 export const applyReferralCode = async (referralCode, newUserId) => {
-    const { data: referrer, error } = await supabase.from('profiles').select('id').eq('referral_code', referralCode.toUpperCase()).single()
+    const { data: referrer, error } = await supabase.from('profiles').select('id, coffee_credits').eq('referral_code', referralCode.toUpperCase()).single()
     if (error || !referrer) return { success: false, error: 'Invalid referral code' }
     if (referrer.id === newUserId) return { success: false, error: 'Cannot refer yourself' }
     const { error: refError } = await supabase.from('referrals').insert({ referrer_id: referrer.id, referred_id: newUserId })
     if (refError) return { success: false, error: refError.message }
     await supabase.from('profiles').update({ referred_by: referrer.id }).eq('id', newUserId)
+
+    // Give referral reward to referrer from app_settings
+    const { data: cfg } = await supabase.from('app_settings').select('reward_referral').eq('id', 1).single()
+    const reward = Number(cfg?.reward_referral ?? 1)
+    if (reward > 0) {
+        await supabase.from('profiles').update({
+            coffee_credits: (referrer.coffee_credits ?? 0) + reward,
+            subscription_status: 'active',
+            updated_at: new Date().toISOString(),
+        }).eq('id', referrer.id)
+    }
     return { success: true }
 }
 

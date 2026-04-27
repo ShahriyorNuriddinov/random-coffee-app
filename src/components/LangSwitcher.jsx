@@ -1,14 +1,30 @@
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { supabase } from '@/lib/supabaseClient'
 
-const LANGS = [
-    { code: 'en', label: 'EN' },
-    { code: 'zh', label: '中文' },
-    { code: 'ru', label: 'RU' },
+const ALL_LANGS = [
+    { code: 'en', label: 'EN', settingKey: 'lang_en' },
+    { code: 'zh', label: '中文', settingKey: 'lang_zh' },
+    { code: 'ru', label: 'RU', settingKey: null }, // always shown
 ]
 
 export default function LangSwitcher() {
     const { i18n } = useTranslation()
     const current = i18n.language
+    const [enabledLangs, setEnabledLangs] = useState(ALL_LANGS)
+
+    useEffect(() => {
+        supabase.from('app_settings').select('lang_en,lang_zh').eq('id', 1).single()
+            .then(({ data }) => {
+                if (!data) return
+                const filtered = ALL_LANGS.filter(l => {
+                    if (!l.settingKey) return true // ru always shown
+                    return data[l.settingKey] !== false
+                })
+                setEnabledLangs(filtered.length > 0 ? filtered : ALL_LANGS)
+            })
+            .catch(() => { })
+    }, [])
 
     const set = (lang) => {
         i18n.changeLanguage(lang)
@@ -17,7 +33,7 @@ export default function LangSwitcher() {
 
     return (
         <div style={{ display: 'flex', background: 'rgba(120,120,128,0.12)', borderRadius: 10, padding: 2, gap: 1 }}>
-            {LANGS.map(({ code, label }) => (
+            {enabledLangs.map(({ code, label }) => (
                 <div
                     key={code}
                     onClick={() => set(code)}

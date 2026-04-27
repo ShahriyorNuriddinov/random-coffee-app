@@ -26,6 +26,9 @@ export default function PeopleScreen() {
     useEffect(() => {
         if (!user?.id) return
         load()
+        const onVisible = () => { if (document.visibilityState === 'visible') load() }
+        document.addEventListener('visibilitychange', onVisible)
+        return () => document.removeEventListener('visibilitychange', onVisible)
     }, [user?.id, profile?.tags?.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const displayPeople = useMemo(() => {

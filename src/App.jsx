@@ -57,18 +57,21 @@ function Router() {
   if (critical[screen]) return critical[screen]
 
   const lazy_map = {
-    settings: <SettingsScreen />,
-    'profile-edit': <ProfileEditScreen />,
-    profile: <ProfileScreen />,
-    faq: <FaqScreen />,
-    moments: <MomentsScreen />,
-    people: <PeopleScreen />,
-    meetings: <MeetingsScreen />,
+    settings: SettingsScreen,
+    'profile-edit': ProfileEditScreen,
+    profile: ProfileScreen,
+    faq: FaqScreen,
+    moments: MomentsScreen,
+    people: PeopleScreen,
+    meetings: MeetingsScreen,
   }
+
+  const LazyScreen = lazy_map[screen]
+  if (!LazyScreen) return <OnboardingScreen />
 
   return (
     <Suspense fallback={<ScreenFallback />}>
-      {lazy_map[screen] ?? <OnboardingScreen />}
+      <LazyScreen key={screen} />
     </Suspense>
   )
 }

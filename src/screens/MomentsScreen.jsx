@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
 import BottomNav from '@/components/BottomNav'
@@ -15,7 +15,7 @@ export default function MomentsScreen() {
     const [userReactions, setUserReactions] = useState({})
     const [loading, setLoading] = useState(true)
     const [showNew, setShowNew] = useState(false)
-    const [hasMeetings, setHasMeetings] = useState(true) // default true, will be set false if no meetings
+    const [hasMeetings, setHasMeetings] = useState(true)
     const [showNoMeetingHint, setShowNoMeetingHint] = useState(false)
     const momentsRef = useRef([])
 
@@ -34,7 +34,6 @@ export default function MomentsScreen() {
 
     const translateMoments = async (list, lang) => {
         const textKey = lang === 'zh' ? 'text_zh' : 'text_ru'
-        // Use pre-stored translations first — no AI needed
         const allHaveTranslation = list.every(m => m[textKey])
         if (allHaveTranslation) {
             setDisplayMoments(list.map(m => ({ ...m, text: m[textKey] })))
@@ -47,11 +46,9 @@ export default function MomentsScreen() {
             if (cached) { setDisplayMoments(JSON.parse(cached)); return }
         } catch { }
 
-        // Show what we have immediately (stored translations), translate missing ones sequentially
         const withStored = list.map(m => ({ ...m, text: m[textKey] || m.text }))
         setDisplayMoments(withStored)
 
-        // Translate only missing ones — sequentially to avoid rate limits
         const needsAI = list.filter(m => !m[textKey])
         const translated = [...withStored]
         for (const m of needsAI) {
@@ -59,15 +56,15 @@ export default function MomentsScreen() {
                 const text = await translateText(m.text_en || m.text, lang)
                 const idx = translated.findIndex(t => t.id === m.id)
                 if (idx !== -1) translated[idx] = { ...translated[idx], text: text || m.text }
-            } catch { /* skip failed translations */ }
+            } catch { }
         }
         setDisplayMoments([...translated])
         try { sessionStorage.setItem(cacheKey, JSON.stringify(translated)) } catch { }
     }
 
-    const reloadReactions = async (data) => {
+    const reloadReactions = useCallback(async (data) => {
         const momentList = data || momentsRef.current
-        if (!user?.id || !momentList || !Array.isArray(momentList) || momentList.length === 0) return
+        if (!user?.id || !momentList?.length) return
 
         const momentIds = momentList.map(m => m.id)
         const { data: allLikes } = await supabase
@@ -85,39 +82,19 @@ export default function MomentsScreen() {
             }
         }
 
-        const updatedMoments = momentList.map(m => ({
-            ...m,
-            reactions: reactionCounts[m.id] || {},
-        }))
-
+        const updatedMoments = momentList.map(m => ({ ...m, reactions: reactionCounts[m.id] || {} }))
         momentsRef.current = updatedMoments
         setMoments(updatedMoments)
         setUserReactions(userR)
-    }
-
-    useEffect(() => {
-        let cancelled = false
-        load()
-        if (user?.id) {
-            getMeetingHistory(user.id)
-                .then(h => { if (!cancelled) setHasMeetings(Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null)) })
-                .catch(() => { })
-        }
-        const pollInterval = setInterval(() => { if (!cancelled) reloadReactions() }, 30000)
-        return () => {
-            cancelled = true
-            clearInterval(pollInterval)
-        }
     }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    const load = async () => {
-        setLoading(true)
+    const load = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true)
         try {
             const data = await getMoments(undefined, user?.id)
             momentsRef.current = data
             setMoments(data)
 
-            // Apply current language immediately on load
             const lang = i18n.language
             if (lang === 'zh') {
                 setDisplayMoments(data.map(m => ({ ...m, text: m.text_zh || m.text_en || m.text })))
@@ -136,10 +113,34 @@ export default function MomentsScreen() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [user?.id, i18n.language]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        let cancelled = false
+        load()
+
+        if (user?.id) {
+            getMeetingHistory(user.id)
+                .then(h => { if (!cancelled) setHasMeetings(Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null)) })
+                .catch(() => { })
+        }
+
+        // Realtime: moment likes yangilanganda reactions refresh
+        const channel = supabase
+            .channel('moments_likes_rt')
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'moment_likes' },
+                () => { reloadReactions() })
+            .subscribe()
+
+        return () => {
+            cancelled = true
+            supabase.removeChannel(channel)
+        }
+    }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handlePosted = () => {
-        // Don't show pending posts in feed — wait for admin approval
+        // Post pending — realtime will add it when admin approves
     }
 
     const handleReactionChange = (momentId, emoji) => {

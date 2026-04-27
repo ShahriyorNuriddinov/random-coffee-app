@@ -124,14 +124,19 @@ export default function AdminMoments() {
         const res = await approveMoment(id)
         if (res.success) {
             if (moment?.author?.id) {
-                const { data: profile } = await supabase
-                    .from('profiles').select('coffee_credits').eq('id', moment.author.id).single()
-                if (profile) {
-                    await supabase.from('profiles').update({
-                        coffee_credits: (profile.coffee_credits ?? 0) + 1,
-                        subscription_status: 'active',
-                        updated_at: new Date().toISOString(),
-                    }).eq('id', moment.author.id)
+                // Read reward_post from app_settings (fallback to 1)
+                const { data: cfg } = await supabase.from('app_settings').select('reward_post').eq('id', 1).single()
+                const reward = Number(cfg?.reward_post ?? 1)
+                if (reward > 0) {
+                    const { data: profile } = await supabase
+                        .from('profiles').select('coffee_credits').eq('id', moment.author.id).single()
+                    if (profile) {
+                        await supabase.from('profiles').update({
+                            coffee_credits: (profile.coffee_credits ?? 0) + reward,
+                            subscription_status: 'active',
+                            updated_at: new Date().toISOString(),
+                        }).eq('id', moment.author.id)
+                    }
                 }
             }
             toast.success(t.approvedMsg)
