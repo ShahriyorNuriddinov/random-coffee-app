@@ -15,29 +15,28 @@
  *    <script src="https://checkout.airwallex.com/assets/bundle.x.min.js"></script>
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
-import { confirmPayment, createPaymentIntent } from '@/lib/supabaseClient'
+import { confirmPayment, createPaymentIntent, supabase } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
-const PLANS = [
-    {
-        label: 'Standard',
-        price: 'HK$299',
-        amount: 299,
-        credits: 4,
-        desc: '4 Cups / ~1 Month',
-    },
-    {
-        label: 'Best Value',
-        price: 'HK$1,999',
-        amount: 1999,
-        credits: 50,
-        desc: '50 Cups / ~1 Year',
-        badge: 'Best Value',
-    },
+const DEFAULT_PLANS = [
+    { label: 'Standard', price: 'HK$15', amount: 15, credits: 1, desc: '1 Cup' },
+    { label: 'Best Value', price: 'HK$30', amount: 30, credits: 3, desc: '3 Cups', badge: true },
 ]
+
+function buildPlans(s) {
+    if (!s) return DEFAULT_PLANS
+    const sp = Number(s.standard_price ?? 15)
+    const sc = Number(s.standard_cups ?? 1)
+    const bp = Number(s.best_price ?? 30)
+    const bc = Number(s.best_cups ?? 3)
+    return [
+        { label: 'Standard', price: 'HK$' + sp, amount: sp, credits: sc, desc: sc + ' Cup' + (sc !== 1 ? 's' : '') },
+        { label: 'Best Value', price: 'HK$' + bp, amount: bp, credits: bc, desc: bc + ' Cups', badge: true },
+    ]
+}
 
 export default function BuyCreditsModal({ onClose }) {
     const { t } = useTranslation()
@@ -46,8 +45,19 @@ export default function BuyCreditsModal({ onClose }) {
     const [loading, setLoading] = useState(false)
     const [step, setStep] = useState('select') // select | processing | success | error
     const [errorMsg, setErrorMsg] = useState('')
+    const [plans, setPlans] = useState(DEFAULT_PLANS)
 
-    const plan = PLANS[selected]
+    useEffect(() => {
+        supabase
+            .from('app_settings')
+            .select('standard_price,standard_cups,best_price,best_cups')
+            .eq('id', 1)
+            .single()
+            .then(({ data }) => { if (data) setPlans(buildPlans(data)) })
+            .catch(() => { })
+    }, [])
+
+    const plan = plans[selected]
 
     const handlePay = async () => {
         if (!user?.id) return
@@ -116,11 +126,7 @@ export default function BuyCreditsModal({ onClose }) {
         })
 
         if (result.success) {
-            setSubscription(s => ({
-                ...s,
-                credits: result.newCredits,
-                status: 'active',
-            }))
+            setSubscription(s => ({ ...s, credits: result.newCredits, status: 'active' }))
             setStep('success')
         } else {
             setStep('error')
@@ -149,9 +155,8 @@ export default function BuyCreditsModal({ onClose }) {
                             {t('buy_credits_hint')}
                         </p>
 
-                        {/* Plan selector */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                            {PLANS.map((p, i) => (
+                            {plans.map((p, i) => (
                                 <div
                                     key={p.label}
                                     onClick={() => setSelected(i)}
@@ -192,7 +197,6 @@ export default function BuyCreditsModal({ onClose }) {
                             ))}
                         </div>
 
-                        {/* Payment methods */}
                         <div style={{
                             fontSize: 12, color: 'var(--app-hint)', marginBottom: 16,
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
