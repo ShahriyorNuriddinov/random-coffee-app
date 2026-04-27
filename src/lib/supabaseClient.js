@@ -293,6 +293,28 @@ export const getLikedUserIds = async (userId) => {
     return (data || []).map(r => r.to_user_id)
 }
 
+export const getBlockedUserIds = async (userId) => {
+    try {
+        // Get the current user's UUID from auth
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return []
+
+        const { data, error } = await supabase
+            .from('blocked_users')
+            .select('blocked_id')
+            .eq('blocker_id', user.id)
+
+        if (error) {
+            console.error('[getBlockedUserIds] error:', error)
+            return []
+        }
+        return (data || []).map(r => r.blocked_id)
+    } catch (err) {
+        console.error('[getBlockedUserIds] error:', err)
+        return []
+    }
+}
+
 export const getMatches = async (userId) => {
     const { data, error } = await supabase
         .from('matches')

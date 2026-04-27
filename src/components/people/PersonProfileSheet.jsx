@@ -11,10 +11,12 @@ import { translateProfile } from '@/lib/aiUtils'
 import { blockUser, reportUser } from '@/lib/supabaseClient'
 import { useApp } from '@/store/useAppStore'
 import toast from 'react-hot-toast'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function PersonProfileSheet({ person, liked, matched, onLike, onClose }) {
     const { t, i18n } = useTranslation()
     const { user } = useApp()
+    const queryClient = useQueryClient()
     const targetLang = i18n.language === 'zh' ? 'zh' : 'en'
     const tags = Array.isArray(person.tags) ? person.tags : []
     const langs = Array.isArray(person.languages) ? person.languages : []
@@ -45,6 +47,10 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
         setBlocking(false)
         if (res.success) {
             toast.success('User blocked successfully')
+            // Invalidate queries to refresh lists
+            queryClient.invalidateQueries({ queryKey: ['people'] })
+            queryClient.invalidateQueries({ queryKey: ['meeting-history'] })
+            queryClient.invalidateQueries({ queryKey: ['moments'] })
             setTimeout(() => onClose(), 500)
         } else {
             // Check if it's a duplicate block error

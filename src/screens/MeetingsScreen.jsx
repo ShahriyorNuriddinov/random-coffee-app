@@ -14,7 +14,7 @@ import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import SearchSettingsModal from '@/components/meetings/SearchSettingsModal'
 import BoostModal from '@/components/meetings/BoostModal'
 import NewMomentModal from '@/components/moments/NewMomentModal'
-import { getMeetingHistory, getSubscription } from '@/lib/supabaseClient'
+import { getMeetingHistory, getSubscription, getBlockedUserIds } from '@/lib/supabaseClient'
 import { useMeetingBoost } from '@/hooks/useMeetingBoost'
 
 export default function MeetingsScreen() {
@@ -25,7 +25,15 @@ export default function MeetingsScreen() {
 
     const { data: history = [], isLoading: loading } = useQuery({
         queryKey: ['meeting-history', user?.id],
-        queryFn: () => getMeetingHistory(user.id),
+        queryFn: async () => {
+            const [historyData, blockedIds] = await Promise.all([
+                getMeetingHistory(user.id),
+                getBlockedUserIds(user.id),
+            ])
+            const blockedSet = new Set(blockedIds)
+            // Filter out matches with blocked users
+            return historyData.filter(m => !blockedSet.has(m.partner?.id))
+        },
         enabled: !!user?.id,
         staleTime: 30 * 1000,
     })

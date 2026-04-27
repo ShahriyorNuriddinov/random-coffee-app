@@ -7,20 +7,22 @@ import ScreenHeader from '@/components/ui/ScreenHeader'
 import PersonCard from '@/components/people/PersonCard'
 import PersonProfileSheet from '@/components/people/PersonProfileSheet'
 import PeopleFilterModal from '@/components/people/PeopleFilterModal'
-import { getPeople, getLikedUserIds, getMatches, supabase } from '@/lib/supabaseClient'
+import { getPeople, getLikedUserIds, getMatches, getBlockedUserIds, supabase } from '@/lib/supabaseClient'
 import { calcMatchScoresBatch } from '@/lib/aiUtils'
 import { usePeopleLike } from '@/hooks/usePeopleLike'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import { Skeleton } from '@/components/ui/skeleton'
 
 async function fetchPeople(userId, profile) {
-    const [allPeople, liked, matches] = await Promise.all([
+    const [allPeople, liked, matches, blockedUsers] = await Promise.all([
         getPeople(userId),
         getLikedUserIds(userId),
         getMatches(userId),
+        getBlockedUserIds(userId),
     ])
 
     const matchedIds = new Set(matches.map(m => m.partner?.id).filter(Boolean))
+    const blockedIds = new Set(blockedUsers)
 
     const myProfile = {
         gives: profile.gives || '',
@@ -29,7 +31,8 @@ async function fetchPeople(userId, profile) {
         tags: Array.isArray(profile.tags) ? profile.tags : [],
     }
 
-    const candidates = allPeople.filter(p => p.name)
+    // Filter out blocked users
+    const candidates = allPeople.filter(p => p.name && !blockedIds.has(p.id))
     const ids = candidates.map(p => p.id).sort().join(',')
     const hash = ids.length > 50 ? `${ids.length}_${ids.slice(0, 40)}_${ids.slice(-40)}` : ids
     const cacheKey = `ai_scores_${userId}_${hash}`

@@ -19,8 +19,15 @@ export default function MomentsScreen() {
     const [showNew, setShowNew] = useState(false)
     const [hasMeetings, setHasMeetings] = useState(true)
     const [showNoMeetingHint, setShowNoMeetingHint] = useState(false)
+    const [blockedUserIds, setBlockedUserIds] = useState(new Set())
     const loaderRef = useRef(null)
     const channelRef = useRef(null)
+
+    // ── Load blocked users ──────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!user?.id) return
+        getBlockedUserIds(user.id).then(ids => setBlockedUserIds(new Set(ids)))
+    }, [user?.id])
 
     // ── Infinite query ──────────────────────────────────────────────────────────
     const {
@@ -40,9 +47,12 @@ export default function MomentsScreen() {
 
     const allMoments = data?.pages.flat() ?? []
 
+    // Filter out moments from blocked users
+    const filteredMoments = allMoments.filter(m => !blockedUserIds.has(m.author?.id))
+
     // ── Derived: display text by language ──────────────────────────────────────
     const lang = i18n.language
-    const displayMoments = allMoments.map(m => ({
+    const displayMoments = filteredMoments.map(m => ({
         ...m,
         text: lang === 'zh' ? (m.text_zh || m.text_en || m.text)
             : lang === 'ru' ? (m.text_ru || m.text_en || m.text)
@@ -51,8 +61,8 @@ export default function MomentsScreen() {
 
     // ── Load reactions ──────────────────────────────────────────────────────────
     useEffect(() => {
-        if (!user?.id || !allMoments.length) return
-        const ids = allMoments.map(m => m.id)
+        if (!user?.id || !filteredMoments.length) return
+        const ids = filteredMoments.map(m => m.id)
         supabase.from('moment_likes').select('moment_id,emoji,user_id').in('moment_id', ids)
             .then(({ data }) => {
                 const userR = {}
@@ -61,7 +71,7 @@ export default function MomentsScreen() {
                 }
                 setUserReactions(userR)
             })
-    }, [allMoments.length, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [filteredMoments.length, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Meeting history check ───────────────────────────────────────────────────
     useEffect(() => {
@@ -137,7 +147,7 @@ export default function MomentsScreen() {
             />
 
             <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
-                {isLoading && !allMoments.length ? (
+                {isLoading && !filteredMoments.length ? (
                     <LoadingSkeleton />
                 ) : displayMoments.length === 0 ? (
                     <EmptyState onNew={() => setShowNew(true)} />
@@ -182,7 +192,7 @@ export default function MomentsScreen() {
                             </div>
                         )}
 
-                        {!hasNextPage && allMoments.length > 0 && (
+                        {!hasNextPage && filteredMoments.length > 0 && (
                             <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--app-hint)', padding: '8px 0 16px' }}>
                                 {lang === 'zh' ? '没有更多了' : lang === 'ru' ? 'Больше нет' : 'No more posts'}
                             </p>
