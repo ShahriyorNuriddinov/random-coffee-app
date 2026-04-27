@@ -216,14 +216,11 @@ export const getPeople = async (currentUserId) => {
         .neq('id', currentUserId)
         .not('name', 'is', null)
         .neq('banned', true)
-        .not('about', 'is', null)
-        .not('gives', 'is', null)
-        .not('wants', 'is', null)
-        .not('avatar_url', 'is', null)
-        .neq('about', '')
-        .neq('gives', '')
-        .neq('wants', '')
-    if (error) return []
+        .neq('name', '')
+    if (error) {
+        console.error('[getPeople]', error.message)
+        return []
+    }
     return data || []
 }
 
@@ -309,7 +306,10 @@ export const getMoments = async (limit = 30, userId = null) => {
     }
 
     const { data, error } = await query
-    if (error) return []
+    if (error) {
+        console.error('[getMoments] error:', error.message)
+        return []
+    }
 
     const moments = data || []
     if (moments.length === 0) return moments
