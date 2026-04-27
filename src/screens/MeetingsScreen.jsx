@@ -64,7 +64,7 @@ export default function MeetingsScreen() {
         }
     }
 
-    useEffect(() => { loadHistory() }, [user?.id])
+    useEffect(() => { loadHistory() }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleFeedbackPost = () => {
         setShowFeedback(false)

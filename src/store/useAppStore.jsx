@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, createContext, useContext } from 'react'
+import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
@@ -80,32 +80,36 @@ export function AppProvider({ children }) {
         return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline) }
     }, [])
 
-    const restoreFromUser = async (authUser) => {
+    const restoreFromUser = useCallback(async (authUser) => {
         if (!authUser) return
         const uid = authUser.id
         const email = authUser.email
-        const { data: db } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
-        if (db && db.name) {
-            const u = { id: uid, email }
-            setUser(u)
-            userRef.current = u
-            setProfile(dbToProfile(db))
-            setSubscription({
-                status: db.subscription_status || 'trial',
-                credits: db.coffee_credits ?? 2,
-                start: db.subscription_start || null,
-                end: db.subscription_end || null,
-            })
-            setNotifNewMatches(db.notif_new_matches ?? true)
-            setNotifImportantNews(db.notif_important_news ?? true)
-            setProfileWelcomeSeen(true)
-            setScreen('profile')
-        } else if (db !== null && db !== undefined) {
-            setUser({ id: uid, email })
-            userRef.current = { id: uid, email }
-            setScreen('personal')
+        try {
+            const { data: db } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
+            if (db && db.name) {
+                const u = { id: uid, email }
+                setUser(u)
+                userRef.current = u
+                setProfile(dbToProfile(db))
+                setSubscription({
+                    status: db.subscription_status || 'trial',
+                    credits: db.coffee_credits ?? 2,
+                    start: db.subscription_start || null,
+                    end: db.subscription_end || null,
+                })
+                setNotifNewMatches(db.notif_new_matches ?? true)
+                setNotifImportantNews(db.notif_important_news ?? true)
+                setProfileWelcomeSeen(true)
+                setScreen('profile')
+            } else if (db !== null && db !== undefined) {
+                setUser({ id: uid, email })
+                userRef.current = { id: uid, email }
+                setScreen('personal')
+            }
+        } catch (err) {
+            console.error('[restoreFromUser]', err)
         }
-    }
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(

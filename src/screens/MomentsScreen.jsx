@@ -27,7 +27,7 @@ export default function MomentsScreen() {
         } else {
             setDisplayMoments(moments)
         }
-    }, [i18n.language, moments.length])
+    }, [i18n.language, moments.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const translateMoments = async (list) => {
         // Use pre-saved DB translations first, only call AI for missing ones
@@ -82,20 +82,19 @@ export default function MomentsScreen() {
     }
 
     useEffect(() => {
+        let cancelled = false
         load()
-        // Check if user has any COMPLETED meetings (or old matches without status)
         if (user?.id) {
-            getMeetingHistory(user.id).then(h => setHasMeetings(Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null))).catch(() => { })
+            getMeetingHistory(user.id)
+                .then(h => { if (!cancelled) setHasMeetings(Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null)) })
+                .catch(() => { })
         }
-
-        // Realtime — reactions handled optimistically in MomentCard, no channel needed
-        // Fallback polling every 30s for reaction sync
-        const pollInterval = setInterval(() => reloadReactions(), 30000)
-
+        const pollInterval = setInterval(() => { if (!cancelled) reloadReactions() }, 30000)
         return () => {
+            cancelled = true
             clearInterval(pollInterval)
         }
-    }, [user?.id])
+    }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const load = async () => {
         setLoading(true)

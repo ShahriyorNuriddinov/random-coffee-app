@@ -145,7 +145,7 @@ export const applyReferralCode = async (referralCode, newUserId) => {
 
 // ─── PAYMENTS (Airwallex) ─────────────────────────────────────────────────────
 
-export const createPaymentIntent = async ({ userId, amount, currency = 'HKD', credits, method }) => {
+export const createPaymentIntent = async (_params) => {
     // MOCK for MVP demo — replace with real Edge Function call when Airwallex is ready
     return {
         success: true,
@@ -303,7 +303,7 @@ export const getMoments = async (limit = 30, userId = null) => {
         .limit(limit)
 
     if (userId) {
-        query = query.eq('status', 'approved')
+        query = query.or(`status.eq.approved,user_id.eq.${userId}`)
     } else {
         query = query.eq('status', 'approved')
     }

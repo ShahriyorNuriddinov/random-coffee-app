@@ -139,7 +139,10 @@ export default function OtpScreen() {
                             <>{t('resend_in')} <span>{fmt(timer)}</span></>
                         ) : (
                             <span
-                                onClick={async () => { await sendOtp(phone); toast.success(t('toast_otp_sent')); startTimer() }}
+                                onClick={async () => {
+                                    try { await sendOtp(phone); toast.success(t('toast_otp_sent')); startTimer() }
+                                    catch { toast.error(t('err_otp')) }
+                                }}
                                 className="text-[var(--app-primary)] font-semibold cursor-pointer"
                             >
                                 {t('resend')}
