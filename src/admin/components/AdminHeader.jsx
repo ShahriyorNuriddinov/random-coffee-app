@@ -8,8 +8,7 @@ export default function AdminHeader({ tab, lang, setLang }) {
 
     return (
         <div className="bg-white border-b border-black/5 sticky top-0 z-10">
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}
-                className="py-4 flex items-center justify-between">
+            <div className="w-full max-w-[1200px] mx-auto px-4 py-4 flex items-center justify-between">
                 <span className="text-2xl font-extrabold tracking-tight">
                     {t[tab] ?? tab}
                 </span>
