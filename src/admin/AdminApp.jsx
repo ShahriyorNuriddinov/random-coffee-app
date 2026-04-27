@@ -58,11 +58,10 @@ export default function AdminApp() {
 
         // Load initial unread count — only events AFTER last seen time from DB
         const loadInitialCount = async () => {
-            // Get last seen time from admin_settings
             const { data: stateData } = await supabase
-                .from('admin_settings')
+                .from('app_settings')
                 .select('notif_seen_at')
-                .limit(1)
+                .eq('id', 1)
                 .single()
 
             const since = stateData?.notif_seen_at || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -95,9 +94,9 @@ export default function AdminApp() {
         if (t === 'notifications') {
             // Save current time to admin_settings as "last seen"
             supabase
-                .from('admin_settings')
+                .from('app_settings')
                 .update({ notif_seen_at: new Date().toISOString() })
-                .limit(1)
+                .eq('id', 1)
                 .then(() => { })
             setUnreadCount(0)
         }
