@@ -100,13 +100,14 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
             if (!existing) {
                 await supabase.from('matches').insert({ user1_id: u1, user2_id: u2 })
 
-                const newCredits = Math.max(0, (subscription.credits ?? 2) - 1)
-                const newStatus = newCredits === 0 ? 'empty' : (subscription.status === 'trial' ? 'trial' : 'active')
-                const { error: creditError } = await supabase.from('profiles').update({
-                    coffee_credits: newCredits,
-                    subscription_status: newStatus,
-                }).eq('id', user.id)
+                // Atomic decrement to avoid race condition
+                const { error: creditError } = await supabase.rpc('increment_credits', {
+                    p_user_id: user.id,
+                    p_credits: -1,
+                })
                 if (!creditError) {
+                    const newCredits = Math.max(0, (subscription.credits ?? 1) - 1)
+                    const newStatus = newCredits === 0 ? 'empty' : (subscription.status === 'trial' ? 'trial' : 'active')
                     setSubscription(s => ({ ...s, credits: newCredits, status: newStatus }))
                 }
             }

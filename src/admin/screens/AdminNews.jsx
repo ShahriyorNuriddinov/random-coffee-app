@@ -83,19 +83,29 @@ function NewsEditor({ item, onSave, onClose, lang }) {
                 .then(([t1, t2]) => {
                     const update = {}
                     if (isChinese) {
-                        if (t1) update.text = t1       // EN translation → main text field
-                        if (t1) update.text_en = t1    // also save to text_en
+                        if (t1) update.text = t1
+                        if (t1) update.text_en = t1
                         if (t2) update.text_ru = t2
                     } else if (isCyrillic) {
                         if (t1) update.text = t1
                         if (t1) update.text_en = t1
                         if (t2) update.text_zh = t2
                     } else {
-                        // EN written → translate to zh and ru
                         if (t1) update.text_zh = t1
                         if (t2) update.text_ru = t2
                     }
-                    if (Object.keys(update).length > 0) updateNews(res.id, update).catch(() => { })
+                    if (Object.keys(update).length > 0) {
+                        // Update news table
+                        updateNews(res.id, update).catch(() => { })
+                        // Also update the linked moments row if exists
+                        if (res._momentId) {
+                            supabase.from('moments').update({
+                                text_en: update.text_en || update.text || null,
+                                text_zh: update.text_zh || null,
+                                text_ru: update.text_ru || null,
+                            }).eq('id', res._momentId).then(() => { })
+                        }
+                    }
                 })
                 .catch(() => { })
         }
@@ -237,7 +247,7 @@ export default function AdminNews() {
             toast.success(editorItem?.id ? getT('common', lang).saved : t.publishedMsg)
             // If new post — also publish to moments feed as approved
             if (!editorItem?.id) {
-                const { error: mErr } = await supabase.from('moments').insert({
+                const { data: momentRow, error: mErr } = await supabase.from('moments').insert({
                     text: payload.text || payload.text_zh || payload.text_ru || '',
                     text_en: payload.text || null,
                     text_zh: payload.text_zh || null,
@@ -246,8 +256,15 @@ export default function AdminNews() {
                     image_urls: payload.image_url ? [payload.image_url] : [],
                     status: 'approved',
                     is_admin_post: true,
-                })
+                }).select('id').single()
                 if (mErr) console.error('[AdminNews] moments insert error:', mErr)
+
+                // Store moment ID on news row so background translate can update both
+                if (momentRow?.id && res.data?.id) {
+                    updateNews(res.data.id, { moment_id: momentRow.id }).catch(() => { })
+                }
+                // Pass moment ID to background translate via res
+                if (res.data) res.data._momentId = momentRow?.id
             }
             load()
         } else toast.error(res.error)

@@ -128,11 +128,7 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
         } else {
             // Only deduct credit if post was approved (credit was earned)
             if (moment.status === 'approved') {
-                const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', user.id).single()
-                if (profile) {
-                    const newCredits = Math.max(0, (profile.coffee_credits ?? 0) - 1)
-                    await supabase.from('profiles').update({ coffee_credits: newCredits }).eq('id', user.id)
-                }
+                await supabase.rpc('increment_credits', { p_user_id: user.id, p_credits: -1 })
             }
             setDeleted(true)
             onDeleted?.(moment.id)
@@ -264,7 +260,9 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
             })()}
 
             <div style={{ padding: '12px 16px', fontSize: 15, lineHeight: 1.45, color: 'var(--app-text)' }}>
-                {translated && translatedText ? translatedText : moment.text}
+                {translated && translatedText
+                    ? translatedText
+                    : autoTranslated || (moment.text_en || moment.text)}
             </div>
 
             <div
@@ -336,7 +334,9 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                         opacity: translating ? 0.5 : 1, flexShrink: 0,
                     }}
                 >
-                    {translating ? '...' : translated ? 'Show original' : 'Translate'}
+                    {translating ? '...' : translated
+                        ? (currentLang === 'zh' ? '显示原文' : currentLang === 'ru' ? 'Оригинал' : 'Show original')
+                        : (currentLang === 'zh' ? '翻译' : currentLang === 'ru' ? 'Перевести' : 'Translate')}
                 </button>
             </div>
 

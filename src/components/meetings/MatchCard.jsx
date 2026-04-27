@@ -270,7 +270,7 @@ export default function MatchCard({ match, onFeedback }) {
                 )}
                 {!partner.whatsapp && !partner.wechat && (
                     <div style={{ fontSize: 13, color: 'var(--app-hint)', textAlign: 'center', padding: '8px 0' }}>
-                        Contact info not available yet
+                        {lang === 'zh' ? '联系方式暂未提供' : lang === 'ru' ? 'Контакты пока недоступны' : 'Contact info not available yet'}
                     </div>
                 )}
             </div>
@@ -314,7 +314,7 @@ function InfoSection({ label, text, borderColor, expanded, onToggle }) {
                     background: 'none', border: 'none', padding: '4px 0 0',
                     cursor: 'pointer', fontFamily: 'inherit',
                 }}>
-                    {expanded ? 'Show less' : 'Read more'}
+                    {expanded ? (currentLang === 'zh' ? '收起' : currentLang === 'ru' ? 'Свернуть' : 'Show less') : (currentLang === 'zh' ? '展开' : currentLang === 'ru' ? 'Читать далее' : 'Read more')}
                 </button>
             )}
         </div>

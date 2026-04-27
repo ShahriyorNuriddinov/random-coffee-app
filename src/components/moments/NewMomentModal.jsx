@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 import { useApp } from '@/store/useAppStore'
-import { postMoment, uploadMomentImage } from '@/lib/supabaseClient'
+import { postMoment, uploadMomentImage, supabase } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
 import toast from 'react-hot-toast'
 
@@ -35,7 +35,6 @@ export default function NewMomentModal({ onClose, onPosted }) {
     const [images, setImages] = useState([]) // max 4
     const [loading, setLoading] = useState(false)
     const fileRef = useRef()
-    const currentLang = i18n.language // 'en' or 'zh'
 
     const handleImage = async (e) => {
         const files = Array.from(e.target.files || [])
@@ -69,44 +68,49 @@ export default function NewMomentModal({ onClose, onPosted }) {
         }
 
         const trimmedText = text.trim()
+        const isChinese = /[\u4e00-\u9fff]/.test(trimmedText)
+        const isCyrillic = /[\u0400-\u04ff]/.test(trimmedText)
 
+        // Detect source language from text content (not UI lang)
         let text_en = null
         let text_zh = null
         let text_ru = null
 
-        if (currentLang === 'zh') {
+        if (isChinese) {
             text_zh = trimmedText
-            const [en, ru] = await Promise.all([
-                translateText(trimmedText, 'en').catch(() => null),
-                translateText(trimmedText, 'ru').catch(() => null),
-            ])
-            text_en = en
-            text_ru = ru
-        } else if (currentLang === 'ru') {
+        } else if (isCyrillic) {
             text_ru = trimmedText
-            const [en, zh] = await Promise.all([
-                translateText(trimmedText, 'en').catch(() => null),
-                translateText(trimmedText, 'zh').catch(() => null),
-            ])
-            text_en = en
-            text_zh = zh
         } else {
-            // en
             text_en = trimmedText
-            const [zh, ru] = await Promise.all([
-                translateText(trimmedText, 'zh').catch(() => null),
-                translateText(trimmedText, 'ru').catch(() => null),
-            ])
-            text_zh = zh
-            text_ru = ru
         }
 
+        // Post immediately — don't wait for translations
         const result = await postMoment(user.id, trimmedText, imageUrl, text_en, text_zh, imageUrls, text_ru)
         setLoading(false)
 
         if (result) {
             toast.success(t('toast_moment_posted', 'Posted! Your moment is pending review ⏳'))
             onClose()
+
+            // Background: translate to other 2 languages and update the row
+            if (result.id) {
+                const targets = isChinese
+                    ? [['en', 'text_en'], ['ru', 'text_ru']]
+                    : isCyrillic
+                        ? [['en', 'text_en'], ['zh', 'text_zh']]
+                        : [['zh', 'text_zh'], ['ru', 'text_ru']]
+
+                Promise.all(
+                    targets.map(([lang]) => translateText(trimmedText, lang).catch(() => null))
+                ).then(([t1, t2]) => {
+                    const update = {}
+                    if (t1) update[targets[0][1]] = t1
+                    if (t2) update[targets[1][1]] = t2
+                    if (Object.keys(update).length > 0) {
+                        supabase.from('moments').update(update).eq('id', result.id).then(() => { })
+                    }
+                }).catch(() => { })
+            }
         } else {
             toast.error(t('toast_post_failed', 'Failed to post. Try again.'))
         }
@@ -135,9 +139,9 @@ export default function NewMomentModal({ onClose, onPosted }) {
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 16, textAlign: 'left', width: '100%' }}>
                     <div style={{ background: 'rgba(0,122,255,0.06)', borderRadius: 10, padding: '10px 12px', border: '0.5px solid rgba(0,122,255,0.1)', fontWeight: 500, color: '#0055b3' }}>
-                        ☕ {currentLang === 'zh'
+                        ☕ {i18n.language === 'zh'
                             ? '每次完成咖啡约见后，您可以在这里分享体验并获得 +1 积分！'
-                            : currentLang === 'ru'
+                            : i18n.language === 'ru'
                                 ? 'После каждой кофе-встречи вы можете поделиться опытом и получить +1 кредит!'
                                 : 'After each coffee meeting you can share your experience here and earn +1 credit!'}
                     </div>

@@ -22,14 +22,15 @@ export default function MomentsScreen() {
     // Auto-translate when language changes
     useEffect(() => {
         if (moments.length === 0) return
-        if (i18n.language === 'zh') {
+        const lang = i18n.language
+        if (lang === 'zh') {
             translateMoments(moments, 'zh')
-        } else if (i18n.language === 'ru') {
+        } else if (lang === 'ru') {
             translateMoments(moments, 'ru')
         } else {
-            setDisplayMoments(moments)
+            setDisplayMoments(moments.map(m => ({ ...m, text: m.text_en || m.text })))
         }
-    }, [i18n.language, moments.length]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [i18n.language, moments]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const translateMoments = async (list, lang) => {
         const textKey = lang === 'zh' ? 'text_zh' : 'text_ru'
@@ -115,7 +116,16 @@ export default function MomentsScreen() {
             const data = await getMoments(undefined, user?.id)
             momentsRef.current = data
             setMoments(data)
-            setDisplayMoments(data)
+
+            // Apply current language immediately on load
+            const lang = i18n.language
+            if (lang === 'zh') {
+                setDisplayMoments(data.map(m => ({ ...m, text: m.text_zh || m.text_en || m.text })))
+            } else if (lang === 'ru') {
+                setDisplayMoments(data.map(m => ({ ...m, text: m.text_ru || m.text_en || m.text })))
+            } else {
+                setDisplayMoments(data.map(m => ({ ...m, text: m.text_en || m.text })))
+            }
 
             if (user?.id && data.length > 0) {
                 const userR = await getUserMomentReactions(user.id, data.map(m => m.id))

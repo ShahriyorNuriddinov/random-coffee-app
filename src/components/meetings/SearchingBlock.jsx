@@ -40,7 +40,7 @@ export default function SearchingBlock({ onPeople, onBoost, boosting, filters })
                 }}>
                     <span>🎯</span>
                     <div>
-                        <strong>Active search request:</strong><br />
+                        <strong>{t('active_search', 'Active search request:')}</strong><br />
                         {[
                             filters.regions?.length > 0 && `Location: ${filters.regions.join(', ')}`,
                             filters.langs?.length > 0 && `Languages: ${filters.langs.join(', ')}`,
