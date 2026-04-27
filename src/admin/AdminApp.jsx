@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react'
+import { Toaster } from 'react-hot-toast'
 import ErrorBoundary from '../components/ErrorBoundary'
 import AdminLogin from './screens/AdminLogin'
 import AdminDashboard from './screens/AdminDashboard'
@@ -110,6 +111,7 @@ export default function AdminApp() {
 
     return (
         <ErrorBoundary>
+            <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
             <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount }}>
                 <AdminHeader tab={tab} lang={lang} setLang={setLang} />
                 <div className={`w-full max-w-[1200px] mx-auto pb-20 box-border ${tab === 'notifications' ? 'px-0' : 'px-4'}`}>
