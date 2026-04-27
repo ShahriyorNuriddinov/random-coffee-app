@@ -117,12 +117,16 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                         >
                             {allPhotos.map((photo, i) => (
                                 <SwiperSlide key={i}>
-                                    <div style={{
-                                        width: '100%', height: 320,
-                                        backgroundImage: `url(${photo})`,
-                                        backgroundSize: 'cover',
-                                        backgroundPosition: 'center',
-                                    }} />
+                                    <img
+                                        src={photo}
+                                        alt=""
+                                        style={{
+                                            width: '100%',
+                                            height: 320,
+                                            objectFit: 'cover',
+                                            display: 'block',
+                                        }}
+                                    />
                                 </SwiperSlide>
                             ))}
                         </Swiper>
