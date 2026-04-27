@@ -21,8 +21,7 @@ export default function AdminBottomNav({ tab, setTab, lang, unreadCount = 0 }) {
                 <button
                     key={id}
                     onClick={() => setTab(id)}
-                    className={`flex flex-col items-center gap-[3px] flex-1 text-[10px] font-semibold transition-colors ${tab === id ? 'text-[#007aff]' : 'text-[#a2a2a7]'
-                        }`}
+                    className={`flex flex-col items-center gap-[3px] flex-1 text-[10px] font-semibold transition-colors ${tab === id ? 'text-[#007aff]' : 'text-[#a2a2a7]'}`}
                 >
                     <div className="relative">
                         <Icon size={20} strokeWidth={2} />
@@ -42,9 +41,13 @@ export default function AdminBottomNav({ tab, setTab, lang, unreadCount = 0 }) {
                     <span>{t[id]}</span>
                 </button>
             ))}
-            AdminBottomNav.propTypes = {
-                tab: PropTypes.string.isRequired,
-            setTab: PropTypes.func.isRequired,
-            lang: PropTypes.string.isRequired,
-            unreadCount: PropTypes.number,
+        </div>
+    )
+}
+
+AdminBottomNav.propTypes = {
+    tab: PropTypes.string.isRequired,
+    setTab: PropTypes.func.isRequired,
+    lang: PropTypes.string.isRequired,
+    unreadCount: PropTypes.number,
 }
