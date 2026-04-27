@@ -19,7 +19,9 @@ export default function FullScreenModal({ title, onClose, rightAction, children 
                 {rightAction ? rightAction : <div className="w-6" />}
             </div>
             <div className="flex-1 overflow-y-auto pb-8">
-                {children}
+                <div style={{ width: '80%', margin: '0 auto' }}>
+                    {children}
+                </div>
             </div>
         </div>
     )
