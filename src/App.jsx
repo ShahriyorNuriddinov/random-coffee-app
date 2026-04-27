@@ -53,9 +53,7 @@ export default function App() {
     <ErrorBoundary>
       <AppProvider>
         <OfflineBanner />
-        <div style={{ width: '80%', margin: '0 auto' }}>
-          <Router />
-        </div>
+        <Router />
         <Toaster
           position="top-center"
           toastOptions={{
