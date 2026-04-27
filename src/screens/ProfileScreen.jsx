@@ -79,7 +79,9 @@ export default function ProfileScreen() {
                             return p
                         })()}
                         userId={user?.id}
-                        onPhotosChange={(photos) => setProfile(p => ({ ...p, photos }))}
+                        onPhotosChange={(photos) => {
+                            setProfile(p => ({ ...p, photos }))
+                        }}
                     />
 
                     <div style={{ textAlign: 'center' }}>

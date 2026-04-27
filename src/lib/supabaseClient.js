@@ -76,21 +76,29 @@ export const uploadAvatar = async (userId, file) => {
 export const uploadPhoto = async (userId, file, index) => {
     const ext = file.name.split('.').pop()
     const path = `photos/${userId}/photo_${index}.${ext}`
+    console.log('[uploadPhoto] uploading to:', path)
     const { error } = await supabase.storage.from('photos').upload(path, file, { upsert: true })
     if (error) {
         console.error('[uploadPhoto] Storage upload failed:', error.message)
         return null
     }
     const { data } = supabase.storage.from('photos').getPublicUrl(path)
+    console.log('[uploadPhoto] public url:', data.publicUrl)
     return data.publicUrl
 }
 
 export const savePhotos = async (userId, photoUrls) => {
+    const cleanUrls = (photoUrls || []).map(u => u || null)
+    console.log('[savePhotos] saving:', cleanUrls)
     const { error } = await supabase
         .from('profiles')
-        .update({ photos: photoUrls, updated_at: new Date().toISOString() })
+        .update({ photos: cleanUrls, updated_at: new Date().toISOString() })
         .eq('id', userId)
-    if (error) return { success: false, error: error.message }
+    if (error) {
+        console.error('[savePhotos] error:', error.message)
+        return { success: false, error: error.message }
+    }
+    console.log('[savePhotos] saved ok')
     return { success: true }
 }
 
