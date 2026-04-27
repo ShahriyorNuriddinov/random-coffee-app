@@ -210,6 +210,7 @@ function NewsCard({ item, onActions, lang }) {
 export default function AdminNews() {
     const { lang } = useAdmin()
     const [news, setNews] = useState([])
+    const [totalReactions, setTotalReactions] = useState(0)
     const [loading, setLoading] = useState(true)
     const [editorItem, setEditorItem] = useState(undefined) // undefined=closed, null=new, obj=edit
     const [actionsItem, setActionsItem] = useState(null)
@@ -219,7 +220,9 @@ export default function AdminNews() {
     const load = async () => {
         setLoading(true)
         try {
-            setNews(await getNews())
+            const res = await getNews()
+            setNews(res.list)
+            setTotalReactions(res.totalReactions)
         } catch { setNews([]) }
         finally { setLoading(false) }
     }
@@ -301,7 +304,7 @@ export default function AdminNews() {
                     <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400 mt-1">{t.pinned}</p>
                 </Card>
                 <Card className="p-4 text-center">
-                    <p className="text-2xl font-extrabold text-[#34c759]">{news._totalReactions || 0}</p>
+                    <p className="text-2xl font-extrabold text-[#34c759]">{totalReactions}</p>
                     <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400 mt-1">{lang === 'zh' ? '总反应' : 'Reactions'}</p>
                 </Card>
             </div>            {/* Add button */}

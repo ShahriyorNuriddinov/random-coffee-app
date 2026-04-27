@@ -798,4 +798,12 @@ i18n.use(initReactI18next).init({
     interpolation: { escapeValue: false }
 })
 
+// Keep <html lang> in sync with selected language for SEO & screen readers
+i18n.on('languageChanged', (lng) => {
+    document.documentElement.lang = lng
+    localStorage.setItem('rc_lang', lng)
+})
+// Set initial lang attribute
+document.documentElement.lang = i18n.language || 'en'
+
 export default i18n

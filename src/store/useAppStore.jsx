@@ -133,7 +133,10 @@ export function AppProvider({ children }) {
                 }
             }
         )
-        const fallback = setTimeout(() => { }, 8000)
+        const fallback = setTimeout(() => {
+            // If auth hasn't resolved after 8s and no user, go to onboarding
+            if (!userRef.current) setScreen('onboarding')
+        }, 8000)
         return () => { authSub.unsubscribe(); clearTimeout(fallback) }
     }, [])
 

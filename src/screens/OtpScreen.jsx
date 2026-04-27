@@ -15,6 +15,7 @@ export default function OtpScreen() {
     const [loading, setLoading] = useState(false)
     const inputs = useRef([])
     const intervalRef = useRef(null)
+    const verifyingRef = useRef(false)
 
     useEffect(() => {
         startTimer()
@@ -47,14 +48,17 @@ export default function OtpScreen() {
     }
 
     const handleVerify = async (code) => {
-        if (loading) return  // prevent double-call
+        if (verifyingRef.current) return  // prevent double-call (race condition fix)
         if (!code || code.length < 6) return
+        verifyingRef.current = true
         setLoading(true)
         try {
             const res = await verifyOtp(phone, code)
             if (res?.success) {
                 loginUser(res.user, phone, '')
-                await saveProfile(res.user.id, { email: phone })
+                // phone state holds the email address (app uses email OTP)
+                const email = phone
+                await saveProfile(res.user.id, { email })
                 const existingProfile = await getProfile(res.user.id)
                 if (existingProfile && existingProfile.name) {
                     setProfile(p => ({
@@ -93,6 +97,7 @@ export default function OtpScreen() {
             setDigits(['', '', '', '', '', ''])
             inputs.current[0]?.focus()
         } finally {
+            verifyingRef.current = false
             setLoading(false)
         }
     }
@@ -125,6 +130,7 @@ export default function OtpScreen() {
                                 type="tel"
                                 inputMode="numeric"
                                 maxLength={1}
+                                autoComplete={i === 0 ? 'one-time-code' : 'off'}
                                 value={d}
                                 onChange={e => handleInput(i, e.target.value)}
                                 onKeyDown={e => handleKeyDown(i, e)}

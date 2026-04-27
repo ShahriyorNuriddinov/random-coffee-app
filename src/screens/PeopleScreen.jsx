@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
 import BottomNav from '@/components/BottomNav'
@@ -26,7 +26,7 @@ export default function PeopleScreen() {
     useEffect(() => {
         if (!user?.id) return
         load()
-    }, [user?.id, profile?.tags?.length])
+    }, [user?.id, profile?.tags?.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const displayPeople = useMemo(() => {
         if (i18n.language === 'zh') return people.map(p => ({
@@ -44,7 +44,7 @@ export default function PeopleScreen() {
         return people
     }, [people, i18n.language])
 
-    const load = async () => {
+    const load = useCallback(async () => {
         setLoading(true)
         try {
             const [allPeople, liked] = await Promise.all([
@@ -100,7 +100,7 @@ export default function PeopleScreen() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [user?.id, profile?.gives, profile?.wants, profile?.about, profile?.tags]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const hasActiveFilters = filters.regions.length > 0 || filters.langs.length > 0
 
@@ -121,7 +121,7 @@ export default function PeopleScreen() {
             <ScreenHeader
                 title={t('nav_people')}
                 right={
-                    <button onClick={() => setShowFilter(true)} style={{
+                    <button aria-label="Filter people" onClick={() => setShowFilter(true)} style={{
                         width: 34, height: 34, borderRadius: '50%',
                         border: hasActiveFilters ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
                         background: hasActiveFilters ? 'rgba(0,122,255,0.1)' : 'rgba(120,120,128,0.1)',

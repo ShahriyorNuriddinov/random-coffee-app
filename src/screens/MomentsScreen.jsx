@@ -33,23 +33,34 @@ export default function MomentsScreen() {
 
     const translateMoments = async (list, lang) => {
         const textKey = lang === 'zh' ? 'text_zh' : 'text_ru'
-        const needsAI = list.filter(m => !m[textKey])
-        if (needsAI.length === 0) {
-            setDisplayMoments(list.map(m => ({ ...m, text: m[textKey] || m.text })))
+        // Use pre-stored translations first — no AI needed
+        const allHaveTranslation = list.every(m => m[textKey])
+        if (allHaveTranslation) {
+            setDisplayMoments(list.map(m => ({ ...m, text: m[textKey] })))
             return
         }
+
         const cacheKey = `translated_moments_${lang}_${list.map(m => m.id).join(',').slice(0, 80)}`
         try {
             const cached = sessionStorage.getItem(cacheKey)
             if (cached) { setDisplayMoments(JSON.parse(cached)); return }
         } catch { }
 
-        const translated = await Promise.all(list.map(async (m) => {
-            if (m[textKey]) return { ...m, text: m[textKey] }
-            const text = await translateText(m.text_en || m.text, lang)
-            return { ...m, text: text || m.text }
-        }))
-        setDisplayMoments(translated)
+        // Show what we have immediately (stored translations), translate missing ones sequentially
+        const withStored = list.map(m => ({ ...m, text: m[textKey] || m.text }))
+        setDisplayMoments(withStored)
+
+        // Translate only missing ones — sequentially to avoid rate limits
+        const needsAI = list.filter(m => !m[textKey])
+        const translated = [...withStored]
+        for (const m of needsAI) {
+            try {
+                const text = await translateText(m.text_en || m.text, lang)
+                const idx = translated.findIndex(t => t.id === m.id)
+                if (idx !== -1) translated[idx] = { ...translated[idx], text: text || m.text }
+            } catch { /* skip failed translations */ }
+        }
+        setDisplayMoments([...translated])
         try { sessionStorage.setItem(cacheKey, JSON.stringify(translated)) } catch { }
     }
 
@@ -132,6 +143,7 @@ export default function MomentsScreen() {
                 right={
                     /* Plus button — HTML: .plus-btn */
                     <button
+                        aria-label="New moment"
                         onClick={() => {
                             if (!hasMeetings) { setShowNoMeetingHint(true); return }
                             setShowNew(true)

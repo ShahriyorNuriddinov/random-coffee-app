@@ -9,57 +9,69 @@ export { supabase }
 
 // incomeTab: 'today' | 'week' | 'month' | 'year'
 export const getDashboardStats = async (incomeTab = 'week') => {
-    const [profilesRes, matchesRes, momentsCountRes, paymentsRes, feedbackRes] = await Promise.all([
-        supabase.from('profiles').select('id, created_at, subscription_status, gender', { count: 'exact' }),
-        supabase.from('matches').select('id, created_at, status', { count: 'exact' }),
-        supabase.from('moments').select('id', { count: 'exact', head: true }),
-        supabase.from('payments').select('amount, created_at'),
-        supabase.from('meeting_feedback').select('status, rating, fail_reason'),
-    ])
-
-    const profiles = profilesRes.data || []
-    const matches = matchesRes.data || []
-    const payments = paymentsRes.data || []
-
-    const totalMembers = profilesRes.count || 0
-    const activeMembers = profiles.filter(p => p.subscription_status === 'active').length
-    const men = profiles.filter(p => p.gender === 'male').length
-    const women = profiles.filter(p => p.gender === 'female').length
-
     const now = new Date()
-
-    // Filter payments by incomeTab period
-    const periodStart = (() => {
-        const d = new Date(now)
-        if (incomeTab === 'today') { d.setHours(0, 0, 0, 0); return d }
-        if (incomeTab === 'week') return new Date(now - 7 * 24 * 60 * 60 * 1000)
-        if (incomeTab === 'month') { d.setDate(1); d.setHours(0, 0, 0, 0); return d }
-        if (incomeTab === 'year') { d.setMonth(0, 1); d.setHours(0, 0, 0, 0); return d }
-        return new Date(now - 7 * 24 * 60 * 60 * 1000)
-    })()
-
-    const filteredPayments = payments.filter(p => new Date(p.created_at) >= periodStart)
-    const totalRevenue = filteredPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
-
+    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
     const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
     const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
     const twoMonthsAgo = new Date(now - 60 * 24 * 60 * 60 * 1000)
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
 
-    const newThisWeek = profiles.filter(p => new Date(p.created_at) > weekAgo).length
-    const newToday = profiles.filter(p => new Date(p.created_at) >= todayStart).length
-    const newThisMonth = profiles.filter(p => new Date(p.created_at) > monthAgo).length
-    const newPrevMonth = profiles.filter(p => {
-        const d = new Date(p.created_at)
-        return d > twoMonthsAgo && d <= monthAgo
-    }).length
+    // Period start for revenue tab
+    const periodStart = (() => {
+        const d = new Date(now)
+        if (incomeTab === 'today') { d.setHours(0, 0, 0, 0); return d }
+        if (incomeTab === 'week') return weekAgo
+        if (incomeTab === 'month') { d.setDate(1); d.setHours(0, 0, 0, 0); return d }
+        if (incomeTab === 'year') { d.setMonth(0, 1); d.setHours(0, 0, 0, 0); return d }
+        return weekAgo
+    })()
+
+    // ── Parallel queries — server-side filtering, no full table scans ──────────
+    const [
+        totalMembersRes, activeMembersRes, menRes, womenRes,
+        newTodayRes, newWeekRes, newMonthRes, newPrevMonthRes,
+        totalMatchesRes, successMatchesRes, cancelledMatchesRes,
+        momentsCountRes, revenueRes, chartPaymentsRes,
+        chartProfilesRes, feedbackRes,
+    ] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('subscription_status', 'active'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('gender', 'male'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('gender', 'female'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', monthAgo.toISOString()),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', twoMonthsAgo.toISOString()).lt('created_at', monthAgo.toISOString()),
+        supabase.from('matches').select('*', { count: 'exact', head: true }),
+        supabase.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+        supabase.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'cancelled'),
+        supabase.from('moments').select('*', { count: 'exact', head: true }),
+        supabase.from('payments').select('amount').gte('created_at', periodStart.toISOString()),
+        supabase.from('payments').select('amount, created_at').gte('created_at', weekAgo.toISOString()),
+        supabase.from('profiles').select('created_at').gte('created_at', weekAgo.toISOString()),
+        supabase.from('meeting_feedback').select('status, rating, fail_reason'),
+    ])
+
+    const totalMembers = totalMembersRes.count || 0
+    const activeMembers = activeMembersRes.count || 0
+    const men = menRes.count || 0
+    const women = womenRes.count || 0
+    const newToday = newTodayRes.count || 0
+    const newThisWeek = newWeekRes.count || 0
+    const newThisMonth = newMonthRes.count || 0
+    const newPrevMonth = newPrevMonthRes.count || 0
     const growthPct = newPrevMonth > 0 ? Math.round((newThisMonth - newPrevMonth) / newPrevMonth * 100) : 0
 
-    // Revenue by day (last 7 days) — always show 7-day chart
+    const payments = revenueRes.data || []
+    const totalRevenue = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+
+    const chartPayments = chartPaymentsRes.data || []
+    const chartProfiles = chartProfilesRes.data || []
+
+    // Revenue by day (last 7 days)
     const revenueByDay = Array.from({ length: 7 }, (_, i) => {
         const day = new Date(now - (6 - i) * 24 * 60 * 60 * 1000)
         const dayStr = day.toLocaleDateString('en', { weekday: 'short' })
-        const revenue = payments
+        const revenue = chartPayments
             .filter(p => new Date(p.created_at).toDateString() === day.toDateString())
             .reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
         return { day: dayStr, revenue }
@@ -69,16 +81,15 @@ export const getDashboardStats = async (incomeTab = 'week') => {
     const membersByDay = Array.from({ length: 7 }, (_, i) => {
         const day = new Date(now - (6 - i) * 24 * 60 * 60 * 1000)
         const dayStr = day.toLocaleDateString('en', { weekday: 'short' })
-        const count = profiles.filter(p => new Date(p.created_at).toDateString() === day.toDateString()).length
+        const count = chartProfiles.filter(p => new Date(p.created_at).toDateString() === day.toDateString()).length
         return { day: dayStr, count }
     })
 
-    // matches status — only completed = successful, null/active = pending (not yet confirmed)
-    const successfulMatches = matches.filter(m => m.status === 'completed').length
-    const cancelledMatches = matches.filter(m => m.status === 'cancelled').length
-    const activeMatches = matches.filter(m => !m.status || m.status === 'active').length
+    const successfulMatches = successMatchesRes.count || 0
+    const cancelledMatches = cancelledMatchesRes.count || 0
+    const activeMatches = Math.max(0, (totalMatchesRes.count || 0) - successfulMatches - cancelledMatches)
 
-    // Meeting satisfaction ratings from real meeting_feedback table
+    // Meeting satisfaction ratings
     const feedbacks = feedbackRes.data || []
     const successFeedbacks = feedbacks.filter(f => f.status === 'success' && f.rating)
     const total = successFeedbacks.length || 1
@@ -89,11 +100,9 @@ export const getDashboardStats = async (incomeTab = 'week') => {
         bad: Math.round(successFeedbacks.filter(f => f.rating?.includes('Not great')).length / total * 1000) / 10,
     } : null
 
-    // Also count cancelled from feedback (in case matches.status update fails due to RLS)
     const cancelledFromFeedback = feedbacks.filter(f => f.status === 'fail').length
     const effectiveCancelled = Math.max(cancelledMatches, cancelledFromFeedback)
 
-    // Cancel reasons from failed feedbacks
     const failFeedbacks = feedbacks.filter(f => f.status === 'fail' && f.fail_reason)
     const cancelReasons = failFeedbacks.reduce((acc, f) => {
         acc[f.fail_reason] = (acc[f.fail_reason] || 0) + 1
@@ -101,23 +110,13 @@ export const getDashboardStats = async (incomeTab = 'week') => {
     }, {})
 
     return {
-        totalMembers,
-        activeMembers,
-        men,
-        women,
-        totalRevenue,
-        newThisWeek,
-        newToday,
-        growthPct,
-        totalMatches: matchesRes.count || 0,
-        successfulMatches,
-        activeMatches,
+        totalMembers, activeMembers, men, women,
+        totalRevenue, newThisWeek, newToday, growthPct,
+        totalMatches: totalMatchesRes.count || 0,
+        successfulMatches, activeMatches,
         cancelledMatches: effectiveCancelled,
         totalMoments: momentsCountRes.count || 0,
-        revenueByDay,
-        membersByDay,
-        ratings,
-        cancelReasons,
+        revenueByDay, membersByDay, ratings, cancelReasons,
     }
 }
 
@@ -278,7 +277,7 @@ export const getNews = async () => {
     }
 
     // Match news posts to admin moments by text similarity (same text)
-    const news = (data || []).map(n => {
+    const newsList = (data || []).map(n => {
         const matchedMoment = adminMoments?.find(m =>
             m.text === n.text || m.text === n.text_zh
         )
@@ -286,8 +285,7 @@ export const getNews = async () => {
         return { ...n, reactions, reactions_count: Object.values(reactions).reduce((s, v) => s + v, 0) }
     })
 
-    news._totalReactions = totalReactions
-    return news
+    return { list: newsList, totalReactions }
 }
 
 export const createNews = async ({ text, text_zh, text_ru, image_url, pinned = false }) => {

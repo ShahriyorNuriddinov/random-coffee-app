@@ -1,13 +1,13 @@
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react'
 import { Toaster } from 'react-hot-toast'
 import ErrorBoundary from '../components/ErrorBoundary'
 import AdminLogin from './screens/AdminLogin'
-import AdminDashboard from './screens/AdminDashboard'
-import AdminMembers from './screens/AdminMembers'
-import AdminMoments from './screens/AdminMoments'
-import AdminNews from './screens/AdminNews'
-import AdminNotifications from './screens/AdminNotifications'
-import AdminSettings from './screens/AdminSettings'
+const AdminDashboard = lazy(() => import('./screens/AdminDashboard'))
+const AdminMembers = lazy(() => import('./screens/AdminMembers'))
+const AdminMoments = lazy(() => import('./screens/AdminMoments'))
+const AdminNews = lazy(() => import('./screens/AdminNews'))
+const AdminNotifications = lazy(() => import('./screens/AdminNotifications'))
+const AdminSettings = lazy(() => import('./screens/AdminSettings'))
 import AdminHeader from './components/AdminHeader'
 import AdminBottomNav from './components/AdminBottomNav'
 import { supabase } from './lib/adminSupabase'
@@ -53,6 +53,19 @@ export default function AdminApp() {
     const [tab, setTab] = useState('dashboard')
     const [lang, setLang] = useState('en')
     const [unreadCount, setUnreadCount] = useState(0)
+
+    // Server-side validation: verify stored email exists in staff table
+    useEffect(() => {
+        if (!authed) return
+        const raw = localStorage.getItem(ADMIN_SESSION_KEY)
+        if (!raw) { setAuthed(false); return }
+        try {
+            const { email } = JSON.parse(raw)
+            supabase.from('staff').select('id').eq('email', email).maybeSingle()
+                .then(({ data }) => { if (!data) { clearSession(); setAuthed(false) } })
+                .catch(() => { }) // network error — keep session, will re-validate next load
+        } catch { clearSession(); setAuthed(false) }
+    }, [authed])
 
     useEffect(() => {
         if (!authed) return
@@ -115,10 +128,21 @@ export default function AdminApp() {
             <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount }}>
                 <AdminHeader tab={tab} lang={lang} setLang={setLang} />
                 <div className={`w-full max-w-[1200px] mx-auto pb-20 box-border ${tab === 'notifications' ? 'px-0' : 'px-4'}`}>
-                    <Screen />
+                    <Suspense fallback={<AdminScreenFallback />}>
+                        <Screen />
+                    </Suspense>
                 </div>
                 <AdminBottomNav tab={tab} setTab={handleTabChange} lang={lang} unreadCount={unreadCount} />
             </AdminCtx.Provider>
         </ErrorBoundary>
+    )
+}
+
+function AdminScreenFallback() {
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid #e5e5ea', borderTopColor: '#007aff', animation: 'spin 0.7s linear infinite' }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
     )
 }

@@ -178,15 +178,26 @@ export const confirmPayment = async ({ userId, paymentIntentId, credits, amount,
     })
     if (payError) return { success: false, error: payError.message }
 
-    const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', userId).single()
-    const newCredits = (profile?.coffee_credits || 0) + credits
-    const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ coffee_credits: newCredits, subscription_status: 'active', subscription_start: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq('id', userId)
+    // Atomic increment — avoids read-modify-write race condition
+    const { data: updatedProfile, error: updateError } = await supabase.rpc('increment_credits', {
+        p_user_id: userId,
+        p_credits: credits,
+    })
 
-    if (updateError) return { success: false, error: updateError.message }
+    if (updateError) {
+        // Fallback: manual read-modify-write if RPC not available
+        const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', userId).single()
+        const newCredits = (profile?.coffee_credits || 0) + credits
+        const { error: fallbackError } = await supabase
+            .from('profiles')
+            .update({ coffee_credits: newCredits, subscription_status: 'active', subscription_start: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq('id', userId)
+        if (fallbackError) return { success: false, error: fallbackError.message }
+        await supabase.rpc('credit_referral_bonus', { p_referred_id: userId })
+        return { success: true, newCredits }
+    }
 
+    const newCredits = updatedProfile ?? credits
     await supabase.rpc('credit_referral_bonus', { p_referred_id: userId })
     return { success: true, newCredits }
 }
@@ -213,7 +224,7 @@ export const toggleBoost = async (userId, active) => {
 
 // ─── PEOPLE / LIKES / MATCHES ─────────────────────────────────────────────────
 
-export const getPeople = async (currentUserId) => {
+export const getPeople = async (currentUserId, limit = 100) => {
     const { data, error } = await supabase
         .from('profiles')
         .select('id, name, dob, gender, region, city, avatar_url, photos, about, gives, wants, about_zh, gives_zh, wants_zh, about_ru, gives_ru, wants_ru, tags, languages, balance')
@@ -221,6 +232,7 @@ export const getPeople = async (currentUserId) => {
         .not('name', 'is', null)
         .neq('banned', true)
         .neq('name', '')
+        .limit(limit)
     if (error) {
         console.error('[getPeople]', error.message)
         return []

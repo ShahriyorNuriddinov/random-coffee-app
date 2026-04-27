@@ -222,12 +222,12 @@ export default function AdminDashboard() {
         getDashboardStats('week').then(s => { setStats(s); setLoading(false) }).catch(() => setLoading(false))
     }, [])
 
-    // Income tab change — only update revenue, no full spinner
+    // Income tab change — update revenue + chart
     useEffect(() => {
         if (!stats) return
         setRevenueLoading(true)
         getDashboardStats(incomeTab).then(s => {
-            setStats(prev => ({ ...prev, totalRevenue: s.totalRevenue }))
+            setStats(prev => ({ ...prev, totalRevenue: s.totalRevenue, revenueByDay: s.revenueByDay }))
             setRevenueLoading(false)
         }).catch(() => setRevenueLoading(false))
     }, [incomeTab])

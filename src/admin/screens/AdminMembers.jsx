@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Search } from 'lucide-react'
-import { getMembers } from '../lib/adminSupabase'
+import { getMembers, supabase } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
 import Spinner from '../components/ui/Spinner'
@@ -31,17 +31,16 @@ export default function AdminMembers() {
 
     useEffect(() => { load() }, [load])
 
-    // New today count — use Promise.all to avoid race condition
+    // New today count — direct Supabase query, no limit issue
     useEffect(() => {
-        const today = new Date().toDateString()
-        Promise.all([
-            getMembers({ status: 'active', limit: 100 }),
-            getMembers({ status: 'inactive', limit: 100 }),
-        ]).then(([activeRes, inactiveRes]) => {
-            const activeToday = (activeRes?.members || []).filter(m => new Date(m.created_at).toDateString() === today).length
-            const inactiveToday = (inactiveRes?.members || []).filter(m => new Date(m.created_at).toDateString() === today).length
-            setNewToday(activeToday + inactiveToday)
-        }).catch(() => { })
+        const todayStart = new Date()
+        todayStart.setHours(0, 0, 0, 0)
+        supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .gte('created_at', todayStart.toISOString())
+            .then(({ count }) => setNewToday(count || 0))
+            .catch(() => { })
     }, [])
 
     const statusTabs = [
