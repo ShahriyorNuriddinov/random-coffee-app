@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Pagination, Navigation } from 'swiper/modules'
 import { uploadPhoto, savePhotos } from '@/lib/supabaseClient'
@@ -6,6 +7,9 @@ import 'swiper/css/pagination'
 import 'swiper/css/navigation'
 
 export default function PhotoGrid({ photos, userId, onPhotosChange }) {
+    const photosRef = useRef(photos)
+    photosRef.current = photos
+
     const normalized = Array.isArray(photos)
         ? [...photos, null, null, null, null].slice(0, 4)
         : [null, null, null, null]
@@ -19,19 +23,22 @@ export default function PhotoGrid({ photos, userId, onPhotosChange }) {
         input.onchange = async (e) => {
             const file = e.target.files[0]
             if (!file) return
-            const fresh = Array.isArray(photos)
-                ? [...photos, null, null, null, null].slice(0, 4)
+            // Use ref to get latest photos (avoids stale closure)
+            const base = Array.isArray(photosRef.current)
+                ? [...photosRef.current, null, null, null, null].slice(0, 4)
                 : [null, null, null, null]
-            const next = [...fresh]
-            next[index] = URL.createObjectURL(file)
-            onPhotosChange(next)
+            const preview = [...base]
+            preview[index] = URL.createObjectURL(file)
+            onPhotosChange(preview)
             if (userId) {
                 const publicUrl = await uploadPhoto(userId, file, index)
                 if (publicUrl) {
-                    const updated = [...fresh]
-                    updated[index] = publicUrl
-                    onPhotosChange(updated)
-                    await savePhotos(userId, updated)
+                    const current = Array.isArray(photosRef.current)
+                        ? [...photosRef.current, null, null, null, null].slice(0, 4)
+                        : [null, null, null, null]
+                    current[index] = publicUrl
+                    onPhotosChange(current)
+                    await savePhotos(userId, current)
                 }
             }
         }
