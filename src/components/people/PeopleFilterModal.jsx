@@ -5,13 +5,12 @@ import { useTranslation } from 'react-i18next'
 export default function PeopleFilterModal({ filters, onApply, onClose }) {
     const { t } = useTranslation()
     const [regions, setRegions] = useState(filters.regions || [])
-    const [langs, setLangs] = useState(filters.langs || [])
 
     const toggle = (arr, setArr, val) =>
         setArr(arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val])
 
-    const handleApply = () => { onApply({ regions, langs }); onClose() }
-    const handleClear = () => { setRegions([]); setLangs([]); onApply({ regions: [], langs: [] }); onClose() }
+    const handleApply = () => { onApply({ regions, langs: [] }); onClose() }
+    const handleClear = () => { setRegions([]); onApply({ regions: [], langs: [] }); onClose() }
 
     return (
         <div onClick={onClose} style={{
@@ -46,28 +45,6 @@ export default function PeopleFilterModal({ filters, onApply, onClose }) {
                                 label={r.label}
                                 selected={regions.includes(r.val)}
                                 onToggle={() => toggle(regions, setRegions, r.val)}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Languages */}
-                <div style={{ marginBottom: 20, textAlign: 'left' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--app-hint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                        {t('langs_title')}
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {[
-                            { val: 'EN', label: t('lang_en') },
-                            { val: 'ZH', label: t('lang_zh') },
-                            { val: 'CAN', label: t('lang_canton') },
-                            { val: 'RU', label: t('lang_ru') },
-                        ].map(l => (
-                            <SelectableTag
-                                key={l.val}
-                                label={l.label}
-                                selected={langs.includes(l.val)}
-                                onToggle={() => toggle(langs, setLangs, l.val)}
                             />
                         ))}
                     </div>

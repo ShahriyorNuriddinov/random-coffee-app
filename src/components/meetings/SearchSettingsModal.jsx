@@ -5,15 +5,14 @@ import { useTranslation } from 'react-i18next'
 export default function SearchSettingsModal({ filters, onApply, onClose }) {
     const { t } = useTranslation()
     const [regions, setRegions] = useState(filters?.regions || [])
-    const [langs, setLangs] = useState(filters?.langs || [])
     const [prompt, setPrompt] = useState(filters?.prompt || '')
 
     const toggle = (arr, setArr, val) =>
         setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
 
-    const handleApply = () => { onApply?.({ regions, langs, prompt }); onClose() }
+    const handleApply = () => { onApply?.({ regions, langs: [], prompt }); onClose() }
     const handleClear = () => {
-        setRegions([]); setLangs([]); setPrompt('')
+        setRegions([]); setPrompt('')
         onApply?.({ regions: [], langs: [], prompt: '' }); onClose()
     }
 
@@ -28,7 +27,7 @@ export default function SearchSettingsModal({ filters, onApply, onClose }) {
         }}>{label}</div>
     )
 
-    const hasActive = regions.length > 0 || langs.length > 0 || prompt.trim()
+    const hasActive = regions.length > 0 || prompt.trim()
 
     return (
         <div onClick={onClose} style={{
@@ -54,18 +53,6 @@ export default function SearchSettingsModal({ filters, onApply, onClose }) {
                         { val: 'Other', label: t('region_other') },
                     ].map(r => (
                         <Tag key={r.val} label={r.label} active={regions.includes(r.val)} onToggle={() => toggle(regions, setRegions, r.val)} />
-                    ))}
-                </div>
-
-                <SectionLabel>{t('langs_title')}</SectionLabel>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-                    {[
-                        { val: 'EN', label: t('lang_en') },
-                        { val: 'CAN', label: t('lang_canton') },
-                        { val: 'ZH', label: t('lang_zh') },
-                        { val: 'RU', label: t('lang_ru') },
-                    ].map(l => (
-                        <Tag key={l.val} label={l.label} active={langs.includes(l.val)} onToggle={() => toggle(langs, setLangs, l.val)} />
                     ))}
                 </div>
 
@@ -95,7 +82,6 @@ export default function SearchSettingsModal({ filters, onApply, onClose }) {
                             <strong>{t('active_search')}</strong><br />
                             {[
                                 regions.length > 0 && `Location: ${regions.join(', ')}`,
-                                langs.length > 0 && `Languages: ${langs.join(', ')}`,
                                 prompt && `"${prompt}"`,
                             ].filter(Boolean).join(' · ')}
                         </div>

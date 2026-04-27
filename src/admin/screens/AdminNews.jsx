@@ -61,19 +61,41 @@ function NewsEditor({ item, onSave, onClose, lang }) {
         if (!text.trim()) { toast.error(t.enterContent); return }
         setSaving(true)
         const isChinese = /[\u4e00-\u9fff]/.test(text)
-        const payload = isChinese
-            ? { text: '', text_zh: text.trim(), image_url: imageUrl }
-            : { text: text.trim(), text_zh: '', image_url: imageUrl }
+        const isCyrillic = /[\u0400-\u04ff]/.test(text)
+        const trimmed = text.trim()
+
+        let payload
+        if (isChinese) {
+            payload = { text: '', text_zh: trimmed, text_ru: '', image_url: imageUrl }
+        } else if (isCyrillic) {
+            payload = { text: '', text_zh: '', text_ru: trimmed, image_url: imageUrl }
+        } else {
+            payload = { text: trimmed, text_zh: '', text_ru: '', image_url: imageUrl }
+        }
+
         const res = await onSave(payload)
         setSaving(false)
-        // Background translate to the other language silently
+
+        // Background: translate to the other 2 languages
         if (res?.id) {
-            const target = isChinese ? 'en' : 'zh'
-            translateText(text.trim(), target)
-                .then(translated => {
-                    if (!translated) return
-                    const update = isChinese ? { text: translated } : { text_zh: translated }
-                    updateNews(res.id, update).catch(() => { })
+            const targets = isChinese ? ['en', 'ru'] : isCyrillic ? ['en', 'zh'] : ['zh', 'ru']
+            Promise.all(targets.map(lang => translateText(trimmed, lang).catch(() => null)))
+                .then(([t1, t2]) => {
+                    const update = {}
+                    if (isChinese) {
+                        if (t1) update.text = t1       // EN translation → main text field
+                        if (t1) update.text_en = t1    // also save to text_en
+                        if (t2) update.text_ru = t2
+                    } else if (isCyrillic) {
+                        if (t1) update.text = t1
+                        if (t1) update.text_en = t1
+                        if (t2) update.text_zh = t2
+                    } else {
+                        // EN written → translate to zh and ru
+                        if (t1) update.text_zh = t1
+                        if (t2) update.text_ru = t2
+                    }
+                    if (Object.keys(update).length > 0) updateNews(res.id, update).catch(() => { })
                 })
                 .catch(() => { })
         }
@@ -153,7 +175,9 @@ function NewsCard({ item, onActions, lang }) {
             )}
             <div className="p-4 flex flex-col gap-2">
                 <p className="text-[14px] text-gray-700 leading-relaxed">
-                    {lang === 'zh' && item.text_zh ? item.text_zh : item.text}
+                    {lang === 'zh' && item.text_zh ? item.text_zh
+                        : lang === 'ru' && item.text_ru ? item.text_ru
+                            : item.text || item.text_zh || item.text_ru || ''}
                 </p>
 
                 {/* Reactions row (from HTML: 🔥42, 🎉15, 👍30) */}
@@ -211,8 +235,10 @@ export default function AdminNews() {
             // If new post — also publish to moments feed as approved
             if (!editorItem?.id) {
                 const { error: mErr } = await supabase.from('moments').insert({
-                    text: payload.text || payload.text_zh || '',
-                    text_zh: payload.text_zh || '',
+                    text: payload.text || payload.text_zh || payload.text_ru || '',
+                    text_en: payload.text || null,
+                    text_zh: payload.text_zh || null,
+                    text_ru: payload.text_ru || null,
                     image_url: payload.image_url || null,
                     image_urls: payload.image_url ? [payload.image_url] : [],
                     status: 'approved',

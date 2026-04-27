@@ -42,7 +42,18 @@ export const getDashboardStats = async (incomeTab = 'week') => {
     const totalRevenue = filteredPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
 
     const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
+    const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
+    const twoMonthsAgo = new Date(now - 60 * 24 * 60 * 60 * 1000)
+    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
+
     const newThisWeek = profiles.filter(p => new Date(p.created_at) > weekAgo).length
+    const newToday = profiles.filter(p => new Date(p.created_at) >= todayStart).length
+    const newThisMonth = profiles.filter(p => new Date(p.created_at) > monthAgo).length
+    const newPrevMonth = profiles.filter(p => {
+        const d = new Date(p.created_at)
+        return d > twoMonthsAgo && d <= monthAgo
+    }).length
+    const growthPct = newPrevMonth > 0 ? Math.round((newThisMonth - newPrevMonth) / newPrevMonth * 100) : 0
 
     // Revenue by day (last 7 days) — always show 7-day chart
     const revenueByDay = Array.from({ length: 7 }, (_, i) => {
@@ -96,6 +107,8 @@ export const getDashboardStats = async (incomeTab = 'week') => {
         women,
         totalRevenue,
         newThisWeek,
+        newToday,
+        growthPct,
         totalMatches: matchesRes.count || 0,
         successfulMatches,
         activeMatches,
@@ -232,7 +245,7 @@ export const rejectMoment = async (id, reason = '') => {
 export const getNews = async () => {
     const { data, error } = await supabase
         .from('news')
-        .select('*')
+        .select('id, text, text_zh, text_ru, image_url, pinned, created_at, updated_at')
         .order('pinned', { ascending: false })
         .order('created_at', { ascending: false })
     if (error) {
@@ -277,10 +290,10 @@ export const getNews = async () => {
     return news
 }
 
-export const createNews = async ({ text, text_zh, image_url, pinned = false }) => {
+export const createNews = async ({ text, text_zh, text_ru, image_url, pinned = false }) => {
     const { data, error } = await supabase
         .from('news')
-        .insert({ text, text_zh, image_url, pinned })
+        .insert({ text, text_zh, text_ru, image_url, pinned })
         .select()
         .single()
     if (error) return { success: false, error: error.message }

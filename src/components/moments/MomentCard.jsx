@@ -42,8 +42,10 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
     const isOfficial = moment.is_admin_post === true || author.name === 'Random Coffee Team' || author.name === 'MaGollz Team'
 
     // Show translated text if available in DB, else fall back to AI translate on demand
-    const currentLang = i18n.language // 'en' or 'zh'
-    const dbTranslation = currentLang === 'zh' ? moment.text_zh : moment.text_en
+    const currentLang = i18n.language // 'en', 'zh', or 'ru'
+    const dbTranslation = currentLang === 'zh' ? moment.text_zh
+        : currentLang === 'ru' ? moment.text_ru
+            : moment.text_en
     // If DB already has translation for current lang and it differs from original text, show it directly
     const autoTranslated = dbTranslation && dbTranslation !== moment.text ? dbTranslation : null
 
@@ -145,8 +147,9 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
         if (translatedText) { setTranslated(true); return }
         setTranslating(true)
         try {
-            const targetLang = currentLang === 'zh' ? 'en' : 'zh'
-            const result = await translateText(moment.text, targetLang)
+            // Translate to the "other" language - if ru, go to en; if zh, go to en; if en, go to zh
+            const targetLang = currentLang === 'en' ? 'zh' : 'en'
+            const result = await translateText(moment.text_en || moment.text, targetLang)
             if (result) {
                 setTranslatedText(result)
                 setTranslated(true)
@@ -185,7 +188,7 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                 }}>❤️</div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                         width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
@@ -216,6 +219,25 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                             padding: '3px 8px', borderRadius: 5,
                             background: 'rgba(255,149,0,0.12)', color: '#ff9500',
                         }}>⏳ Pending</span>
+                    )}
+                    {isOwn && (
+                        <button
+                            onClick={e => { e.stopPropagation(); setShowMenu(v => !v) }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--app-hint)', fontSize: 18, lineHeight: 1 }}
+                        >⋯</button>
+                    )}
+                    {showMenu && isOwn && (
+                        <div style={{
+                            position: 'absolute', top: 44, right: 16, zIndex: 20,
+                            background: 'var(--app-card)', borderRadius: 12,
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            border: '0.5px solid var(--app-border)', overflow: 'hidden',
+                        }}>
+                            <button
+                                onClick={e => { e.stopPropagation(); handleDelete() }}
+                                style={{ display: 'block', width: '100%', padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#ff3b30', fontFamily: 'inherit', textAlign: 'left' }}
+                            >Delete</button>
+                        </div>
                     )}
                 </div>
             </div>

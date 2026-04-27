@@ -30,7 +30,7 @@ async function compressImage(file, maxWidth = 800, quality = 0.75) {
 
 export default function NewMomentModal({ onClose, onPosted }) {
     const { t } = useTranslation()
-    const { user, setSubscription } = useApp()
+    const { user } = useApp()
     const [text, setText] = useState('')
     const [images, setImages] = useState([]) // max 4
     const [loading, setLoading] = useState(false)
@@ -69,20 +69,39 @@ export default function NewMomentModal({ onClose, onPosted }) {
         }
 
         const trimmedText = text.trim()
-        // currentLang already declared at component level
 
         let text_en = null
         let text_zh = null
+        let text_ru = null
+
         if (currentLang === 'zh') {
             text_zh = trimmedText
-            text_en = await translateText(trimmedText, 'en').catch((e) => { console.error('[translate zh→en]', e); return null })
+            const [en, ru] = await Promise.all([
+                translateText(trimmedText, 'en').catch(() => null),
+                translateText(trimmedText, 'ru').catch(() => null),
+            ])
+            text_en = en
+            text_ru = ru
+        } else if (currentLang === 'ru') {
+            text_ru = trimmedText
+            const [en, zh] = await Promise.all([
+                translateText(trimmedText, 'en').catch(() => null),
+                translateText(trimmedText, 'zh').catch(() => null),
+            ])
+            text_en = en
+            text_zh = zh
         } else {
+            // en
             text_en = trimmedText
-            text_zh = await translateText(trimmedText, 'zh').catch((e) => { console.error('[translate en→zh]', e); return null })
+            const [zh, ru] = await Promise.all([
+                translateText(trimmedText, 'zh').catch(() => null),
+                translateText(trimmedText, 'ru').catch(() => null),
+            ])
+            text_zh = zh
+            text_ru = ru
         }
-        console.log('[moment] lang:', currentLang, '| text_en:', text_en?.slice(0, 30), '| text_zh:', text_zh?.slice(0, 30))
 
-        const result = await postMoment(user.id, trimmedText, imageUrl, text_en, text_zh, imageUrls)
+        const result = await postMoment(user.id, trimmedText, imageUrl, text_en, text_zh, imageUrls, text_ru)
         setLoading(false)
 
         if (result) {
@@ -118,7 +137,9 @@ export default function NewMomentModal({ onClose, onPosted }) {
                     <div style={{ background: 'rgba(0,122,255,0.06)', borderRadius: 10, padding: '10px 12px', border: '0.5px solid rgba(0,122,255,0.1)', fontWeight: 500, color: '#0055b3' }}>
                         ☕ {currentLang === 'zh'
                             ? '每次完成咖啡约见后，您可以在这里分享体验并获得 +1 积分！'
-                            : 'After each coffee meeting you can share your experience here and earn +1 credit!'}
+                            : currentLang === 'ru'
+                                ? 'После каждой кофе-встречи вы можете поделиться опытом и получить +1 кредит!'
+                                : 'After each coffee meeting you can share your experience here and earn +1 credit!'}
                     </div>
                 </div>
 

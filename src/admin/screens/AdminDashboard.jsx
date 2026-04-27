@@ -3,7 +3,7 @@ import {
     AreaChart, Area, BarChart, Bar,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { TrendingUp, Users, Coffee, DollarSign } from 'lucide-react'
+import { TrendingUp, Users } from 'lucide-react'
 import { getDashboardStats } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
@@ -277,6 +277,9 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-1 text-[12px] text-gray-400">
                         <span className="text-[#34c759] font-semibold">↑ +{stats.newThisWeek}</span>
                         <span>{t.newThisWeek}</span>
+                        {stats.growthPct > 0 && (
+                            <span className="ml-2 text-[#34c759] font-semibold">· {stats.growthPct}% vs last month</span>
+                        )}
                     </div>
                     <div className="flex justify-between text-[13px] font-semibold text-gray-700 mt-1">
                         <span>🙋‍♂️ {t.men}: <b>{stats.men}</b></span>
@@ -295,9 +298,9 @@ export default function AdminDashboard() {
                         value={stats.activeMembers.toLocaleString()}
                         sub={`${Math.round(stats.activeMembers / (stats.totalMembers || 1) * 100)}% ${t.ofTotal || 'of total'}`}
                         color="#34c759" />
-                    <StatCard icon={Users} label={t.newThisWeek}
-                        value={`+${stats.newThisWeek}`}
-                        sub={t.growingFast || ''}
+                    <StatCard icon={Users} label={lang === 'ru' ? 'Новых сегодня' : lang === 'zh' ? '今日新增' : 'New Today'}
+                        value={`+${stats.newToday ?? stats.newThisWeek}`}
+                        sub={stats.newToday > 0 ? (lang === 'ru' ? 'Растём быстро!' : lang === 'zh' ? '增长迅速！' : 'Growing fast!') : ''}
                         color="#007aff" />
                 </div>
             </div>

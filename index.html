@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Primary SEO -->
   <title>Random Coffee HK — Professional Networking in Hong Kong</title>
@@ -49,10 +49,9 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-  <!-- Preconnect for performance -->
+  <!-- Preconnect for performance — only origins actually used on first load -->
   <link rel="preconnect" href="https://ilauvaegbdrlytjwzvks.supabase.co" crossorigin />
   <link rel="dns-prefetch" href="https://ilauvaegbdrlytjwzvks.supabase.co" />
-  <link rel="preconnect" href="https://api.groq.com" crossorigin />
 
   <!-- Structured Data (JSON-LD) -->
   <script type="application/ld+json">
@@ -90,7 +89,7 @@
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root" role="main"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

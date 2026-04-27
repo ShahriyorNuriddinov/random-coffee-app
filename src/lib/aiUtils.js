@@ -95,15 +95,17 @@ Wants: ${wants}`
 
 // ─── Translation ──────────────────────────────────────────────────────────────
 export async function translateText(text, targetLang = 'zh') {
-    const instruction = targetLang === 'zh'
-        ? 'Translate the following text to Simplified Chinese. Return ONLY the translation, no explanation, no prefix.'
-        : 'Translate the following text to English. Return ONLY the translation, no explanation, no prefix.'
+    const instructions = {
+        zh: 'Translate the following text to Simplified Chinese. Return ONLY the translation, no explanation, no prefix.',
+        en: 'Translate the following text to English. Return ONLY the translation, no explanation, no prefix.',
+        ru: 'Translate the following text to Russian. Return ONLY the translation, no explanation, no prefix.',
+    }
+    const instruction = instructions[targetLang] || instructions.en
     const prompt = `${instruction}\n\n${text}`
     const result = await callAI(prompt, 300)
     if (!result) return null
-    // Strip common AI prefixes like "Translation:", "翻译:", etc.
     return result
-        .replace(/^(Translation|Translate|翻译|译文)\s*:\s*/i, '')
+        .replace(/^(Translation|Translate|翻译|译文|Перевод)\s*:\s*/i, '')
         .replace(/^["']|["']$/g, '')
         .trim()
 }
@@ -113,9 +115,12 @@ export async function translateProfile(profile, targetLang = 'zh') {
     const { about, gives, wants } = profile
     if (!about && !gives && !wants) return null
 
-    const instruction = targetLang === 'zh'
-        ? 'Translate each section to Simplified Chinese. Return ONLY a JSON object.'
-        : 'Translate each section to English. Return ONLY a JSON object.'
+    const instructions = {
+        zh: 'Translate each section to Simplified Chinese. Return ONLY a JSON object.',
+        en: 'Translate each section to English. Return ONLY a JSON object.',
+        ru: 'Translate each section to Russian. Return ONLY a JSON object.',
+    }
+    const instruction = instructions[targetLang] || instructions.en
 
     const prompt = `${instruction}
 
@@ -268,7 +273,9 @@ export function calcMatchScore(myProfile = {}, theirProfile = {}) {
 export async function explainMatch(myProfile = {}, theirProfile = {}, lang = 'en') {
     const langInstruction = lang === 'zh'
         ? 'IMPORTANT: Write the entire response in Simplified Chinese only. Do not use any English.'
-        : 'Write the response in English.'
+        : lang === 'ru'
+            ? 'IMPORTANT: Write the entire response in Russian only. Do not use any English.'
+            : 'Write the response in English.'
 
     const prompt = `SYSTEM: You are a smart matching engine for professional coffee meetings.
 Analyze these two people and explain why their meeting would be valuable.
@@ -301,7 +308,9 @@ Return ONLY the explanation, no labels or formatting.`
 export async function generateMeetingQuestions(myProfile = {}, theirProfile = {}, lang = 'en') {
     const langInstruction = lang === 'zh'
         ? 'IMPORTANT: You MUST write all questions in Simplified Chinese only. Do not use any English.'
-        : 'Write all questions in English.'
+        : lang === 'ru'
+            ? 'IMPORTANT: You MUST write all questions in Russian only. Do not use any English.'
+            : 'Write all questions in English.'
 
     const prompt = `Generate 3 specific conversation starter questions for a coffee meeting between these two people. Questions should help them exchange value and get to know each other professionally. ${langInstruction}
 

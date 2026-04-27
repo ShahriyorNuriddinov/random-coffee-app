@@ -1,11 +1,5 @@
-import LangSwitcher from '@/components/LangSwitcher'
 import DarkToggle from '@/components/DarkToggle'
 
-/**
- * Reusable top header for main screens
- * @param {string} title
- * @param {ReactNode} right - optional extra content on the right
- */
 export default function ScreenHeader({ title, right }) {
     return (
         <div style={{
@@ -23,7 +17,6 @@ export default function ScreenHeader({ title, right }) {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {right}
                 <DarkToggle />
-                <LangSwitcher />
             </div>
         </div>
     )

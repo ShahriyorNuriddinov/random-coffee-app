@@ -1,12 +1,16 @@
 import { cn } from '@/lib/utils'
 
 /**
- * InputCard — iOS-style card wrapper with label
+ * InputCard — iOS-style card wrapper with accessible label
  */
-function InputCard({ label, children, className }) {
+function InputCard({ label, inputId, children, className }) {
     return (
         <div className={cn('input-card', className)}>
-            {label && <span className="input-card-label">{label}</span>}
+            {label && (
+                <label htmlFor={inputId} className="input-card-label">
+                    {label}
+                </label>
+            )}
             {children}
         </div>
     )

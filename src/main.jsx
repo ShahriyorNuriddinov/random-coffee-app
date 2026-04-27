@@ -1,7 +1,5 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
-import AdminApp from './admin/AdminApp'
 import './index.css'
 import './i18n'
 
@@ -13,8 +11,23 @@ if (isAdmin) {
   document.getElementById('root').style.minHeight = '100vh'
 }
 
+// Lazy load both apps — only one will be loaded
+const App = lazy(() => import('./App'))
+const AdminApp = lazy(() => import('./admin/AdminApp'))
+
+function Spinner() {
+  return (
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f7f9' }}>
+      <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #e5e5ea', borderTopColor: '#007aff', animation: 'spin 0.7s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  )
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {isAdmin ? <AdminApp /> : <App />}
+    <Suspense fallback={<Spinner />}>
+      {isAdmin ? <AdminApp /> : <App />}
+    </Suspense>
   </React.StrictMode>
 )

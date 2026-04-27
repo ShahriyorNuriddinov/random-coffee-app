@@ -210,8 +210,6 @@ export function AppProvider({ children }) {
         })
     }
 
-    if (false) return null
-
     return (
         <AppContext.Provider value={{
             screen, setScreen, darkMode, toggleDark,

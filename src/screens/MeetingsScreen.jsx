@@ -99,7 +99,6 @@ export default function MeetingsScreen() {
                         <MatchCard
                             key={m.matchId}
                             match={m}
-                            onPost={() => setShowNewMoment(true)}
                             onFeedback={() => { setFeedbackMatchId(m.matchId); setShowFeedback(true) }}
                         />
                     ))}

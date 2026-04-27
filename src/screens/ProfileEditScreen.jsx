@@ -135,14 +135,9 @@ export default function ProfileEditScreen() {
                         scoreProfile(finalAbout, finalGives, finalWants),
                     ])
 
-                    // Detect language: if text contains Chinese chars → translate to EN, else → translate to ZH
+                    // Detect language
                     const hasChinese = /[\u4e00-\u9fff]/.test(finalAbout + finalGives + finalWants)
-                    const targetLang = hasChinese ? 'en' : 'zh'
-
-                    const translated = await translateProfile(
-                        { about: finalAbout, gives: finalGives, wants: finalWants },
-                        targetLang
-                    )
+                    const hasCyrillic = /[\u0400-\u04ff]/.test(finalAbout + finalGives + finalWants)
 
                     const updateData = {
                         ...dbData,
@@ -150,18 +145,47 @@ export default function ProfileEditScreen() {
                     }
 
                     if (hasChinese) {
-                        // User wrote in Chinese → save Chinese in _zh, English in main
+                        // Written in Chinese → translate to EN, also get RU
+                        const [enTr, ruTr] = await Promise.all([
+                            translateProfile({ about: finalAbout, gives: finalGives, wants: finalWants }, 'en'),
+                            translateProfile({ about: finalAbout, gives: finalGives, wants: finalWants }, 'ru'),
+                        ])
                         updateData.about_zh = finalAbout
                         updateData.gives_zh = finalGives
                         updateData.wants_zh = finalWants
-                        updateData.about = translated?.about || finalAbout
-                        updateData.gives = translated?.gives || finalGives
-                        updateData.wants = translated?.wants || finalWants
+                        updateData.about = enTr?.about || finalAbout
+                        updateData.gives = enTr?.gives || finalGives
+                        updateData.wants = enTr?.wants || finalWants
+                        updateData.about_ru = ruTr?.about || null
+                        updateData.gives_ru = ruTr?.gives || null
+                        updateData.wants_ru = ruTr?.wants || null
+                    } else if (hasCyrillic) {
+                        // Written in Russian → translate to EN and ZH
+                        const [enTr, zhTr] = await Promise.all([
+                            translateProfile({ about: finalAbout, gives: finalGives, wants: finalWants }, 'en'),
+                            translateProfile({ about: finalAbout, gives: finalGives, wants: finalWants }, 'zh'),
+                        ])
+                        updateData.about_ru = finalAbout
+                        updateData.gives_ru = finalGives
+                        updateData.wants_ru = finalWants
+                        updateData.about = enTr?.about || finalAbout
+                        updateData.gives = enTr?.gives || finalGives
+                        updateData.wants = enTr?.wants || finalWants
+                        updateData.about_zh = zhTr?.about || null
+                        updateData.gives_zh = zhTr?.gives || null
+                        updateData.wants_zh = zhTr?.wants || null
                     } else {
-                        // User wrote in English → save Chinese translation in _zh
-                        updateData.about_zh = translated?.about || null
-                        updateData.gives_zh = translated?.gives || null
-                        updateData.wants_zh = translated?.wants || null
+                        // Written in English → translate to ZH and RU
+                        const [zhTr, ruTr] = await Promise.all([
+                            translateProfile({ about: finalAbout, gives: finalGives, wants: finalWants }, 'zh'),
+                            translateProfile({ about: finalAbout, gives: finalGives, wants: finalWants }, 'ru'),
+                        ])
+                        updateData.about_zh = zhTr?.about || null
+                        updateData.gives_zh = zhTr?.gives || null
+                        updateData.wants_zh = zhTr?.wants || null
+                        updateData.about_ru = ruTr?.about || null
+                        updateData.gives_ru = ruTr?.gives || null
+                        updateData.wants_ru = ruTr?.wants || null
                     }
 
                     await saveProfile(user?.id || 'mock', updateData)

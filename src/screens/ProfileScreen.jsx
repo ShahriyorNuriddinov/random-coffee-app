@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { useApp } from '@/store/useAppStore'
 import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
+import LangSwitcher from '@/components/LangSwitcher'
 import { Card, CardRow } from '@/components/ui/Card'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import PhotoGrid from '@/components/profile/PhotoGrid'
@@ -115,6 +116,7 @@ export default function ProfileScreen() {
                     <Card>
                         <CardRow label={t('notif_new_pairs')} right={<IosToggle checked={notifNewMatches} onChange={() => handleToggleNotif('matches')} />} />
                         <CardRow label={t('notif_news')} right={<IosToggle checked={notifImportantNews} onChange={() => handleToggleNotif('news')} />} />
+                        <CardRow label={t('language')} right={<LangSwitcher />} />
                         <CardRow
                             label="Email"
                             value={

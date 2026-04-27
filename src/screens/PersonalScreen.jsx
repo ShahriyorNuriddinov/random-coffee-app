@@ -66,8 +66,9 @@ export default function PersonalScreen() {
                         {t('personal_hint')}
                     </p>
 
-                    <InputCard label={t('name_label')}>
+                    <InputCard label={t('name_label')} inputId="name-input">
                         <Input
+                            id="name-input"
                             type="text"
                             value={name}
                             onChange={e => setName(e.target.value)}
@@ -126,8 +127,9 @@ export default function PersonalScreen() {
                         </div>
                     </div>
 
-                    <InputCard label={t('city_label')}>
+                    <InputCard label={t('city_label')} inputId="city-input">
                         <Input
+                            id="city-input"
                             type="text"
                             value={city}
                             onChange={e => setCity(e.target.value)}

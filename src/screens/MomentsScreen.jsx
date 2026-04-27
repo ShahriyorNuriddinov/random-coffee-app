@@ -23,28 +23,30 @@ export default function MomentsScreen() {
     useEffect(() => {
         if (moments.length === 0) return
         if (i18n.language === 'zh') {
-            translateMoments(moments)
+            translateMoments(moments, 'zh')
+        } else if (i18n.language === 'ru') {
+            translateMoments(moments, 'ru')
         } else {
             setDisplayMoments(moments)
         }
     }, [i18n.language, moments.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    const translateMoments = async (list) => {
-        // Use pre-saved DB translations first, only call AI for missing ones
-        const needsAI = list.filter(m => !m.text_zh)
+    const translateMoments = async (list, lang) => {
+        const textKey = lang === 'zh' ? 'text_zh' : 'text_ru'
+        const needsAI = list.filter(m => !m[textKey])
         if (needsAI.length === 0) {
-            setDisplayMoments(list.map(m => ({ ...m, text: m.text_zh || m.text })))
+            setDisplayMoments(list.map(m => ({ ...m, text: m[textKey] || m.text })))
             return
         }
-        const cacheKey = `translated_moments_${list.map(m => m.id).join(',').slice(0, 80)}`
+        const cacheKey = `translated_moments_${lang}_${list.map(m => m.id).join(',').slice(0, 80)}`
         try {
             const cached = sessionStorage.getItem(cacheKey)
             if (cached) { setDisplayMoments(JSON.parse(cached)); return }
         } catch { }
 
         const translated = await Promise.all(list.map(async (m) => {
-            if (m.text_zh) return { ...m, text: m.text_zh }
-            const text = await translateText(m.text, 'zh')
+            if (m[textKey]) return { ...m, text: m[textKey] }
+            const text = await translateText(m.text_en || m.text, lang)
             return { ...m, text: text || m.text }
         }))
         setDisplayMoments(translated)

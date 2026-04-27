@@ -46,13 +46,15 @@ export default function PhoneScreen() {
                         {t('auth_hint_email')}
                     </p>
 
-                    <InputCard>
+                    <InputCard inputId="email-input">
                         <Input
+                            id="email-input"
                             type="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             placeholder={t('email_placeholder')}
                             inputMode="email"
+                            aria-label={t('email_label')}
                             onKeyDown={e => e.key === 'Enter' && handleNext()}
                         />
                     </InputCard>

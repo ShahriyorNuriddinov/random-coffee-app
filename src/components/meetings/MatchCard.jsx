@@ -3,11 +3,11 @@ import { useApp } from '@/store/useAppStore'
 import { useTranslation } from 'react-i18next'
 import { explainMatch, generateMeetingQuestions, translateProfile } from '@/lib/aiUtils'
 
-export default function MatchCard({ match, onPost, onFeedback }) {
+export default function MatchCard({ match, onFeedback }) {
     const { partner, createdAt } = match
     const { profile } = useApp()
     const { i18n } = useTranslation()
-    const lang = i18n.language === 'zh' ? 'zh' : 'en'
+    const lang = i18n.language === 'zh' ? 'zh' : i18n.language === 'ru' ? 'ru' : 'en'
     const [showAbout, setShowAbout] = useState(false)
     const [showGives, setShowGives] = useState(false)
     const [showWants, setShowWants] = useState(false)
@@ -17,34 +17,36 @@ export default function MatchCard({ match, onPost, onFeedback }) {
     const [loadingAI, setLoadingAI] = useState(false)
     const [aiTranslated, setAiTranslated] = useState(null)
 
-    // displayPartner: use DB _zh fields directly, no async needed
+    // displayPartner: use DB translations directly
     const displayPartner = useMemo(() => {
         if (!partner) return partner
-        if (lang !== 'zh') return partner
-        // DB has translations
-        if (partner.about_zh || partner.gives_zh || partner.wants_zh) {
-            return {
-                ...partner,
-                about: partner.about_zh || partner.about,
-                gives: partner.gives_zh || partner.gives,
-                wants: partner.wants_zh || partner.wants,
+        if (lang === 'zh') {
+            if (partner.about_zh || partner.gives_zh || partner.wants_zh) {
+                return { ...partner, about: partner.about_zh || partner.about, gives: partner.gives_zh || partner.gives, wants: partner.wants_zh || partner.wants }
             }
+            if (aiTranslated) return aiTranslated
         }
-        // AI translated fallback
-        if (aiTranslated) return aiTranslated
+        if (lang === 'ru') {
+            if (partner.about_ru || partner.gives_ru || partner.wants_ru) {
+                return { ...partner, about: partner.about_ru || partner.about, gives: partner.gives_ru || partner.gives, wants: partner.wants_ru || partner.wants }
+            }
+            if (aiTranslated) return aiTranslated
+        }
         return partner
     }, [partner, lang, aiTranslated])
 
-    // Only call AI if DB translations missing
     useEffect(() => {
-        if (!partner || lang !== 'zh') { setAiTranslated(null); return }
-        if (partner.about_zh || partner.gives_zh || partner.wants_zh) return // DB has it
-        const cacheKey = `match_tr_${partner.id}`
+        if (!partner || (lang !== 'zh' && lang !== 'ru')) { setAiTranslated(null); return }
+        const hasDbTr = lang === 'zh'
+            ? (partner.about_zh || partner.gives_zh || partner.wants_zh)
+            : (partner.about_ru || partner.gives_ru || partner.wants_ru)
+        if (hasDbTr) return
+        const cacheKey = `match_tr_${partner.id}_${lang}`
         try {
             const cached = sessionStorage.getItem(cacheKey)
             if (cached) { setAiTranslated(JSON.parse(cached)); return }
         } catch { }
-        translateProfile(partner, 'zh').then(result => {
+        translateProfile(partner, lang).then(result => {
             if (result) {
                 setAiTranslated({ ...partner, ...result })
                 try { sessionStorage.setItem(cacheKey, JSON.stringify({ ...partner, ...result })) } catch { }
@@ -165,7 +167,7 @@ export default function MatchCard({ match, onPost, onFeedback }) {
                     <span style={{ fontSize: 16, flexShrink: 0 }}>🤝</span>
                     <div style={{ fontSize: 13, color: 'var(--app-text)', lineHeight: 1.5 }}>
                         <span style={{ fontWeight: 700, color: 'var(--app-primary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            {lang === 'zh' ? '为什么你们匹配' : 'Why you match'}
+                            {lang === 'zh' ? '为什么你们匹配' : lang === 'ru' ? 'ПОЧЕМУ ВЫ СОВПАЛИ' : 'Why you match'}
                         </span>
                         <br />
                         {matchReason}
@@ -176,7 +178,7 @@ export default function MatchCard({ match, onPost, onFeedback }) {
             {/* About */}
             {displayPartner.about && (
                 <InfoSection
-                    label={lang === 'zh' ? '关于我' : 'About me'}
+                    label={lang === 'zh' ? '关于我' : lang === 'ru' ? 'О себе' : 'About me'}
                     text={displayPartner.about}
                     borderColor="rgba(0,122,255,0.2)"
                     expanded={showAbout}
@@ -187,7 +189,7 @@ export default function MatchCard({ match, onPost, onFeedback }) {
             {/* Gives */}
             {displayPartner.gives && (
                 <InfoSection
-                    label={lang === 'zh' ? '能提供' : 'Can give'}
+                    label={lang === 'zh' ? '能提供' : lang === 'ru' ? 'Могу дать' : 'Can give'}
                     text={displayPartner.gives}
                     borderColor="rgba(52,199,89,0.2)"
                     expanded={showGives}
@@ -198,7 +200,7 @@ export default function MatchCard({ match, onPost, onFeedback }) {
             {/* Wants */}
             {displayPartner.wants && (
                 <InfoSection
-                    label={lang === 'zh' ? '想获得' : 'Wants to get'}
+                    label={lang === 'zh' ? '想获得' : lang === 'ru' ? 'Хочу получить' : 'Wants to get'}
                     text={displayPartner.wants}
                     borderColor="rgba(255,149,0,0.2)"
                     expanded={showWants}
@@ -224,8 +226,8 @@ export default function MatchCard({ match, onPost, onFeedback }) {
                 }}
             >
                 {loadingAI ? '⏳ Loading...' : showQuestions
-                    ? (lang === 'zh' ? '▲ 隐藏问题' : '▲ Hide Questions')
-                    : (lang === 'zh' ? '💬 会面对话开场白' : '💬 Meeting Conversation Starters')}
+                    ? (lang === 'zh' ? '▲ 隐藏问题' : lang === 'ru' ? '▲ Скрыть вопросы' : '▲ Hide Questions')
+                    : (lang === 'zh' ? '💬 会面对话开场白' : lang === 'ru' ? '💬 Темы для разговора' : '💬 Meeting Conversation Starters')}
             </button>
 
             {showQuestions && questions.length > 0 && (
@@ -281,12 +283,12 @@ export default function MatchCard({ match, onPost, onFeedback }) {
                     fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                     marginBottom: 10,
                 }}>
-                    {lang === 'zh' ? '完成会面' : 'Complete Meeting'}
+                    {lang === 'zh' ? '完成会面' : lang === 'ru' ? 'Завершить встречу' : 'Complete Meeting'}
                 </button>
             )}
 
             <div style={{ fontSize: 12, color: 'var(--app-hint)' }}>
-                {lang === 'zh' ? `匹配于 ${dateStr}` : `Matched on ${dateStr}`}
+                {lang === 'zh' ? `匹配于 ${dateStr}` : lang === 'ru' ? `Совпадение ${dateStr}` : `Matched on ${dateStr}`}
             </div>
         </div>
     )

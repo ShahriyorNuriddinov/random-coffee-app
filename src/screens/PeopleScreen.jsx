@@ -28,15 +28,20 @@ export default function PeopleScreen() {
         load()
     }, [user?.id, profile?.tags?.length])
 
-    // Use DB translations instead of real-time AI translation
     const displayPeople = useMemo(() => {
-        if (i18n.language !== 'zh') return people
-        return people.map(p => ({
+        if (i18n.language === 'zh') return people.map(p => ({
             ...p,
             about: p.about_zh || p.about,
             gives: p.gives_zh || p.gives,
             wants: p.wants_zh || p.wants,
         }))
+        if (i18n.language === 'ru') return people.map(p => ({
+            ...p,
+            about: p.about_ru || p.about,
+            gives: p.gives_ru || p.gives,
+            wants: p.wants_ru || p.wants,
+        }))
+        return people
     }, [people, i18n.language])
 
     const load = async () => {
