@@ -82,7 +82,7 @@
   }
 
   body {
-    background-color: hsl(var(--background));
+    background-color: var(--app-bg);
     color: hsl(var(--foreground));
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', sans-serif;
   }
@@ -106,6 +106,9 @@ html.dark body {
   background-color: var(--app-bg);
   color: var(--app-text);
   transition: background-color 0.3s, color 0.3s;
+}
+
+#root {
   width: 80%;
   margin: 0 auto;
 }

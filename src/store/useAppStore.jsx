@@ -57,10 +57,7 @@ export function AppProvider({ children }) {
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem(DARK_KEY)
         const isDark = saved === 'true'
-        if (isDark) {
-            document.documentElement.classList.add('dark')
-            document.body.style.background = '#1c1c1e'
-        }
+        if (isDark) document.documentElement.classList.add('dark')
         return isDark
     })
     const [phone, setPhone] = useState('')
@@ -193,13 +190,8 @@ export function AppProvider({ children }) {
     const toggleDark = () => {
         setDarkMode(d => {
             const next = !d
-            if (next) {
-                document.documentElement.classList.add('dark')
-                document.body.style.background = '#1c1c1e'
-            } else {
-                document.documentElement.classList.remove('dark')
-                document.body.style.background = '#f2f4f7'
-            }
+            if (next) document.documentElement.classList.add('dark')
+            else document.documentElement.classList.remove('dark')
             localStorage.setItem(DARK_KEY, String(next))
             return next
         })
