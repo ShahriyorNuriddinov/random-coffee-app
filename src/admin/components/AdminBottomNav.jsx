@@ -1,4 +1,5 @@
 // Admin bottom navigation bar — 6 tabs including Notifications
+import PropTypes from 'prop-types'
 import { LayoutDashboard, Users, Image, Newspaper, Bell, Settings } from 'lucide-react'
 import { getT } from '../i18n'
 
@@ -41,6 +42,9 @@ export default function AdminBottomNav({ tab, setTab, lang, unreadCount = 0 }) {
                     <span>{t[id]}</span>
                 </button>
             ))}
-        </div>
-    )
+            AdminBottomNav.propTypes = {
+                tab: PropTypes.string.isRequired,
+            setTab: PropTypes.func.isRequired,
+            lang: PropTypes.string.isRequired,
+            unreadCount: PropTypes.number,
 }

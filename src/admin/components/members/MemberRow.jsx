@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { ChevronRight } from 'lucide-react'
 import { getT } from '../../i18n'
 import Avatar, { getAvatarColor } from '../ui/Avatar'
@@ -25,8 +26,8 @@ export function MemberRow({ member, onClick, lang, isLast }) {
             </div>
             <div className="flex items-center gap-2">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${member.subscription_status === 'active'
-                        ? 'bg-green-100 text-green-600'
-                        : 'bg-gray-100 text-gray-400'
+                    ? 'bg-green-100 text-green-600'
+                    : 'bg-gray-100 text-gray-400'
                     }`}>
                     {member.subscription_status === 'active' ? t.active : t.free}
                 </span>
@@ -71,4 +72,25 @@ export function GroupedMemberList({ members, onSelect, lang }) {
             ))}
         </div>
     )
+}
+
+MemberRow.propTypes = {
+    member: PropTypes.shape({
+        id: PropTypes.string,
+        name: PropTypes.string,
+        email: PropTypes.string,
+        avatar_url: PropTypes.string,
+        region: PropTypes.string,
+        subscription_status: PropTypes.string,
+        banned: PropTypes.bool,
+    }).isRequired,
+    onClick: PropTypes.func.isRequired,
+    lang: PropTypes.string.isRequired,
+    isLast: PropTypes.bool,
+}
+
+GroupedMemberList.propTypes = {
+    members: PropTypes.array.isRequired,
+    onSelect: PropTypes.func.isRequired,
+    lang: PropTypes.string.isRequired,
 }

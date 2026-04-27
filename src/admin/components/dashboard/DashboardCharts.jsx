@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import {
     AreaChart, Area, BarChart, Bar,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -11,7 +12,6 @@ const tooltipStyle = {
     cursor: { fill: 'rgba(0,0,0,0.04)' },
 }
 
-// ─── Revenue area chart ───────────────────────────────────────────────────────
 export function RevenueChart({ data, label }) {
     return (
         <ResponsiveContainer width="100%" height={130}>
@@ -33,7 +33,11 @@ export function RevenueChart({ data, label }) {
     )
 }
 
-// ─── New members bar chart ────────────────────────────────────────────────────
+RevenueChart.propTypes = {
+    data: PropTypes.array.isRequired,
+    label: PropTypes.string.isRequired,
+}
+
 export function MembersChart({ data, label }) {
     return (
         <ResponsiveContainer width="100%" height={140}>
@@ -48,7 +52,11 @@ export function MembersChart({ data, label }) {
     )
 }
 
-// ─── Meeting satisfaction ratings ────────────────────────────────────────────
+MembersChart.propTypes = {
+    data: PropTypes.array.isRequired,
+    label: PropTypes.string.isRequired,
+}
+
 export function MeetingRatings({ t }) {
     const ratings = [
         { label: t.ratingExcellent, pct: 57.5, color: '#34c759' },
@@ -73,7 +81,15 @@ export function MeetingRatings({ t }) {
     )
 }
 
-// ─── Meetings donut + legend ──────────────────────────────────────────────────
+MeetingRatings.propTypes = {
+    t: PropTypes.shape({
+        ratingExcellent: PropTypes.string,
+        ratingGood: PropTypes.string,
+        ratingNormal: PropTypes.string,
+        ratingBad: PropTypes.string,
+    }).isRequired,
+}
+
 export function MeetingsSection({ successful, cancelled, t, onCancelledClick }) {
     const data = [
         { name: t.successful, value: successful, fill: '#34c759' },
@@ -112,7 +128,16 @@ export function MeetingsSection({ successful, cancelled, t, onCancelledClick }) 
     )
 }
 
-// ─── Gender split bar ─────────────────────────────────────────────────────────
+MeetingsSection.propTypes = {
+    successful: PropTypes.number.isRequired,
+    cancelled: PropTypes.number.isRequired,
+    t: PropTypes.shape({
+        successful: PropTypes.string,
+        cancelled: PropTypes.string,
+    }).isRequired,
+    onCancelledClick: PropTypes.func.isRequired,
+}
+
 export function GenderBar({ men, women, total, t }) {
     const menPct = total ? Math.round(men / total * 100) : 50
     const womenPct = total ? Math.round(women / total * 100) : 50
@@ -134,4 +159,12 @@ export function GenderBar({ men, women, total, t }) {
     )
 }
 
-
+GenderBar.propTypes = {
+    men: PropTypes.number.isRequired,
+    women: PropTypes.number.isRequired,
+    total: PropTypes.number.isRequired,
+    t: PropTypes.shape({
+        men: PropTypes.string,
+        women: PropTypes.string,
+    }).isRequired,
+}

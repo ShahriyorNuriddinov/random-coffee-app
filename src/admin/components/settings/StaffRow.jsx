@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { Trash2 } from 'lucide-react'
 import { getT } from '../../i18n'
 
@@ -20,4 +21,17 @@ export default function StaffRow({ member, onRemove, lang, isLast }) {
             </div>
         </div>
     )
+}
+
+StaffRow.propTypes = {
+    member: PropTypes.shape({
+        id: PropTypes.string,
+        name: PropTypes.string,
+        email: PropTypes.string,
+        phone: PropTypes.string,
+        role: PropTypes.string,
+    }).isRequired,
+    onRemove: PropTypes.func.isRequired,
+    lang: PropTypes.string.isRequired,
+    isLast: PropTypes.bool,
 }

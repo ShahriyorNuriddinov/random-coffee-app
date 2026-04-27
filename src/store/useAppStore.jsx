@@ -53,7 +53,12 @@ export function AppProvider({ children }) {
     }
     const sbUser = getSbUser()
 
-    const [screen, setScreen] = useState(sbUser ? 'profile' : 'onboarding')
+    // First time — show language selection
+    const langAlreadySelected = localStorage.getItem('rc_lang_selected')
+
+    const [screen, setScreen] = useState(
+        sbUser ? 'profile' : langAlreadySelected ? 'onboarding' : 'lang-select'
+    )
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem(DARK_KEY)
         const isDark = saved === 'true'

@@ -5,6 +5,7 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 
 // Critical screens — loaded immediately
 import OnboardingScreen from '@/screens/OnboardingScreen'
+import LangSelectScreen from '@/screens/LangSelectScreen'
 import PhoneScreen from '@/screens/PhoneScreen'
 import OtpScreen from '@/screens/OtpScreen'
 import PersonalScreen from '@/screens/PersonalScreen'
@@ -46,6 +47,7 @@ function Router() {
   const { screen } = useApp()
 
   const critical = {
+    'lang-select': <LangSelectScreen />,
     onboarding: <OnboardingScreen />,
     phone: <PhoneScreen />,
     otp: <OtpScreen />,

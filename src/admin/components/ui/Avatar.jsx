@@ -1,8 +1,10 @@
 // User avatar — shows image if available, otherwise colored initials
+import PropTypes from 'prop-types'
+
 const COLORS = ['#007aff', '#ff9500', '#34c759', '#5856d6', '#ff3b30', '#ff2d55']
 
 export const getAvatarColor = (id = '') =>
-    COLORS[id.charCodeAt(0) % COLORS.length]
+    COLORS[id.codePointAt(0) % COLORS.length]
 
 export default function Avatar({ name, url, size = 36, color = '#007aff' }) {
     const initials = (name || '?')
@@ -31,4 +33,11 @@ export default function Avatar({ name, url, size = 36, color = '#007aff' }) {
             {initials}
         </div>
     )
+}
+
+Avatar.propTypes = {
+    name: PropTypes.string,
+    url: PropTypes.string,
+    size: PropTypes.number,
+    color: PropTypes.string,
 }

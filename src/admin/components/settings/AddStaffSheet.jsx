@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PropTypes from 'prop-types'
 import { X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { addStaff } from '../../lib/adminSupabase'
@@ -64,4 +65,10 @@ export default function AddStaffSheet({ onAdd, onClose, lang }) {
             </div>
         </div>
     )
+}
+
+AddStaffSheet.propTypes = {
+    onAdd: PropTypes.func.isRequired,
+    onClose: PropTypes.func.isRequired,
+    lang: PropTypes.string.isRequired,
 }

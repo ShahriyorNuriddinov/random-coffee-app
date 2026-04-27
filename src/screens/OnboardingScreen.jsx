@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
-import LangSwitcher from '@/components/LangSwitcher'
 import DarkToggle from '@/components/DarkToggle'
 
 const slides = [
@@ -35,7 +34,6 @@ export default function OnboardingScreen() {
                 display: 'flex', gap: 8, alignItems: 'center', zIndex: 30
             }}>
                 <DarkToggle />
-                <LangSwitcher />
             </div>
             <div
                 ref={sliderRef}
@@ -47,13 +45,14 @@ export default function OnboardingScreen() {
                     scrollSnapType: 'x mandatory',
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
+                    minHeight: 0,
                 }}
             >
                 {slides.map((slide, i) => (
                     <div
                         key={slide.key} style={{
                             minWidth: '100%',
-                            height: '100%',
+                            minHeight: '70vh',
                             scrollSnapAlign: 'center',
                             display: 'flex',
                             flexDirection: 'column',

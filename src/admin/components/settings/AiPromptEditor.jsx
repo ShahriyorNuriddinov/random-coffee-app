@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PropTypes from 'prop-types'
 import { Sparkles, RotateCcw } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { getT } from '../../i18n'
@@ -78,4 +79,10 @@ export default function AiPromptEditor({ value, onChange, lang }) {
             </div>
         </div>
     )
+}
+
+AiPromptEditor.propTypes = {
+    value: PropTypes.string,
+    onChange: PropTypes.func.isRequired,
+    lang: PropTypes.string.isRequired,
 }

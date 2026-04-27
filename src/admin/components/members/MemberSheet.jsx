@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import PropTypes from 'prop-types'
 import { Save, Ban, CheckCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { getMemberById, updateMember, banMember, unbanMember } from '../../lib/adminSupabase'
@@ -195,4 +196,10 @@ export default function MemberSheet({ memberId, onClose, lang }) {
             )}
         </FullScreenModal>
     )
+}
+
+MemberSheet.propTypes = {
+    memberId: PropTypes.string.isRequired,
+    onClose: PropTypes.func.isRequired,
+    lang: PropTypes.string.isRequired,
 }

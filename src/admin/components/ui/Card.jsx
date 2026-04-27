@@ -1,4 +1,6 @@
 // White card with border and shadow — base container
+import PropTypes from 'prop-types'
+
 export default function Card({ children, className = '', onClick }) {
     const base = 'bg-white rounded-2xl border border-black/5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]'
     if (onClick) {
@@ -9,4 +11,10 @@ export default function Card({ children, className = '', onClick }) {
         )
     }
     return <div className={`${base} ${className}`}>{children}</div>
+}
+
+Card.propTypes = {
+    children: PropTypes.node,
+    className: PropTypes.string,
+    onClick: PropTypes.func,
 }

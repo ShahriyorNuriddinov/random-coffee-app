@@ -54,7 +54,6 @@ export default function PersonalScreen() {
         <div className="app-screen fade-in-up">
             <div className="fixed top-5 right-5 flex gap-2 items-center z-30">
                 <DarkToggle />
-                <LangSwitcher />
             </div>
 
             <div className="flex-1 overflow-y-auto flex flex-col items-center px-5 pt-16 pb-10">

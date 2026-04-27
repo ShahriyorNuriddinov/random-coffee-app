@@ -1,4 +1,5 @@
 // Admin panel top header — title + lang switcher
+import PropTypes from 'prop-types'
 import LangSwitcher from './LangSwitcher'
 import { getT } from '../i18n'
 
@@ -13,4 +14,10 @@ export default function AdminHeader({ tab, lang, setLang }) {
             <LangSwitcher lang={lang} setLang={setLang} />
         </div>
     )
+}
+
+AdminHeader.propTypes = {
+    tab: PropTypes.string.isRequired,
+    lang: PropTypes.string.isRequired,
+    setLang: PropTypes.func.isRequired,
 }

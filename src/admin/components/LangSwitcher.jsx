@@ -1,4 +1,6 @@
 // Language switcher — EN / 中文 / RU
+import PropTypes from 'prop-types'
+
 export default function LangSwitcher({ lang, setLang }) {
     const langs = [
         { code: 'en', label: 'EN' },
@@ -18,4 +20,9 @@ export default function LangSwitcher({ lang, setLang }) {
             ))}
         </div>
     )
+}
+
+LangSwitcher.propTypes = {
+    lang: PropTypes.string.isRequired,
+    setLang: PropTypes.func.isRequired,
 }
