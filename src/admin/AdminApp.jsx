@@ -56,14 +56,22 @@ export default function AdminApp() {
     useEffect(() => {
         if (!authed) return
 
-        // Load initial unread count from DB
+        // Load initial unread count — only events AFTER last seen time from DB
         const loadInitialCount = async () => {
-            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+            // Get last seen time from DB
+            const { data: stateData } = await supabase
+                .from('admin_notifications_state')
+                .select('seen_at')
+                .eq('id', 1)
+                .single()
+
+            const since = stateData?.seen_at || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
             const [profilesRes, momentsRes, paymentsRes, matchesRes] = await Promise.all([
-                supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
-                supabase.from('moments').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-                supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
-                supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+                supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', since),
+                supabase.from('moments').select('id', { count: 'exact', head: true }).eq('status', 'pending').gte('created_at', since),
+                supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', since),
+                supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', since),
             ])
             const total = (profilesRes.count || 0) + (momentsRes.count || 0) + (paymentsRes.count || 0) + (matchesRes.count || 0)
             setUnreadCount(total)
@@ -73,20 +81,26 @@ export default function AdminApp() {
         // Realtime bump on new events
         const bump = () => setUnreadCount(n => n + 1)
         const ch = supabase
-            .channel('app_badge_v2')
+            .channel('app_badge_v3')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moments' }, bump)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, bump)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, bump)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, bump)
-            .subscribe((status, err) => {
-                console.log('[badge channel]', status, err || '')
-            })
+            .subscribe()
         return () => supabase.removeChannel(ch)
     }, [authed])
 
     const handleTabChange = (t) => {
         setTab(t)
-        if (t === 'notifications') setUnreadCount(0)
+        if (t === 'notifications') {
+            // Save current time to DB as "last seen"
+            supabase
+                .from('admin_notifications_state')
+                .update({ seen_at: new Date().toISOString() })
+                .eq('id', 1)
+                .then(() => { })
+            setUnreadCount(0)
+        }
     }
 
     if (!authed) {
