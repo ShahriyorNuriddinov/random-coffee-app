@@ -56,6 +56,8 @@ export default function NewMomentModal({ matchId, onClose, onPosted }) {
     const handlePost = async () => {
         if (!text.trim()) { toast.error(t('toast_write_something', 'Write something first')); return }
         if (!user?.id) return
+        if (loading) return // Prevent double submission
+
         setLoading(true)
 
         let imageUrl = null
@@ -97,8 +99,14 @@ export default function NewMomentModal({ matchId, onClose, onPosted }) {
 
         if (result) {
             toast.success(t('toast_moment_posted', 'Posted! Your moment is pending review ⏳'))
-            if (onPosted) onPosted()
+
+            // Close modal first
             onClose()
+
+            // Then call onPosted callback after a short delay
+            if (onPosted) {
+                setTimeout(() => onPosted(), 100)
+            }
 
             // Background: translate to other 2 languages and update the row
             if (result.id) {
