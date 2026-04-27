@@ -112,7 +112,7 @@ export default function AdminApp() {
         <ErrorBoundary>
             <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount }}>
                 <AdminHeader tab={tab} lang={lang} setLang={setLang} />
-                <div className="w-full max-w-[1200px] mx-auto pb-20 px-4 box-border">
+                <div className={`w-full max-w-[1200px] mx-auto pb-20 box-border ${tab === 'notifications' ? 'px-0' : 'px-4'}`}>
                     <Screen />
                 </div>
                 <AdminBottomNav tab={tab} setTab={handleTabChange} lang={lang} unreadCount={unreadCount} />
