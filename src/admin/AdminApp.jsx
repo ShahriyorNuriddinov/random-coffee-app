@@ -112,7 +112,7 @@ export default function AdminApp() {
         <ErrorBoundary>
             <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount }}>
                 <AdminHeader tab={tab} lang={lang} setLang={setLang} />
-                <div style={{ width: '80%', margin: '0 auto' }}>
+                <div style={{ width: '80%', margin: '0 auto', paddingBottom: 80 }}>
                     <Screen />
                 </div>
                 <AdminBottomNav tab={tab} setTab={handleTabChange} lang={lang} unreadCount={unreadCount} />
