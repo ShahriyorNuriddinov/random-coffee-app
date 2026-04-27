@@ -25,9 +25,9 @@ export const translations = {
     },
 
     nav: {
-        en: { dashboard: 'Dashboard', members: 'Members', moments: 'Moments', news: 'News', notifications: 'Alerts', settings: 'Settings' },
-        zh: { dashboard: '仪表板', members: '会员', moments: '动态', news: '新闻', notifications: '通知', settings: '设置' },
-        ru: { dashboard: 'Дашборд', members: 'Участники', moments: 'Моменты', news: 'Новости', notifications: 'Уведомления', settings: 'Настройки' },
+        en: { dashboard: 'Dashboard', members: 'Members', moments: 'Moments', news: 'News', reports: 'Reports', notifications: 'Alerts', settings: 'Settings' },
+        zh: { dashboard: '仪表板', members: '会员', moments: '动态', news: '新闻', reports: '举报', notifications: '通知', settings: '设置' },
+        ru: { dashboard: 'Дашборд', members: 'Участники', moments: 'Моменты', news: 'Новости', reports: 'Жалобы', notifications: 'Уведомления', settings: 'Настройки' },
     },
 
     login: {

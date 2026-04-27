@@ -34,24 +34,30 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
     const [translating, setTranslating] = useState(false)
     const [showReportMenu, setShowReportMenu] = useState(false)
     const [blocking, setBlocking] = useState(false)
+    const [showBlockConfirm, setShowBlockConfirm] = useState(false)
 
     const handleBlock = async () => {
         if (!user?.id) return
+        setShowBlockConfirm(false)
+        setShowReportMenu(false)
         setBlocking(true)
         const res = await blockUser(user.id, person.id)
         setBlocking(false)
         if (res.success) {
-            toast.success('User blocked')
-            onClose()
-        } else toast.error(res.error || 'Failed to block')
+            toast.success('User blocked successfully')
+            setTimeout(() => onClose(), 500)
+        } else toast.error(res.error || 'Failed to block user')
     }
 
     const handleReport = async (reason) => {
         if (!user?.id) return
         setShowReportMenu(false)
         const res = await reportUser(user.id, person.id, reason)
-        if (res.success) toast.success('Report submitted')
-        else toast.error(res.error || 'Failed to report')
+        if (res.success) {
+            toast.success('Report submitted. Thank you for keeping our community safe!')
+        } else {
+            toast.error(res.error || 'Failed to submit report')
+        }
     }
 
     const regionFlag = person.region === 'Macau' ? '🇲🇴'
@@ -179,35 +185,105 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                             onClick={() => setShowReportMenu(v => !v)}
                             style={{
                                 width: 34, height: 34, borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.45)', border: 'none',
+                                background: 'rgba(0,0,0,0.5)',
+                                backdropFilter: 'blur(10px)',
+                                border: 'none',
                                 color: '#fff', fontSize: 18, cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s',
+                                transform: showReportMenu ? 'rotate(90deg)' : 'rotate(0deg)',
                             }}
                         >⋯</button>
                         {showReportMenu && (
-                            <div style={{
-                                position: 'absolute', top: 40, left: 0, zIndex: 30,
-                                background: 'var(--app-card)', borderRadius: 14,
-                                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                                border: '0.5px solid var(--app-border)',
-                                overflow: 'hidden', minWidth: 160,
-                            }}>
-                                {['Spam', 'Inappropriate', 'Fake profile', 'Harassment'].map(reason => (
-                                    <button key={reason} onClick={() => handleReport(reason)} style={{
-                                        display: 'block', width: '100%', padding: '11px 16px',
-                                        background: 'none', border: 'none', cursor: 'pointer',
-                                        fontSize: 14, fontWeight: 500, color: '#ff9500',
-                                        fontFamily: 'inherit', textAlign: 'left',
+                            <>
+                                {/* Backdrop */}
+                                <div
+                                    onClick={() => setShowReportMenu(false)}
+                                    style={{
+                                        position: 'fixed',
+                                        inset: 0,
+                                        zIndex: 25,
+                                    }}
+                                />
+                                {/* Menu */}
+                                <div style={{
+                                    position: 'absolute', top: 42, left: 0, zIndex: 30,
+                                    background: 'var(--app-card)',
+                                    borderRadius: 16,
+                                    boxShadow: '0 12px 32px rgba(0,0,0,0.2)',
+                                    border: '0.5px solid var(--app-border)',
+                                    overflow: 'hidden',
+                                    minWidth: 200,
+                                    animation: 'menuSlideIn 0.2s cubic-bezier(0.4,0,0.2,1)',
+                                }}>
+                                    <div style={{
+                                        padding: '10px 16px',
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        color: 'var(--app-hint)',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
                                         borderBottom: '0.5px solid var(--app-border)',
-                                    }}>⚠️ Report: {reason}</button>
-                                ))}
-                                <button onClick={handleBlock} disabled={blocking} style={{
-                                    display: 'block', width: '100%', padding: '11px 16px',
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    fontSize: 14, fontWeight: 600, color: '#ff3b30',
-                                    fontFamily: 'inherit', textAlign: 'left',
-                                }}>🚫 {blocking ? 'Blocking...' : 'Block user'}</button>
-                            </div>
+                                    }}>Report Issue</div>
+                                    {[
+                                        { reason: 'Spam', icon: '📧', color: '#ff9500' },
+                                        { reason: 'Inappropriate', icon: '⚠️', color: '#ff9500' },
+                                        { reason: 'Fake profile', icon: '🎭', color: '#ff9500' },
+                                        { reason: 'Harassment', icon: '🚨', color: '#ff3b30' },
+                                    ].map(({ reason, icon, color }) => (
+                                        <button key={reason} onClick={() => handleReport(reason)} style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 10,
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: 14,
+                                            fontWeight: 500,
+                                            color: color,
+                                            fontFamily: 'inherit',
+                                            textAlign: 'left',
+                                            borderBottom: '0.5px solid rgba(0,0,0,0.05)',
+                                            transition: 'background 0.15s',
+                                        }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.03)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                        >
+                                            <span style={{ fontSize: 16 }}>{icon}</span>
+                                            <span>Report: {reason}</span>
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => {
+                                            setShowReportMenu(false)
+                                            setShowBlockConfirm(true)
+                                        }}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 10,
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            color: '#ff3b30',
+                                            fontFamily: 'inherit',
+                                            textAlign: 'left',
+                                            transition: 'background 0.15s',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,59,48,0.05)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                    >
+                                        <span style={{ fontSize: 16 }}>🚫</span>
+                                        <span>Block User</span>
+                                    </button>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
@@ -295,10 +371,139 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                 </div>
             </div>
 
+            {/* Block Confirmation Dialog */}
+            {showBlockConfirm && (
+                <div
+                    onClick={() => setShowBlockConfirm(false)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.6)',
+                        backdropFilter: 'blur(8px)',
+                        zIndex: 300,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 20,
+                        animation: 'fadeIn 0.2s',
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            background: 'var(--app-card)',
+                            borderRadius: 20,
+                            padding: '28px 24px',
+                            maxWidth: 340,
+                            width: '100%',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                            animation: 'scaleIn 0.2s cubic-bezier(0.4,0,0.2,1)',
+                        }}
+                    >
+                        <div style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: '50%',
+                            background: 'rgba(255,59,48,0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 28,
+                            margin: '0 auto 16px',
+                        }}>🚫</div>
+
+                        <div style={{
+                            fontSize: 20,
+                            fontWeight: 800,
+                            color: 'var(--app-text)',
+                            textAlign: 'center',
+                            marginBottom: 8,
+                            letterSpacing: -0.3,
+                        }}>Block {person.name}?</div>
+
+                        <div style={{
+                            fontSize: 14,
+                            color: 'var(--app-hint)',
+                            textAlign: 'center',
+                            lineHeight: 1.5,
+                            marginBottom: 24,
+                        }}>
+                            They won't be able to see your profile or contact you. You can unblock them later from settings.
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={() => setShowBlockConfirm(false)}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px 0',
+                                    borderRadius: 14,
+                                    border: 'none',
+                                    background: 'rgba(120,120,128,0.1)',
+                                    color: 'var(--app-text)',
+                                    fontSize: 16,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    fontFamily: 'inherit',
+                                    transition: 'all 0.2s',
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(120,120,128,0.15)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'rgba(120,120,128,0.1)'}
+                            >Cancel</button>
+
+                            <button
+                                onClick={handleBlock}
+                                disabled={blocking}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px 0',
+                                    borderRadius: 14,
+                                    border: 'none',
+                                    background: blocking ? 'rgba(255,59,48,0.5)' : '#ff3b30',
+                                    color: '#fff',
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                    cursor: blocking ? 'not-allowed' : 'pointer',
+                                    fontFamily: 'inherit',
+                                    transition: 'all 0.2s',
+                                    opacity: blocking ? 0.6 : 1,
+                                }}
+                                onMouseEnter={e => !blocking && (e.currentTarget.style.background = '#e63329')}
+                                onMouseLeave={e => !blocking && (e.currentTarget.style.background = '#ff3b30')}
+                            >{blocking ? 'Blocking...' : 'Block'}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style>{`
                 @keyframes slideUp {
                     from { transform: translateY(100%); }
                     to { transform: translateY(0); }
+                }
+                @keyframes menuSlideIn {
+                    from { 
+                        opacity: 0;
+                        transform: translateY(-8px) scale(0.95);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleIn {
+                    from { 
+                        opacity: 0;
+                        transform: scale(0.9);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: scale(1);
+                    }
                 }
             `}</style>
         </div>

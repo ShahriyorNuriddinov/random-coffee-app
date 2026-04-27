@@ -1,6 +1,6 @@
-// Admin bottom navigation bar — 6 tabs including Notifications
+// Admin bottom navigation bar — 7 tabs including Reports and Notifications
 import PropTypes from 'prop-types'
-import { LayoutDashboard, Users, Image, Newspaper, Bell, Settings } from 'lucide-react'
+import { LayoutDashboard, Users, Image, Newspaper, Flag, Bell, Settings } from 'lucide-react'
 import { getT } from '../i18n'
 
 const TABS = [
@@ -8,6 +8,7 @@ const TABS = [
     { id: 'members', icon: Users },
     { id: 'moments', icon: Image },
     { id: 'news', icon: Newspaper },
+    { id: 'reports', icon: Flag },
     { id: 'notifications', icon: Bell },
     { id: 'settings', icon: Settings },
 ]

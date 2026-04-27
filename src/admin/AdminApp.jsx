@@ -20,6 +20,7 @@ const AdminMoments = lazy(() => import('./screens/AdminMoments'))
 const AdminNews = lazy(() => import('./screens/AdminNews'))
 const AdminNotifications = lazy(() => import('./screens/AdminNotifications'))
 const AdminSettings = lazy(() => import('./screens/AdminSettings'))
+const AdminReports = lazy(() => import('./screens/AdminReports'))
 import AdminHeader from './components/AdminHeader'
 import AdminBottomNav from './components/AdminBottomNav'
 import { supabase } from './lib/adminSupabase'
@@ -34,6 +35,7 @@ const SCREENS = {
     members: AdminMembers,
     moments: AdminMoments,
     news: AdminNews,
+    reports: AdminReports,
     notifications: AdminNotifications,
     settings: AdminSettings,
 }
