@@ -142,11 +142,21 @@ export function AppProvider({ children }) {
                 (payload) => {
                     const db = payload.new
                     if (db.coffee_credits !== undefined) {
-                        setSubscription({
-                            status: db.subscription_status || 'trial',
-                            credits: db.coffee_credits ?? 0,
-                            start: db.subscription_start || null,
-                            end: db.subscription_end || null,
+                        setSubscription(prev => {
+                            const newCredits = db.coffee_credits ?? 0
+                            // Show toast only if credits increased
+                            if (newCredits > (prev.credits ?? 0)) {
+                                toast.success(`☕ +${newCredits - prev.credits} credit added!`, {
+                                    duration: 4000,
+                                    style: { background: '#34c759', color: '#fff', borderRadius: 20, fontWeight: 700, fontSize: 15, padding: '14px 24px' },
+                                })
+                            }
+                            return {
+                                status: db.subscription_status || 'trial',
+                                credits: newCredits,
+                                start: db.subscription_start || null,
+                                end: db.subscription_end || null,
+                            }
                         })
                     }
                 })
@@ -200,7 +210,7 @@ export function AppProvider({ children }) {
         })
     }
 
-    if (false) return null // reserved for future loading state
+    if (false) return null
 
     return (
         <AppContext.Provider value={{

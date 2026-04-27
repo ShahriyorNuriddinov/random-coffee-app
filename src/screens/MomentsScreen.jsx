@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import MomentCard from '@/components/moments/MomentCard'
 import NewMomentModal from '@/components/moments/NewMomentModal'
-import { getMoments, getUserMomentReaction, getUserMomentReactions, getMeetingHistory, supabase } from '@/lib/supabaseClient'
+import { getMoments, getUserMomentReactions, getMeetingHistory, supabase } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
 export default function MomentsScreen() {
     const { t, i18n } = useTranslation()
@@ -115,7 +115,7 @@ export default function MomentsScreen() {
         }
     }
 
-    const handlePosted = (newMoment) => {
+    const handlePosted = () => {
         // Don't show pending posts in feed — wait for admin approval
     }
 

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 import { useApp } from '@/store/useAppStore'
-import { postMoment, uploadMomentImage, supabase } from '@/lib/supabaseClient'
+import { postMoment, uploadMomentImage } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
 import toast from 'react-hot-toast'
 
@@ -30,7 +30,7 @@ async function compressImage(file, maxWidth = 800, quality = 0.75) {
 
 export default function NewMomentModal({ onClose, onPosted }) {
     const { t } = useTranslation()
-    const { user, subscription, setSubscription } = useApp()
+    const { user, setSubscription } = useApp()
     const [text, setText] = useState('')
     const [images, setImages] = useState([]) // max 4
     const [loading, setLoading] = useState(false)

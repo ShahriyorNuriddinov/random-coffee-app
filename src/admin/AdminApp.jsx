@@ -55,6 +55,22 @@ export default function AdminApp() {
 
     useEffect(() => {
         if (!authed) return
+
+        // Load initial unread count from DB
+        const loadInitialCount = async () => {
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+            const [profilesRes, momentsRes, paymentsRes, matchesRes] = await Promise.all([
+                supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+                supabase.from('moments').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+                supabase.from('payments').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+                supabase.from('matches').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+            ])
+            const total = (profilesRes.count || 0) + (momentsRes.count || 0) + (paymentsRes.count || 0) + (matchesRes.count || 0)
+            setUnreadCount(total)
+        }
+        loadInitialCount().catch(() => { })
+
+        // Realtime bump on new events
         const bump = () => setUnreadCount(n => n + 1)
         const ch = supabase
             .channel('app_badge_v2')

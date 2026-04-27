@@ -25,16 +25,25 @@ export default function ProfileScreen() {
     useEffect(() => {
         if (!user?.id) return
         getReferralCode(user.id).then(d => { if (d?.referral_code) setReferralCode(d.referral_code) }).catch(() => { })
-        // Always fetch fresh credits from DB
-        getSubscription(user.id).then(data => {
-            if (data) setSubscription({
-                status: data.subscription_status || 'trial',
-                credits: data.coffee_credits ?? 0,
-                start: data.subscription_start || null,
-                end: data.subscription_end || null,
-            })
-        }).catch(() => { })
-    }, [user?.id])
+
+        const fetchCredits = () => {
+            getSubscription(user.id).then(data => {
+                if (data) setSubscription({
+                    status: data.subscription_status || 'trial',
+                    credits: data.coffee_credits ?? 0,
+                    start: data.subscription_start || null,
+                    end: data.subscription_end || null,
+                })
+            }).catch(() => { })
+        }
+
+        fetchCredits()
+
+        // Refresh credits when tab becomes visible (e.g. after admin approves moment)
+        const onVisible = () => { if (document.visibilityState === 'visible') fetchCredits() }
+        document.addEventListener('visibilitychange', onVisible)
+        return () => document.removeEventListener('visibilitychange', onVisible)
+    }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const effectiveStatus = (subscription.credits ?? 0) === 0 ? 'empty'
         : subscription.status === 'trial' ? 'trial'

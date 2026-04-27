@@ -130,7 +130,7 @@ export default function ProfileEditScreen() {
                     const finalGives = improvedGives || gives
                     const finalWants = improvedWants || wants
 
-                    const [tags, scoreResult] = await Promise.all([
+                    const [tags] = await Promise.all([
                         extractTags(finalAbout, finalGives, finalWants),
                         scoreProfile(finalAbout, finalGives, finalWants),
                     ])
@@ -138,7 +138,6 @@ export default function ProfileEditScreen() {
                     // Detect language: if text contains Chinese chars → translate to EN, else → translate to ZH
                     const hasChinese = /[\u4e00-\u9fff]/.test(finalAbout + finalGives + finalWants)
                     const targetLang = hasChinese ? 'en' : 'zh'
-                    const otherLangKey = hasChinese ? 'en' : 'zh'
 
                     const translated = await translateProfile(
                         { about: finalAbout, gives: finalGives, wants: finalWants },

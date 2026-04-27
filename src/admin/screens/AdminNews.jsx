@@ -135,7 +135,8 @@ function PostActionsSheet({ item, onEdit, onPin, onDelete, onClose, lang }) {
 function NewsCard({ item, onActions, lang }) {
     const t = getT('news', lang)
 
-    // Count total reactions across all emoji
+    // Count total reactions across all emoji — used in parent via item.reactions_count
+    // eslint-disable-next-line no-unused-vars
     const totalReactions = item.reactions
         ? Object.values(item.reactions).reduce((s, v) => s + v, 0)
         : 0
