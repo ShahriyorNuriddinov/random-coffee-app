@@ -86,15 +86,15 @@ export default function PersonCard({ person, liked, onLike, onOpen }) {
                         padding: '10px 16px', borderRadius: 12, border: 'none',
                         cursor: 'pointer',
                         background: liked
-                            ? 'rgba(255,59,48,0.08)'
+                            ? 'rgba(52,199,89,0.1)'
                             : 'linear-gradient(135deg, #007aff 0%, #5856d6 100%)',
-                        color: liked ? '#ff3b30' : '#fff',
+                        color: liked ? '#34c759' : '#fff',
                         fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
                         boxShadow: liked ? 'none' : '0 4px 10px rgba(0,122,255,0.15)',
                         transition: 'all 0.2s', whiteSpace: 'nowrap',
                     }}
                 >
-                    {liked ? t('cancel_interest') : t('send_interest_short')}
+                    {liked ? '✓ ' + t('already_liked') : t('send_interest_short')}
                 </button>
             </div>
 
