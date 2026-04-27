@@ -7,7 +7,7 @@ import PersonCard from '@/components/people/PersonCard'
 import PersonProfileSheet from '@/components/people/PersonProfileSheet'
 import PeopleFilterModal from '@/components/people/PeopleFilterModal'
 import { getPeople, getLikedUserIds, supabase } from '@/lib/supabaseClient'
-import { calcMatchScoresBatch } from '@/lib/aiUtils'
+import { calcMatchScoresBatch, translateProfile } from '@/lib/aiUtils'
 import { usePeopleLike } from '@/hooks/usePeopleLike'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 
@@ -22,11 +22,36 @@ export default function PeopleScreen() {
     const [showFilter, setShowFilter] = useState(false)
     const [filters, setFilters] = useState({ regions: [], langs: [] })
     const [search, setSearch] = useState('')
+    const [showBuyCredits, setShowBuyCredits] = useState(false)
 
     useEffect(() => {
         if (!user?.id) return
         load()
     }, [user?.id, profile?.tags?.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // When zh/ru selected — fill missing translations from DB, then background-save missing ones
+    useEffect(() => {
+        if (!people.length) return
+        const lang = i18n.language
+        if (lang !== 'zh' && lang !== 'ru') return
+        const aboutKey = lang === 'zh' ? 'about_zh' : 'about_ru'
+        const missing = people.filter(p => !p[aboutKey] && (p.about || p.gives || p.wants)).slice(0, 5)
+        if (!missing.length) return
+
+        missing.forEach(async (p) => {
+            try {
+                const result = await translateProfile({ about: p.about, gives: p.gives, wants: p.wants }, lang)
+                if (!result) return
+                const update = lang === 'zh'
+                    ? { about_zh: result.about, gives_zh: result.gives, wants_zh: result.wants }
+                    : { about_ru: result.about, gives_ru: result.gives, wants_ru: result.wants }
+                // Save to DB for next time
+                supabase.from('profiles').update(update).eq('id', p.id).then(() => { })
+                // Update local state immediately so card shows translated text
+                setPeople(prev => prev.map(x => x.id === p.id ? { ...x, ...update } : x))
+            } catch { /* silent */ }
+        })
+    }, [i18n.language, people.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const displayPeople = useMemo(() => {
         if (i18n.language === 'zh') return people.map(p => ({
@@ -80,7 +105,6 @@ export default function PeopleScreen() {
                 try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: scores, ts: Date.now() })) } catch { }
             }
 
-            // Get users who liked ME (they should appear first — mutual interest priority)
             const { data: likedMeData } = await supabase.from('likes').select('from_user_id').eq('to_user_id', user.id)
             const likedMeIds = new Set((likedMeData || []).map(r => r.from_user_id))
 
@@ -88,7 +112,6 @@ export default function PeopleScreen() {
                 candidates
                     .map((p, i) => ({ ...p, score: Array.isArray(scores) ? (scores[i] ?? 0) : 0 }))
                     .sort((a, b) => {
-                        // Users who liked me come first (mutual interest)
                         const aLikedMe = likedMeIds.has(a.id) ? 1 : 0
                         const bLikedMe = likedMeIds.has(b.id) ? 1 : 0
                         if (bLikedMe !== aLikedMe) return bLikedMe - aLikedMe
@@ -113,8 +136,6 @@ export default function PeopleScreen() {
             return matchSearch && matchRegion && matchLang
         })
     }, [displayPeople, search, filters])
-
-    const [showBuyCredits, setShowBuyCredits] = useState(false)
 
     return (
         <div className="app-screen">

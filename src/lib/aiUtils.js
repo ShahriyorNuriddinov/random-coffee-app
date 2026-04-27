@@ -9,8 +9,11 @@ const OPENAI_KEY = import.meta.env.VITE_OPENAI_API_KEY
 async function callGroq(prompt, maxTokens = 300) {
     if (!GROQ_KEY) return null
     try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
+            signal: controller.signal,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${GROQ_KEY}`,
@@ -22,9 +25,8 @@ async function callGroq(prompt, maxTokens = 300) {
                 temperature: 0.2,
             }),
         })
-        if (!res.ok) {
-            return null
-        }
+        clearTimeout(timeoutId)
+        if (!res.ok) return null
         const json = await res.json()
         return json.choices?.[0]?.message?.content?.trim() || null
     } catch (e) {
@@ -36,8 +38,11 @@ async function callGroq(prompt, maxTokens = 300) {
 async function callOpenAI(prompt, maxTokens = 200) {
     if (!OPENAI_KEY || OPENAI_KEY === 'sk-your-openai-key-here') return null
     try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
+            signal: controller.signal,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${OPENAI_KEY}`,
@@ -49,6 +54,7 @@ async function callOpenAI(prompt, maxTokens = 200) {
                 temperature: 0.2,
             }),
         })
+        clearTimeout(timeoutId)
         const json = await res.json()
         return json.choices?.[0]?.message?.content?.trim() || null
     } catch (e) {
