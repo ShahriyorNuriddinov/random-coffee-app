@@ -40,8 +40,11 @@ export default function NewMomentModal({ onClose, onPosted }) {
     const handleImage = async (e) => {
         const files = Array.from(e.target.files || [])
         if (!files.length) return
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        const validFiles = files.filter(f => allowedTypes.includes(f.type) && f.size <= 20 * 1024 * 1024)
+        if (validFiles.length < files.length) toast.error('Some files skipped: only JPG/PNG/WebP/GIF under 20MB allowed')
         const remaining = 4 - images.length
-        const toAdd = files.slice(0, remaining)
+        const toAdd = validFiles.slice(0, remaining)
         const compressed = await Promise.all(toAdd.map(f => compressImage(f)))
         const previews = compressed.map(f => ({ file: f, url: URL.createObjectURL(f) }))
         setImages(prev => [...prev, ...previews])
@@ -128,7 +131,7 @@ export default function NewMomentModal({ onClose, onPosted }) {
                 {images.length > 0 && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, width: '100%', marginBottom: 12 }}>
                         {images.map((img, i) => (
-                            <div key={i} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 8, overflow: 'hidden' }}>
+                            <div key={img.url} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 8, overflow: 'hidden' }}>
                                 <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 <button onClick={() => removeImage(i)} style={{
                                     position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%',

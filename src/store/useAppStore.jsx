@@ -68,7 +68,6 @@ export function AppProvider({ children }) {
     const [notifNewMatches, setNotifNewMatches] = useState(true)
     const [notifImportantNews, setNotifImportantNews] = useState(true)
     const [profileWelcomeSeen, setProfileWelcomeSeen] = useState(false)
-    const [sessionLoading, setSessionLoading] = useState(false)
     const [isOnline, setIsOnline] = useState(navigator.onLine)
     const userRef = useRef(sbUser ? { id: sbUser.id, email: sbUser.email } : null)
 
@@ -129,7 +128,7 @@ export function AppProvider({ children }) {
                 }
             }
         )
-        const fallback = setTimeout(() => setSessionLoading(false), 8000)
+        const fallback = setTimeout(() => { }, 8000)
         return () => { authSub.unsubscribe(); clearTimeout(fallback) }
     }, [])
 
@@ -201,12 +200,7 @@ export function AppProvider({ children }) {
         })
     }
 
-    if (sessionLoading) return (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--app-bg, #fff)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #e5e5ea', borderTopColor: '#007aff', animation: 'spin 0.7s linear infinite' }} />
-            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        </div>
-    )
+    if (false) return null // reserved for future loading state
 
     return (
         <AppContext.Provider value={{

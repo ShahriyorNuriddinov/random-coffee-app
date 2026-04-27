@@ -8,7 +8,6 @@ import SectionLabel from '../components/ui/SectionLabel'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import MemberSheet from '../components/members/MemberSheet'
 import { GroupedMemberList } from '../components/members/MemberRow'
-import { MembersSkeleton } from '../components/ui/SkeletonList'
 
 export default function AdminMembers() {
     const { lang } = useAdmin()
@@ -42,7 +41,7 @@ export default function AdminMembers() {
             const activeToday = (activeRes?.members || []).filter(m => new Date(m.created_at).toDateString() === today).length
             const inactiveToday = (inactiveRes?.members || []).filter(m => new Date(m.created_at).toDateString() === today).length
             setNewToday(activeToday + inactiveToday)
-        }).catch(() => {})
+        }).catch(() => { })
     }, [])
 
     const statusTabs = [

@@ -153,7 +153,7 @@ export default function BuyCreditsModal({ onClose }) {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                             {PLANS.map((p, i) => (
                                 <div
-                                    key={i}
+                                    key={p.label}
                                     onClick={() => setSelected(i)}
                                     style={{
                                         background: selected === i ? 'rgba(0,122,255,0.06)' : 'rgba(120,120,128,0.06)',

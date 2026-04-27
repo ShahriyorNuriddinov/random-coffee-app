@@ -51,8 +51,7 @@ export default function OnboardingScreen() {
             >
                 {slides.map((slide, i) => (
                     <div
-                        key={slide.key}
-                        style={{
+                        key={slide.key} style={{
                             minWidth: '100%',
                             height: '100%',
                             scrollSnapAlign: 'center',
@@ -98,8 +97,8 @@ export default function OnboardingScreen() {
                 pointerEvents: 'none',
                 transition: 'bottom 0.3s',
             }}>
-                {slides.map((_, i) => (
-                    <div key={i} style={{
+                {slides.map((slide, i) => (
+                    <div key={`dot-${slide.key}`} style={{
                         width: i === current ? 20 : 8,
                         height: 8,
                         borderRadius: i === current ? 4 : '50%',

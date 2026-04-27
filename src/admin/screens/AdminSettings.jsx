@@ -40,10 +40,12 @@ export default function AdminSettings() {
     const t = getT('settings', lang)
 
     useEffect(() => {
+        let cancelled = false
         getSettings().then(s => {
-            if (s) setSettings(prev => ({ ...prev, ...s, ai_matching_prompt: s.ai_matching_prompt || DEFAULT_AI_PROMPT }))
-        }).catch(() => {})
-        getStaff().then(setStaff).catch(() => {})
+            if (!cancelled && s) setSettings(prev => ({ ...prev, ...s, ai_matching_prompt: s.ai_matching_prompt || DEFAULT_AI_PROMPT }))
+        }).catch(() => { })
+        getStaff().then(s => { if (!cancelled) setStaff(s) }).catch(() => { })
+        return () => { cancelled = true }
     }, [])
 
     const handleSave = async () => {

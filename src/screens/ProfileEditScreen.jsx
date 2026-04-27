@@ -25,7 +25,6 @@ export default function ProfileEditScreen() {
 
     const [showWelcome, setShowWelcome] = useState(!profileWelcomeSeen)
     const [saving, setSaving] = useState(false)
-    const [profileScore, setProfileScore] = useState(null) // { score, tips[] }
 
     const [avatar, setAvatar] = useState(profile.avatar)
     const [about, setAbout] = useState(profile.about)
@@ -58,6 +57,10 @@ export default function ProfileEditScreen() {
 
     const handleFile = async (file) => {
         if (!file) return
+        // Validate file type and size
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        if (!allowedTypes.includes(file.type)) { toast.error('Only JPG, PNG, WebP or GIF allowed'); return }
+        if (file.size > 10 * 1024 * 1024) { toast.error('File too large. Max 10MB'); return }
         const localUrl = URL.createObjectURL(file)
         setAvatar(localUrl)
         const publicUrl = await uploadAvatar(user?.id || 'mock', file)
@@ -167,7 +170,6 @@ export default function ProfileEditScreen() {
                         ...p,
                         about: updateData.about, gives: updateData.gives, wants: updateData.wants, tags,
                     }))
-                    setProfileScore(scoreResult)
                 } catch { /* AI failed silently */ }
             }, 100)
         } else {

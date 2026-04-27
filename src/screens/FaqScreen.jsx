@@ -48,7 +48,7 @@ export default function FaqScreen() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {FAQS.map((item, i) => (
                             <AccordionItem
-                                key={i}
+                                key={item.q}
                                 question={t(item.q)}
                                 answer={t(item.a)}
                                 open={openIdx === i}
