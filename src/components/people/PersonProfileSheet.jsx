@@ -44,9 +44,21 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
         const res = await blockUser(user.id, person.id)
         setBlocking(false)
         if (res.success) {
-            toast.success('User blocked successfully')
+            toast.success(`🚫 ${person.name} has been blocked. You won't see each other anymore.`, {
+                duration: 4000,
+                style: {
+                    background: '#ff3b30',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                },
+            })
             setTimeout(() => onClose(), 500)
-        } else toast.error(res.error || 'Failed to block user')
+        } else {
+            toast.error(res.error || 'Failed to block user. Please try again.')
+        }
     }
 
     const handleReport = async (reason) => {
@@ -54,9 +66,25 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
         setShowReportMenu(false)
         const res = await reportUser(user.id, person.id, reason)
         if (res.success) {
-            toast.success('Report submitted. Thank you for keeping our community safe!')
+            const messages = {
+                'Spam': '📧 Spam report submitted. We\'ll review this profile shortly.',
+                'Inappropriate': '⚠️ Inappropriate content reported. Our team will investigate.',
+                'Fake profile': '🎭 Fake profile reported. Thank you for helping us maintain authenticity.',
+                'Harassment': '🚨 Harassment report submitted. We take this seriously and will act quickly.',
+            }
+            toast.success(messages[reason] || 'Report submitted. Thank you for keeping our community safe!', {
+                duration: 4000,
+                style: {
+                    background: '#34c759',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                },
+            })
         } else {
-            toast.error(res.error || 'Failed to submit report')
+            toast.error(res.error || 'Failed to submit report. Please try again.')
         }
     }
 
