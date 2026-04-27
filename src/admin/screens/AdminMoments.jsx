@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react'
-import { CheckCircle, XCircle } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle, XCircle, CheckSquare } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getMomentsAdmin, approveMoment, rejectMoment, supabase } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
-import Spinner from '../components/ui/Spinner'
 import SectionLabel from '../components/ui/SectionLabel'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import BottomSheet, { SheetHeader, SheetAction } from '../components/ui/BottomSheet'
@@ -27,19 +27,27 @@ function RejectSheet({ onConfirm, onClose, lang }) {
 }
 
 // ─── Single moment card ───────────────────────────────────────────────────────
-function MomentCard({ moment: m, onApprove, onReject, showActions, lang }) {
+function MomentCard({ moment: m, onApprove, onReject, showActions, lang, selected, onSelect }) {
     const t = getT('moments', lang)
     const image = m.image_url || m.image_urls?.[0]
     const authorName = m.is_admin_post ? 'Random Coffee Team' : (m.author?.name || '—')
     const initials = authorName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
     return (
-        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-sm">
+        <div className={`bg-white rounded-2xl border overflow-hidden shadow-sm ${selected ? 'border-[#007aff]' : 'border-black/5'}`}>
             {image && <img src={image} alt="" className="w-full max-h-56 object-cover" />}
 
             <div className="p-4 flex flex-col gap-3">
                 {/* Author row */}
                 <div className="flex items-center gap-2">
+                    {showActions && (
+                        <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => onSelect?.(m.id)}
+                            className="w-4 h-4 accent-[#007aff] cursor-pointer flex-shrink-0"
+                        />
+                    )}
                     <Avatar size="sm">
                         <AvatarImage src={m.author?.avatar_url} alt={authorName} />
                         <AvatarFallback className={m.is_admin_post ? 'bg-primary text-primary-foreground text-[10px]' : 'text-[10px]'}>
@@ -88,55 +96,49 @@ function MomentCard({ moment: m, onApprove, onReject, showActions, lang }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function AdminMoments() {
     const { lang } = useAdmin()
-    const [moments, setMoments] = useState([])
-    const [total, setTotal] = useState(0)
     const [status, setStatus] = useState('pending')
-    const [loading, setLoading] = useState(true)
     const [rejectTarget, setRejectTarget] = useState(null)
+    const [selected, setSelected] = useState(new Set())
+    const [bulkLoading, setBulkLoading] = useState(false)
+    const queryClient = useQueryClient()
 
     const t = getT('moments', lang)
 
-    const load = useCallback(async () => {
-        setLoading(true)
-        const res = await getMomentsAdmin({ status })
-        setMoments(res.moments)
-        setTotal(res.total)
-        setLoading(false)
-    }, [status])
+    const { data, isLoading } = useQuery({
+        queryKey: ['admin-moments', status],
+        queryFn: () => getMomentsAdmin({ status }),
+    })
 
-    useEffect(() => { load() }, [load])
+    const moments = data?.moments ?? []
+    const total = data?.total ?? 0
 
-    // ─── Stat counts (fetch all 3 in parallel) ────────────────────────────────
-    const [statCounts, setStatCounts] = useState({ pending: 0, approved: 0, rejected: 0 })
-    useEffect(() => {
-        Promise.all([
-            getMomentsAdmin({ status: 'pending', page: 0, limit: 1 }),
-            getMomentsAdmin({ status: 'approved', page: 0, limit: 1 }),
-            getMomentsAdmin({ status: 'rejected', page: 0, limit: 1 }),
-        ]).then(([p, a, r]) => setStatCounts({
-            pending: p?.total || 0,
-            approved: a?.total || 0,
-            rejected: r?.total || 0,
-        })).catch(() => { })
-    }, [])
+    const { data: statCounts = { pending: 0, approved: 0, rejected: 0 } } = useQuery({
+        queryKey: ['admin-moments-counts'],
+        queryFn: async () => {
+            const [p, a, r] = await Promise.all([
+                getMomentsAdmin({ status: 'pending', page: 0, limit: 1 }),
+                getMomentsAdmin({ status: 'approved', page: 0, limit: 1 }),
+                getMomentsAdmin({ status: 'rejected', page: 0, limit: 1 }),
+            ])
+            return { pending: p?.total || 0, approved: a?.total || 0, rejected: r?.total || 0 }
+        },
+        staleTime: 30 * 1000,
+    })
 
     const handleApprove = async (id) => {
-        // Check current status to prevent double-crediting
         const moment = moments.find(m => m.id === id)
         if (!moment || moment.status !== 'pending') {
             toast(t.approvedMsg)
-            setMoments(m => m.filter(x => x.id !== id))
+            queryClient.invalidateQueries({ queryKey: ['admin-moments'] })
             return
         }
         const res = await approveMoment(id)
         if (res.success) {
             if (moment?.author?.id) {
-                // Read reward_post from app_settings (fallback to 1)
                 const { data: cfg } = await supabase.from('app_settings').select('reward_post').eq('id', 1).single()
                 const reward = Number(cfg?.reward_post ?? 1)
                 if (reward > 0) {
-                    const { data: profile } = await supabase
-                        .from('profiles').select('coffee_credits').eq('id', moment.author.id).single()
+                    const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', moment.author.id).single()
                     if (profile) {
                         await supabase.from('profiles').update({
                             coffee_credits: (profile.coffee_credits ?? 0) + reward,
@@ -147,7 +149,8 @@ export default function AdminMoments() {
                 }
             }
             toast.success(t.approvedMsg)
-            setMoments(m => m.filter(x => x.id !== id))
+            queryClient.invalidateQueries({ queryKey: ['admin-moments'] })
+            queryClient.invalidateQueries({ queryKey: ['admin-moments-counts'] })
         } else toast.error(res.error)
     }
 
@@ -156,8 +159,44 @@ export default function AdminMoments() {
         setRejectTarget(null)
         if (res.success) {
             toast.success(t.rejectedMsg)
-            setMoments(m => m.filter(x => x.id !== rejectTarget))
+            queryClient.invalidateQueries({ queryKey: ['admin-moments'] })
+            queryClient.invalidateQueries({ queryKey: ['admin-moments-counts'] })
         } else toast.error(res.error)
+    }
+
+    const toggleSelect = (id) => {
+        setSelected(prev => {
+            const next = new Set(prev)
+            next.has(id) ? next.delete(id) : next.add(id)
+            return next
+        })
+    }
+
+    const selectAll = () => {
+        const pendingIds = moments.filter(m => !m.status || m.status === 'pending').map(m => m.id)
+        setSelected(prev => prev.size === pendingIds.length ? new Set() : new Set(pendingIds))
+    }
+
+    const handleBulkApprove = async () => {
+        if (!selected.size) return
+        setBulkLoading(true)
+        const ids = [...selected]
+        await Promise.all(ids.map(id => handleApprove(id)))
+        setSelected(new Set())
+        setBulkLoading(false)
+        toast.success(`${ids.length} posts approved`)
+    }
+
+    const handleBulkReject = async () => {
+        if (!selected.size) return
+        setBulkLoading(true)
+        const ids = [...selected]
+        await Promise.all(ids.map(id => rejectMoment(id, 'Bulk rejected')))
+        setSelected(new Set())
+        setBulkLoading(false)
+        queryClient.invalidateQueries({ queryKey: ['admin-moments'] })
+        queryClient.invalidateQueries({ queryKey: ['admin-moments-counts'] })
+        toast.success(`${ids.length} posts rejected`)
     }
 
     const tabs = [
@@ -191,11 +230,40 @@ export default function AdminMoments() {
                 ))}
             </div>
 
-            <SegmentedControl tabs={tabs} value={status} onChange={setStatus} />
+            <SegmentedControl tabs={tabs} value={status} onChange={v => { setStatus(v); setSelected(new Set()) }} />
+
+            {/* Bulk actions toolbar — only for pending */}
+            {status === 'pending' && moments.length > 0 && (
+                <div className="flex items-center gap-2 bg-white rounded-xl border border-black/5 px-3 py-2 shadow-sm">
+                    <button onClick={selectAll} className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-600">
+                        <CheckSquare size={16} className={selected.size > 0 ? 'text-[#007aff]' : 'text-gray-400'} />
+                        {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
+                    </button>
+                    {selected.size > 0 && (
+                        <>
+                            <div className="flex-1" />
+                            <button
+                                onClick={handleBulkApprove}
+                                disabled={bulkLoading}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white rounded-lg text-[12px] font-bold disabled:opacity-50"
+                            >
+                                <CheckCircle size={13} /> Approve all
+                            </button>
+                            <button
+                                onClick={handleBulkReject}
+                                disabled={bulkLoading}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-[12px] font-bold disabled:opacity-50"
+                            >
+                                <XCircle size={13} /> Reject all
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
 
             <SectionLabel>{t[status] || t.all} ({total})</SectionLabel>
 
-            {loading ? (
+            {isLoading ? (
                 <div className="flex flex-col gap-4">
                     {[1, 2, 3].map(i => (
                         <div key={i} className="bg-white rounded-2xl border border-black/5 p-4 flex flex-col gap-3" style={{ opacity: 1 - i * 0.2 }}>
@@ -222,6 +290,8 @@ export default function AdminMoments() {
                             onReject={id => setRejectTarget(id)}
                             showActions={(status === 'pending' || status === 'all') && (!m.status || m.status === 'pending')}
                             lang={lang}
+                            selected={selected.has(m.id)}
+                            onSelect={toggleSelect}
                         />
                     ))}
                 </div>

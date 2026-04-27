@@ -9,7 +9,58 @@ import { Card, CardRow } from '@/components/ui/Card'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import PhotoGrid from '@/components/profile/PhotoGrid'
 import { RefModal, GiftModal } from '@/components/profile/ProfileModals'
-import { signOut, updateNotifications, getReferralCode, getSubscription, supabase } from '@/lib/supabaseClient'
+import { signOut, updateNotifications, getReferralCode, getSubscription, supabase, deleteAccount } from '@/lib/supabaseClient'
+
+// ─── Profile completeness ─────────────────────────────────────────────────────
+function calcCompleteness(profile) {
+    const fields = [
+        profile.avatar,
+        profile.name,
+        profile.dob,
+        profile.about?.trim(),
+        profile.gives?.trim(),
+        profile.wants?.trim(),
+        profile.wechat?.trim() || profile.whatsapp?.trim(),
+        profile.email?.trim(),
+        profile.languages?.length > 0,
+    ]
+    const done = fields.filter(Boolean).length
+    return Math.round((done / fields.length) * 100)
+}
+
+function ProfileCompleteness({ profile, onEdit }) {
+    const pct = calcCompleteness(profile)
+    if (pct >= 100) return null
+    return (
+        <div
+            onClick={onEdit}
+            style={{
+                background: 'linear-gradient(135deg, rgba(0,122,255,0.08), rgba(88,86,214,0.08))',
+                border: '1px solid rgba(0,122,255,0.15)',
+                borderRadius: 14, padding: '12px 16px', cursor: 'pointer',
+            }}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--app-text)' }}>
+                    Complete your profile
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--app-primary)' }}>{pct}%</span>
+            </div>
+            <div style={{ height: 6, background: 'rgba(120,120,128,0.12)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{
+                    height: '100%', borderRadius: 3,
+                    background: 'linear-gradient(90deg, #007aff, #5856d6)',
+                    width: `${pct}%`, transition: 'width 0.5s ease',
+                }} />
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--app-hint)', marginTop: 6 }}>
+                {pct < 50 ? 'Add photo, bio and contacts to get matched' :
+                    pct < 80 ? 'Almost there! Fill in remaining fields' :
+                        'Just a few more details needed'}
+            </p>
+        </div>
+    )
+}
 
 const SUB_CONFIG = {
     trial: { border: '1.5px solid #ff9500', background: 'rgba(255,149,0,0.08)', titleColor: '#ff9500', title: 'Trial Period Active', desc: 'Enjoy 2 free coffee credits!', btnLabel: 'Upgrade', btnBg: '#ff9500' },
@@ -66,6 +117,14 @@ export default function ProfileScreen() {
 
     const handleLogout = async () => { await signOut(); logoutUser() }
 
+    const handleDeleteAccount = async () => {
+        if (!window.confirm('Delete your account? This cannot be undone.')) return
+        if (!window.confirm('Are you absolutely sure? All your data will be removed.')) return
+        const res = await deleteAccount(user.id)
+        if (res.success) { logoutUser() }
+        else toast.error(res.error || 'Failed to delete account')
+    }
+
     return (
         <div className="app-screen">
             <ScreenHeader title={t('nav_profile')} />
@@ -88,6 +147,8 @@ export default function ProfileScreen() {
                         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--app-text)' }}>{profile.name || '—'}</div>
                         <div style={{ fontSize: 14, color: 'var(--app-hint)', marginTop: 2 }}>{regionFlag} {profile.region}</div>
                     </div>
+
+                    <ProfileCompleteness profile={profile} onEdit={() => setScreen('profile-edit')} />
 
                     <Card>
                         <CardRow label={t('edit_profile')} onClick={() => setScreen('profile-edit')} isLast />
@@ -143,7 +204,12 @@ export default function ProfileScreen() {
                     </Card>
 
                     <Card>
-                        <CardRow label={t('logout')} onClick={handleLogout} isLast />
+                        <CardRow label={t('logout')} onClick={handleLogout} />
+                        <CardRow
+                            label={<span style={{ color: '#ff3b30' }}>Delete Account</span>}
+                            onClick={handleDeleteAccount}
+                            isLast
+                        />
                     </Card>
 
                     <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--app-hint)', lineHeight: 1.5, paddingBottom: 8 }}>

@@ -8,21 +8,21 @@ import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/navigation'
 import { translateProfile } from '@/lib/aiUtils'
+import { blockUser, reportUser } from '@/lib/supabaseClient'
+import { useApp } from '@/store/useAppStore'
 import toast from 'react-hot-toast'
 
 export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
     const { t, i18n } = useTranslation()
+    const { user } = useApp()
     const targetLang = i18n.language === 'zh' ? 'zh' : 'en'
     const tags = Array.isArray(person.tags) ? person.tags : []
     const langs = Array.isArray(person.languages) ? person.languages : []
     const photos = Array.isArray(person.photos) ? person.photos.filter(Boolean) : []
-    // Build unique photo list: avatar first, then other photos (deduplicated)
     const allPhotos = (() => {
         const seen = new Set()
         const result = []
-        const candidates = person.avatar_url
-            ? [person.avatar_url, ...photos]
-            : photos
+        const candidates = person.avatar_url ? [person.avatar_url, ...photos] : photos
         for (const p of candidates) {
             if (p && !seen.has(p)) { seen.add(p); result.push(p) }
         }
@@ -32,6 +32,27 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
     const [translated, setTranslated] = useState(false)
     const [translatedData, setTranslatedData] = useState(null)
     const [translating, setTranslating] = useState(false)
+    const [showReportMenu, setShowReportMenu] = useState(false)
+    const [blocking, setBlocking] = useState(false)
+
+    const handleBlock = async () => {
+        if (!user?.id) return
+        setBlocking(true)
+        const res = await blockUser(user.id, person.id)
+        setBlocking(false)
+        if (res.success) {
+            toast.success('User blocked')
+            onClose()
+        } else toast.error(res.error || 'Failed to block')
+    }
+
+    const handleReport = async (reason) => {
+        if (!user?.id) return
+        setShowReportMenu(false)
+        const res = await reportUser(user.id, person.id, reason)
+        if (res.success) toast.success('Report submitted')
+        else toast.error(res.error || 'Failed to report')
+    }
 
     const regionFlag = person.region === 'Macau' ? '🇲🇴'
         : person.region === 'Mainland' ? '🇨🇳'
@@ -152,6 +173,43 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontFamily: 'inherit',
                     }}>✕</button>
+                    {/* Report/Block menu */}
+                    <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 20 }}>
+                        <button
+                            onClick={() => setShowReportMenu(v => !v)}
+                            style={{
+                                width: 34, height: 34, borderRadius: '50%',
+                                background: 'rgba(0,0,0,0.45)', border: 'none',
+                                color: '#fff', fontSize: 18, cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                        >⋯</button>
+                        {showReportMenu && (
+                            <div style={{
+                                position: 'absolute', top: 40, left: 0, zIndex: 30,
+                                background: 'var(--app-card)', borderRadius: 14,
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                                border: '0.5px solid var(--app-border)',
+                                overflow: 'hidden', minWidth: 160,
+                            }}>
+                                {['Spam', 'Inappropriate', 'Fake profile', 'Harassment'].map(reason => (
+                                    <button key={reason} onClick={() => handleReport(reason)} style={{
+                                        display: 'block', width: '100%', padding: '11px 16px',
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        fontSize: 14, fontWeight: 500, color: '#ff9500',
+                                        fontFamily: 'inherit', textAlign: 'left',
+                                        borderBottom: '0.5px solid var(--app-border)',
+                                    }}>⚠️ Report: {reason}</button>
+                                ))}
+                                <button onClick={handleBlock} disabled={blocking} style={{
+                                    display: 'block', width: '100%', padding: '11px 16px',
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    fontSize: 14, fontWeight: 600, color: '#ff3b30',
+                                    fontFamily: 'inherit', textAlign: 'left',
+                                }}>🚫 {blocking ? 'Blocking...' : 'Block user'}</button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div style={{ padding: '20px 20px 0' }}>

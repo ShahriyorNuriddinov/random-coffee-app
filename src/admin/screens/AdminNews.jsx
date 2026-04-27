@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Plus, MoreHorizontal, Pin, Pencil, Trash2, X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getNews, createNews, updateNews, deleteNews, supabase } from '../lib/adminSupabase'
 import { uploadMomentImage } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
-import Spinner from '../components/ui/Spinner'
 import SectionLabel from '../components/ui/SectionLabel'
 import Card from '../components/ui/Card'
 import BottomSheet, { SheetHeader, SheetAction } from '../components/ui/BottomSheet'
@@ -182,8 +182,6 @@ function PostActionsSheet({ item, onEdit, onPin, onDelete, onClose, lang }) {
 function NewsCard({ item, onActions, lang }) {
     const t = getT('news', lang)
 
-    // Count total reactions across all emoji — used in parent via item.reactions_count
-    // eslint-disable-next-line no-unused-vars
     const totalReactions = item.reactions
         ? Object.values(item.reactions).reduce((s, v) => s + v, 0)
         : 0
@@ -234,25 +232,19 @@ function NewsCard({ item, onActions, lang }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function AdminNews() {
     const { lang } = useAdmin()
-    const [news, setNews] = useState([])
-    const [totalReactions, setTotalReactions] = useState(0)
-    const [loading, setLoading] = useState(true)
-    const [editorItem, setEditorItem] = useState(undefined) // undefined=closed, null=new, obj=edit
+    const [editorItem, setEditorItem] = useState(undefined)
     const [actionsItem, setActionsItem] = useState(null)
+    const queryClient = useQueryClient()
 
     const t = getT('news', lang)
 
-    const load = async () => {
-        setLoading(true)
-        try {
-            const res = await getNews()
-            setNews(res.list)
-            setTotalReactions(res.totalReactions)
-        } catch { setNews([]) }
-        finally { setLoading(false) }
-    }
+    const { data, isLoading } = useQuery({
+        queryKey: ['admin-news'],
+        queryFn: getNews,
+    })
 
-    useEffect(() => { load() }, [])
+    const news = data?.list ?? []
+    const totalReactions = data?.totalReactions ?? 0
 
     const handleSave = async (payload) => {
         const res = editorItem?.id
@@ -260,7 +252,6 @@ export default function AdminNews() {
             : await createNews(payload)
         if (res.success) {
             toast.success(editorItem?.id ? getT('common', lang).saved : t.publishedMsg)
-            // If new post — also publish to moments feed as approved
             if (!editorItem?.id) {
                 const { data: momentRow, error: mErr } = await supabase.from('moments').insert({
                     text: payload.text || payload.text_zh || payload.text_ru || '',
@@ -273,15 +264,12 @@ export default function AdminNews() {
                     is_admin_post: true,
                 }).select('id').single()
                 if (mErr) console.error('[AdminNews] moments insert error:', mErr)
-
-                // Store moment ID on news row so background translate can update both
                 if (momentRow?.id && res.data?.id) {
                     updateNews(res.data.id, { moment_id: momentRow.id }).catch(() => { })
                 }
-                // Pass moment ID to background translate via res
                 if (res.data) res.data._momentId = momentRow?.id
             }
-            load()
+            queryClient.invalidateQueries({ queryKey: ['admin-news'] })
         } else toast.error(res.error)
         setEditorItem(undefined)
         return res.data || (editorItem?.id ? { id: editorItem.id } : null)
@@ -291,15 +279,17 @@ export default function AdminNews() {
         if (!actionsItem) return
         await updateNews(actionsItem.id, { pinned: !actionsItem.pinned })
         toast.success(getT('common', lang).done)
-        load()
+        queryClient.invalidateQueries({ queryKey: ['admin-news'] })
         setActionsItem(null)
     }
 
     const handleDelete = async () => {
         if (!actionsItem) return
         const res = await deleteNews(actionsItem.id)
-        if (res.success) { toast.success(getT('common', lang).deleted); load() }
-        else toast.error(res.error)
+        if (res.success) {
+            toast.success(getT('common', lang).deleted)
+            queryClient.invalidateQueries({ queryKey: ['admin-news'] })
+        } else toast.error(res.error)
         setActionsItem(null)
     }
 
@@ -346,7 +336,7 @@ export default function AdminNews() {
                 <Plus size={18} /> {t.addPost}
             </button>
 
-            {loading ? (
+            {isLoading ? (
                 <div className="flex flex-col gap-4">
                     {[1, 2].map(i => (
                         <div key={i} className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-sm" style={{ opacity: 1 - i * 0.3 }}>

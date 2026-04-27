@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react'
-import { Search } from 'lucide-react'
+import { useState } from 'react'
+import { Search, Download } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getMembers, supabase } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
@@ -11,37 +12,52 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function AdminMembers() {
     const { lang } = useAdmin()
-    const [members, setMembers] = useState([])
-    const [total, setTotal] = useState(0)
-    const [newToday, setNewToday] = useState(0)
     const [search, setSearch] = useState('')
     const [status, setStatus] = useState('active')
-    const [loading, setLoading] = useState(true)
     const [selectedId, setSelectedId] = useState(null)
+    const [newToday, setNewToday] = useState(0)
+    const queryClient = useQueryClient()
 
     const t = getT('members', lang)
 
-    const load = useCallback(async () => {
-        setLoading(true)
-        const res = await getMembers({ search, status })
-        setMembers(res.members)
-        setTotal(res.total)
-        setLoading(false)
-    }, [search, status])
+    const { data, isLoading } = useQuery({
+        queryKey: ['admin-members', search, status],
+        queryFn: () => getMembers({ search, status }),
+    })
 
-    useEffect(() => { load() }, [load])
+    const members = data?.members ?? []
+    const total = data?.total ?? 0
 
-    // New today count — direct Supabase query, no limit issue
-    useEffect(() => {
+    // Load new today count on mount
+    useState(() => {
         const todayStart = new Date()
         todayStart.setHours(0, 0, 0, 0)
-        supabase
-            .from('profiles')
-            .select('id', { count: 'exact', head: true })
+        supabase.from('profiles').select('id', { count: 'exact', head: true })
             .gte('created_at', todayStart.toISOString())
             .then(({ count }) => setNewToday(count || 0))
-            .catch(() => { })
-    }, [])
+            .catch((err) => console.error('[AdminMembers] Failed to load new today count:', err))
+    })
+
+    const exportCSV = () => {
+        if (!members.length) return
+        const headers = ['Name', 'Email', 'Region', 'Status', 'Credits', 'Registered']
+        const rows = members.map(m => [
+            m.name || '',
+            m.email || '',
+            m.region || '',
+            m.subscription_status || '',
+            m.coffee_credits ?? 0,
+            new Date(m.created_at).toLocaleDateString(),
+        ])
+        const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+        const blob = new Blob([csv], { type: 'text/csv' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `members_${status}_${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
 
     const statusTabs = [
         { id: 'active', label: t.active },
@@ -54,7 +70,7 @@ export default function AdminMembers() {
             {selectedId && (
                 <MemberSheet
                     memberId={selectedId}
-                    onClose={() => { setSelectedId(null); load() }}
+                    onClose={() => { setSelectedId(null); queryClient.invalidateQueries({ queryKey: ['admin-members'] }) }}
                     lang={lang}
                 />
             )}
@@ -62,9 +78,18 @@ export default function AdminMembers() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <SectionLabel className="mb-0">{t.listTitle} ({total})</SectionLabel>
-                <span className="text-[13px] font-semibold text-[#007aff]">
-                    {lang === 'en' ? 'New Today' : '今日新增'}: +{newToday}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold text-[#007aff]">
+                        {lang === 'en' ? 'New Today' : '今日新增'}: +{newToday}
+                    </span>
+                    <button
+                        onClick={exportCSV}
+                        title="Export CSV"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-black/5 rounded-lg text-[12px] font-semibold text-gray-600 shadow-sm active:bg-gray-50"
+                    >
+                        <Download size={13} /> CSV
+                    </button>
+                </div>
             </div>
 
             {/* Search */}
@@ -79,7 +104,7 @@ export default function AdminMembers() {
             <SegmentedControl tabs={statusTabs} value={status} onChange={setStatus} />
 
             {/* List */}
-            {loading ? (
+            {isLoading ? (
                 <div className="flex flex-col gap-3">
                     {[1, 2, 3, 4, 5].map(i => (
                         <div key={i} className="bg-white rounded-2xl border border-black/5 px-4 py-3 flex items-center gap-3" style={{ opacity: 1 - i * 0.15 }}>

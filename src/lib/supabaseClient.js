@@ -170,47 +170,42 @@ export const createPaymentIntent = async (_params) => {
     }
 }
 export const confirmPayment = async ({ userId, paymentIntentId, credits, amount, method }) => {
-    // Idempotency check — prevent double-crediting for same payment intent
-    const { data: existing } = await supabase
-        .from('payments')
-        .select('id')
-        .eq('provider_ref', paymentIntentId)
-        .maybeSingle()
-    if (existing) {
-        // Already processed — return current credits
-        const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', userId).single()
-        return { success: true, newCredits: profile?.coffee_credits || 0 }
+    try {
+        // Use atomic RPC function to prevent race conditions
+        const { data, error } = await supabase.rpc('confirm_payment_atomic', {
+            p_user_id: userId,
+            p_payment_intent_id: paymentIntentId,
+            p_credits: credits,
+            p_amount: amount,
+            p_method: method
+        })
+
+        // Handle duplicate payment (unique constraint violation)
+        if (error?.code === '23505') {
+            console.log('[confirmPayment] Payment already processed:', paymentIntentId)
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('coffee_credits')
+                .eq('id', userId)
+                .single()
+            return { success: true, newCredits: profile?.coffee_credits || 0, duplicate: true }
+        }
+
+        if (error) {
+            console.error('[confirmPayment] RPC error:', error)
+            return { success: false, error: error.message }
+        }
+
+        // Credit referral bonus if applicable
+        await supabase.rpc('credit_referral_bonus', { p_referred_id: userId }).catch(err => {
+            console.warn('[confirmPayment] Referral bonus failed:', err)
+        })
+
+        return { success: true, newCredits: data }
+    } catch (err) {
+        console.error('[confirmPayment] Unexpected error:', err)
+        return { success: false, error: err.message }
     }
-
-    const { error: payError } = await supabase.from('payments').insert({
-        user_id: userId, amount, currency: 'HKD', credits,
-        payment_method: method, provider: 'airwallex',
-        provider_ref: paymentIntentId, status: 'success',
-    })
-    if (payError) return { success: false, error: payError.message }
-
-    // Atomic increment — avoids read-modify-write race condition
-    const { data: updatedProfile, error: updateError } = await supabase.rpc('increment_credits', {
-        p_user_id: userId,
-        p_credits: credits,
-    })
-
-    if (updateError) {
-        // Fallback: manual read-modify-write if RPC not available
-        const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', userId).single()
-        const newCredits = (profile?.coffee_credits || 0) + credits
-        const { error: fallbackError } = await supabase
-            .from('profiles')
-            .update({ coffee_credits: newCredits, subscription_status: 'active', subscription_start: new Date().toISOString(), updated_at: new Date().toISOString() })
-            .eq('id', userId)
-        if (fallbackError) return { success: false, error: fallbackError.message }
-        await supabase.rpc('credit_referral_bonus', { p_referred_id: userId })
-        return { success: true, newCredits }
-    }
-
-    const newCredits = updatedProfile ?? credits
-    await supabase.rpc('credit_referral_bonus', { p_referred_id: userId })
-    return { success: true, newCredits }
 }
 
 // ─── EMAIL VERIFICATION ───────────────────────────────────────────────────────
@@ -318,13 +313,13 @@ export const saveTags = async (userId, tags) => {
 
 // ─── MOMENTS ──────────────────────────────────────────────────────────────────
 
-export const getMoments = async (limit = 30, userId = null) => {
+export const getMoments = async (limit = 20, userId = null, offset = 0) => {
     // Fetch approved posts + current user's own pending posts
     let query = supabase
         .from('moments')
         .select(`id, text, text_en, text_zh, text_ru, image_url, image_urls, likes_count, created_at, status, is_admin_post, author:user_id(id, name, avatar_url, region)`)
         .order('created_at', { ascending: false })
-        .limit(limit)
+        .range(offset, offset + limit - 1)
 
     if (userId) {
         query = query.or(`status.eq.approved,user_id.eq.${userId}`)
@@ -446,5 +441,47 @@ export const cancelMeeting = async (matchId) => {
         console.error('[cancelMeeting] error:', error.message)
         return { success: false, error: error.message }
     }
+    return { success: true }
+}
+
+// ─── BLOCK / REPORT USER ─────────────────────────────────────────────────────
+export const blockUser = async (blockerId, blockedId) => {
+    const { error } = await supabase.from('blocked_users').upsert(
+        { blocker_id: blockerId, blocked_id: blockedId },
+        { onConflict: 'blocker_id,blocked_id' }
+    )
+    if (error) return { success: false, error: error.message }
+    return { success: true }
+}
+
+export const reportUser = async (reporterId, reportedId, reason = '') => {
+    const { error } = await supabase.from('reports').insert({
+        reporter_id: reporterId,
+        reported_id: reportedId,
+        reason,
+        created_at: new Date().toISOString(),
+    })
+    if (error) return { success: false, error: error.message }
+    return { success: true }
+}
+
+// ─── DELETE ACCOUNT ───────────────────────────────────────────────────────────
+export const deleteAccount = async (userId) => {
+    // Soft delete — mark as deleted, anonymize data
+    const { error } = await supabase.from('profiles').update({
+        name: 'Deleted User',
+        about: '',
+        gives: '',
+        wants: '',
+        avatar_url: null,
+        photos: [],
+        email: null,
+        wechat: null,
+        whatsapp: null,
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    }).eq('id', userId)
+    if (error) return { success: false, error: error.message }
+    await supabase.auth.signOut()
     return { success: true }
 }

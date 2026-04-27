@@ -1,7 +1,19 @@
 import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react'
 import { Toaster } from 'react-hot-toast'
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query'
 import ErrorBoundary from '../components/ErrorBoundary'
 import AdminLogin from './screens/AdminLogin'
+
+const adminQueryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 0,
+            gcTime: 5 * 60 * 1000,
+            refetchOnWindowFocus: true,
+            retry: 1,
+        },
+    },
+})
 const AdminDashboard = lazy(() => import('./screens/AdminDashboard'))
 const AdminMembers = lazy(() => import('./screens/AdminMembers'))
 const AdminMoments = lazy(() => import('./screens/AdminMoments'))
@@ -57,14 +69,43 @@ export default function AdminApp() {
     // Server-side validation: verify stored email exists in staff table
     useEffect(() => {
         if (!authed) return
-        const raw = localStorage.getItem(ADMIN_SESSION_KEY)
-        if (!raw) { setAuthed(false); return }
-        try {
-            const { email } = JSON.parse(raw)
-            supabase.from('staff').select('id').eq('email', email).maybeSingle()
-                .then(({ data }) => { if (!data) { clearSession(); setAuthed(false) } })
-                .catch(() => { }) // network error — keep session, will re-validate next load
-        } catch { clearSession(); setAuthed(false) }
+
+        const validateSession = async () => {
+            const raw = localStorage.getItem(ADMIN_SESSION_KEY)
+            if (!raw) {
+                setAuthed(false)
+                return
+            }
+
+            try {
+                const { email } = JSON.parse(raw)
+                const { data, error } = await supabase
+                    .from('staff')
+                    .select('id, role')
+                    .eq('email', email)
+                    .maybeSingle()
+
+                if (error) {
+                    console.error('[Admin Auth] Validation error:', error)
+                    // Don't clear session on network errors
+                    if (error.code !== 'PGRST116') {
+                        return
+                    }
+                }
+
+                if (!data) {
+                    console.warn('[Admin Auth] Invalid session - staff not found')
+                    clearSession()
+                    setAuthed(false)
+                }
+            } catch (err) {
+                console.error('[Admin Auth] Validation failed:', err)
+                clearSession()
+                setAuthed(false)
+            }
+        }
+
+        validateSession()
     }, [authed])
 
     useEffect(() => {
@@ -105,13 +146,18 @@ export default function AdminApp() {
 
     const handleTabChange = (t) => {
         setTab(t)
+        // Invalidate relevant query on tab switch
+        const queryMap = {
+            dashboard: 'admin-dashboard',
+            members: 'admin-members',
+            moments: 'admin-moments',
+            news: 'admin-news',
+            settings: 'admin-settings',
+            notifications: 'admin-notifications',
+        }
+        if (queryMap[t]) adminQueryClient.invalidateQueries({ queryKey: [queryMap[t]] })
         if (t === 'notifications') {
-            // Save current time to admin_settings as "last seen"
-            supabase
-                .from('app_settings')
-                .update({ notif_seen_at: new Date().toISOString() })
-                .eq('id', 1)
-                .then(() => { })
+            supabase.from('app_settings').update({ notif_seen_at: new Date().toISOString() }).eq('id', 1).then(() => { })
             setUnreadCount(0)
         }
     }
@@ -123,18 +169,20 @@ export default function AdminApp() {
     const Screen = SCREENS[tab] ?? AdminDashboard
 
     return (
-        <ErrorBoundary>
-            <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-            <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount }}>
-                <AdminHeader tab={tab} lang={lang} setLang={setLang} />
-                <div className={`w-full max-w-[1200px] mx-auto pb-20 box-border ${tab === 'notifications' ? 'px-0' : 'px-4'}`}>
-                    <Suspense fallback={<AdminScreenFallback />}>
-                        <Screen />
-                    </Suspense>
-                </div>
-                <AdminBottomNav tab={tab} setTab={handleTabChange} lang={lang} unreadCount={unreadCount} />
-            </AdminCtx.Provider>
-        </ErrorBoundary>
+        <QueryClientProvider client={adminQueryClient}>
+            <ErrorBoundary>
+                <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+                <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount }}>
+                    <AdminHeader tab={tab} lang={lang} setLang={setLang} />
+                    <div className={`w-full max-w-[1200px] mx-auto pb-20 box-border ${tab === 'notifications' ? 'px-0' : 'px-4'}`}>
+                        <Suspense fallback={<AdminScreenFallback />}>
+                            <Screen />
+                        </Suspense>
+                    </div>
+                    <AdminBottomNav tab={tab} setTab={handleTabChange} lang={lang} unreadCount={unreadCount} />
+                </AdminCtx.Provider>
+            </ErrorBoundary>
+        </QueryClientProvider>
     )
 }
 

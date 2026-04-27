@@ -3,6 +3,24 @@ import ReactDOM from 'react-dom/client'
 import './index.css'
 import './i18n'
 
+// Global error handlers
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[Unhandled Promise Rejection]', event.reason)
+
+  // Prevent default browser behavior
+  event.preventDefault()
+
+  // Show user-friendly message for network errors
+  if (event.reason?.message?.includes('network') || event.reason?.message?.includes('fetch')) {
+    // Toast will be shown by error boundary
+    console.warn('[Network Error] Please check your connection')
+  }
+})
+
+window.addEventListener('error', (event) => {
+  console.error('[Global Error]', event.error)
+})
+
 const isAdmin = window.location.pathname.startsWith('/admin')
 
 if (isAdmin) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { useQuery } from '@tanstack/react-query'
 import { getSettings, saveSettings, getStaff, removeStaff } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
@@ -11,7 +12,6 @@ import AiPromptEditor, { DEFAULT_AI_PROMPT } from '../components/settings/AiProm
 import AddStaffSheet from '../components/settings/AddStaffSheet'
 import StaffRow from '../components/settings/StaffRow'
 import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
 
 // ─── Number field row ─────────────────────────────────────────────────────────
 function SettingField({ label, value, onChange, isLast }) {
@@ -34,20 +34,26 @@ export default function AdminSettings() {
         lang_en: true, lang_zh: true,
         ai_matching_prompt: DEFAULT_AI_PROMPT,
     })
-    const [staff, setStaff] = useState([])
     const [showAddStaff, setShowAddStaff] = useState(false)
     const [saving, setSaving] = useState(false)
 
     const t = getT('settings', lang)
 
+    const { data: settingsData } = useQuery({
+        queryKey: ['admin-settings'],
+        queryFn: getSettings,
+        staleTime: 60 * 1000,
+    })
+
+    const { data: staffData = [], refetch: refetchStaff } = useQuery({
+        queryKey: ['admin-staff'],
+        queryFn: getStaff,
+        staleTime: 60 * 1000,
+    })
+
     useEffect(() => {
-        let cancelled = false
-        getSettings().then(s => {
-            if (!cancelled && s) setSettings(prev => ({ ...prev, ...s, ai_matching_prompt: s.ai_matching_prompt || DEFAULT_AI_PROMPT }))
-        }).catch(() => { })
-        getStaff().then(s => { if (!cancelled) setStaff(s) }).catch(() => { })
-        return () => { cancelled = true }
-    }, [])
+        if (settingsData) setSettings(prev => ({ ...prev, ...settingsData, ai_matching_prompt: settingsData.ai_matching_prompt || DEFAULT_AI_PROMPT }))
+    }, [settingsData])
 
     const handleSave = async () => {
         setSaving(true)
@@ -58,12 +64,10 @@ export default function AdminSettings() {
     }
 
     const handleRemoveStaff = async (id, name) => {
-        const confirmMsg = typeof t.removeConfirm === 'function'
-            ? t.removeConfirm(name)
-            : `Remove ${name}?`
+        const confirmMsg = typeof t.removeConfirm === 'function' ? t.removeConfirm(name) : `Remove ${name}?`
         if (!confirm(confirmMsg)) return
         const res = await removeStaff(id)
-        if (res.success) { toast.success(t.removed); setStaff(s => s.filter(x => x.id !== id)) }
+        if (res.success) { toast.success(t.removed); refetchStaff() }
         else toast.error(res.error)
     }
 
@@ -73,7 +77,7 @@ export default function AdminSettings() {
         <div className="p-5 flex flex-col gap-5 pb-8">
             {showAddStaff && (
                 <AddStaffSheet
-                    onAdd={() => { setShowAddStaff(false); getStaff().then(setStaff) }}
+                    onAdd={() => { setShowAddStaff(false); refetchStaff() }}
                     onClose={() => setShowAddStaff(false)}
                     lang={lang}
                 />
@@ -121,10 +125,10 @@ export default function AdminSettings() {
             <div>
                 <SectionLabel>{t.staffTitle}</SectionLabel>
                 <Card className="mb-3">
-                    {staff.length === 0 ? (
+                    {staffData.length === 0 ? (
                         <div className="px-4 py-4 text-[14px] text-gray-400 text-center">{t.noStaff}</div>
-                    ) : staff.map((s, i) => (
-                        <StaffRow key={s.id} member={s} onRemove={handleRemoveStaff} lang={lang} isLast={i === staff.length - 1} />
+                    ) : staffData.map((s, i) => (
+                        <StaffRow key={s.id} member={s} onRemove={handleRemoveStaff} lang={lang} isLast={i === staffData.length - 1} />
                     ))}
                 </Card>
                 <SecondaryButton onClick={() => setShowAddStaff(true)}>

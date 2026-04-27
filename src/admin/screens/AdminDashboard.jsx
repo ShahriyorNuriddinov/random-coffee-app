@@ -4,6 +4,7 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { TrendingUp, Users } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { getDashboardStats } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
@@ -208,33 +209,18 @@ function GenderBar({ men, women, total, t }) {
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
     const { lang } = useAdmin()
-    const [stats, setStats] = useState(null)
     const [incomeTab, setIncomeTab] = useState('week')
     const [showCancelModal, setShowCancelModal] = useState(false)
-    const [loading, setLoading] = useState(true)
-    const [revenueLoading, setRevenueLoading] = useState(false)
 
     const t = getT('dashboard', lang)
 
-    // Initial load
-    useEffect(() => {
-        setLoading(true)
-        getDashboardStats('week').then(s => { setStats(s); setLoading(false) }).catch(() => setLoading(false))
-    }, [])
+    const { data: stats, isLoading } = useQuery({
+        queryKey: ['admin-dashboard', incomeTab],
+        queryFn: () => getDashboardStats(incomeTab),
+        staleTime: 60 * 1000, // 1 min for dashboard
+    })
 
-    // Income tab change — update revenue + chart
-    useEffect(() => {
-        if (!stats) return
-        setRevenueLoading(true)
-        getDashboardStats(incomeTab).then(s => {
-            setStats(prev => ({ ...prev, totalRevenue: s.totalRevenue, revenueByDay: s.revenueByDay }))
-            setRevenueLoading(false)
-        }).catch(() => setRevenueLoading(false))
-    }, [incomeTab])
-
-    if (loading) {
-        return <DashboardSkeleton />
-    }
+    if (isLoading && !stats) return <DashboardSkeleton />
 
     const incomeTabs = [
         { id: 'today', label: t.today },
@@ -258,9 +244,7 @@ export default function AdminDashboard() {
                     <div className="mt-4 mb-1">
                         <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400">{t.revenue}</p>
                         <p className="text-[32px] font-extrabold text-gray-900 leading-tight">
-                            {revenueLoading
-                                ? <span className="text-gray-300">...</span>
-                                : `HK$ ${stats.totalRevenue.toLocaleString()}`}
+                            {`HK$ ${stats.totalRevenue.toLocaleString()}`}
                         </p>
                     </div>
                     <RevenueChart data={stats.revenueByDay} label={t.revenue} />

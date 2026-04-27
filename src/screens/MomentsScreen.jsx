@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useApp } from '@/store/useAppStore'
 import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import MomentCard from '@/components/moments/MomentCard'
 import NewMomentModal from '@/components/moments/NewMomentModal'
-import { getMoments, getUserMomentReactions, getMeetingHistory, supabase } from '@/lib/supabaseClient'
+import { getMoments, getMeetingHistory, supabase } from '@/lib/supabaseClient'
 import { Skeleton } from '@/components/ui/skeleton'
+
+const PAGE_SIZE = 15
 
 export default function MomentsScreen() {
     const { t, i18n } = useTranslation()
@@ -17,19 +19,30 @@ export default function MomentsScreen() {
     const [showNew, setShowNew] = useState(false)
     const [hasMeetings, setHasMeetings] = useState(true)
     const [showNoMeetingHint, setShowNoMeetingHint] = useState(false)
+    const loaderRef = useRef(null)
     const channelRef = useRef(null)
 
-    // ── Main query ──────────────────────────────────────────────────────────────
-    const { data: moments = [], isLoading } = useQuery({
+    // ── Infinite query ──────────────────────────────────────────────────────────
+    const {
+        data,
+        isLoading,
+        isFetchingNextPage,
+        fetchNextPage,
+        hasNextPage,
+    } = useInfiniteQuery({
         queryKey: ['moments', user?.id],
-        queryFn: () => getMoments(undefined, user?.id),
+        queryFn: ({ pageParam = 0 }) => getMoments(PAGE_SIZE, user?.id, pageParam),
+        getNextPageParam: (lastPage, allPages) =>
+            lastPage.length === PAGE_SIZE ? allPages.flat().length : undefined,
         enabled: !!user?.id,
-        staleTime: 20 * 1000,
+        staleTime: 0,
     })
+
+    const allMoments = data?.pages.flat() ?? []
 
     // ── Derived: display text by language ──────────────────────────────────────
     const lang = i18n.language
-    const displayMoments = moments.map(m => ({
+    const displayMoments = allMoments.map(m => ({
         ...m,
         text: lang === 'zh' ? (m.text_zh || m.text_en || m.text)
             : lang === 'ru' ? (m.text_ru || m.text_en || m.text)
@@ -38,8 +51,8 @@ export default function MomentsScreen() {
 
     // ── Load reactions ──────────────────────────────────────────────────────────
     useEffect(() => {
-        if (!user?.id || !moments.length) return
-        const ids = moments.map(m => m.id)
+        if (!user?.id || !allMoments.length) return
+        const ids = allMoments.map(m => m.id)
         supabase.from('moment_likes').select('moment_id,emoji,user_id').in('moment_id', ids)
             .then(({ data }) => {
                 const userR = {}
@@ -48,17 +61,24 @@ export default function MomentsScreen() {
                 }
                 setUserReactions(userR)
             })
-    }, [moments, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [allMoments.length, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Meeting history check ───────────────────────────────────────────────────
     useEffect(() => {
         if (!user?.id) return
+
         getMeetingHistory(user.id)
-            .then(h => setHasMeetings(Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null)))
-            .catch(() => { })
+            .then(h => {
+                const hasCompleted = Array.isArray(h) && h.some(m => m.status === 'completed' || m.status == null)
+                setHasMeetings(hasCompleted)
+            })
+            .catch((err) => {
+                console.error('[MomentsScreen] Failed to load meeting history:', err)
+                setHasMeetings(false)
+            })
     }, [user?.id])
 
-    // ── Realtime: invalidate query when moments table changes ───────────────────
+    // ── Realtime: invalidate on moments/likes change ────────────────────────────
     useEffect(() => {
         if (!user?.id) return
         const ch = supabase
@@ -73,6 +93,18 @@ export default function MomentsScreen() {
         channelRef.current = ch
         return () => { supabase.removeChannel(ch) }
     }, [user?.id, queryClient])
+
+    // ── Intersection observer for infinite scroll ───────────────────────────────
+    useEffect(() => {
+        const el = loaderRef.current
+        if (!el) return
+        const observer = new IntersectionObserver(
+            entries => { if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage() },
+            { threshold: 0.1 }
+        )
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
     const handleReactionChange = (momentId, emoji) => {
         setUserReactions(prev => ({ ...prev, [momentId]: emoji }))
@@ -105,7 +137,7 @@ export default function MomentsScreen() {
             />
 
             <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
-                {isLoading && !moments.length ? (
+                {isLoading && !allMoments.length ? (
                     <LoadingSkeleton />
                 ) : displayMoments.length === 0 ? (
                     <EmptyState onNew={() => setShowNew(true)} />
@@ -118,12 +150,43 @@ export default function MomentsScreen() {
                                 userReaction={userReactions[m.id] || null}
                                 onReactionChange={(emoji) => handleReactionChange(m.id, emoji)}
                                 onDeleted={(id) => {
-                                    queryClient.setQueryData(['moments', user?.id], old =>
-                                        (old || []).filter(p => p.id !== id)
-                                    )
+                                    queryClient.setQueryData(['moments', user?.id], old => {
+                                        if (!old) return old
+                                        return {
+                                            ...old,
+                                            pages: old.pages.map(page => page.filter(p => p.id !== id)),
+                                        }
+                                    })
                                 }}
                             />
                         ))}
+
+                        {/* Infinite scroll trigger */}
+                        <div ref={loaderRef} style={{ height: 1 }} />
+
+                        {isFetchingNextPage && (
+                            <div className="flex flex-col gap-4 pb-4">
+                                {[1, 2].map(i => (
+                                    <div key={i} className="rounded-2xl overflow-hidden border border-border bg-card p-4 flex flex-col gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <Skeleton className="size-10 rounded-full" />
+                                            <div className="flex flex-col gap-2 flex-1">
+                                                <Skeleton className="h-3.5 w-32" />
+                                                <Skeleton className="h-3 w-20" />
+                                            </div>
+                                        </div>
+                                        <Skeleton className="h-3.5 w-full" />
+                                        <Skeleton className="h-3.5 w-3/4" />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {!hasNextPage && allMoments.length > 0 && (
+                            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--app-hint)', padding: '8px 0 16px' }}>
+                                {lang === 'zh' ? '没有更多了' : lang === 'ru' ? 'Больше нет' : 'No more posts'}
+                            </p>
+                        )}
                     </div>
                 )}
             </div>

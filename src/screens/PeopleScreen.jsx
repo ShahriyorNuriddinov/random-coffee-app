@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useApp } from '@/store/useAppStore'
 import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
@@ -12,7 +12,6 @@ import { calcMatchScoresBatch } from '@/lib/aiUtils'
 import { usePeopleLike } from '@/hooks/usePeopleLike'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
 
 async function fetchPeople(userId, profile) {
     const [allPeople, liked] = await Promise.all([
@@ -64,7 +63,6 @@ async function fetchPeople(userId, profile) {
 export default function PeopleScreen() {
     const { t, i18n } = useTranslation()
     const { user, profile, subscription } = useApp()
-    const queryClient = useQueryClient()
     const hasCredits = (subscription.credits ?? 0) > 0
     const { likedIds, setLikedIds, handleLike } = usePeopleLike()
     const [selected, setSelected] = useState(null)
@@ -84,7 +82,7 @@ export default function PeopleScreen() {
 
     useEffect(() => {
         if (data?.likedIds) setLikedIds(data.likedIds)
-    }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [data, setLikedIds])
 
     const displayPeople = useMemo(() => {
         if (i18n.language === 'zh') return people.map(p => ({ ...p, about: p.about_zh || p.about, gives: p.gives_zh || p.gives, wants: p.wants_zh || p.wants }))

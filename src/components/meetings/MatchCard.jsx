@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '@/store/useAppStore'
 import { useTranslation } from 'react-i18next'
 import { explainMatch, generateMeetingQuestions, translateProfile } from '@/lib/aiUtils'
+import toast from 'react-hot-toast'
 
 export default function MatchCard({ match, onFeedback }) {
     const { partner, createdAt } = match
@@ -17,7 +18,6 @@ export default function MatchCard({ match, onFeedback }) {
     const [loadingAI, setLoadingAI] = useState(false)
     const [aiTranslated, setAiTranslated] = useState(null)
 
-    // displayPartner: use DB translations directly
     const displayPartner = useMemo(() => {
         if (!partner) return partner
         if (lang === 'zh') {
@@ -103,8 +103,8 @@ export default function MatchCard({ match, onFeedback }) {
     const handleWeChat = () => {
         if (!partner.wechat) return
         navigator.clipboard?.writeText(partner.wechat)
-            .then(() => alert(`WeChat ID copied: ${partner.wechat}`))
-            .catch(() => alert(`WeChat ID: ${partner.wechat}`))
+            .then(() => toast.success(`WeChat ID copied: ${partner.wechat}`))
+            .catch(() => toast(`WeChat ID: ${partner.wechat}`))
     }
 
     return (
@@ -183,6 +183,7 @@ export default function MatchCard({ match, onFeedback }) {
                     borderColor="rgba(0,122,255,0.2)"
                     expanded={showAbout}
                     onToggle={() => setShowAbout(v => !v)}
+                    lang={lang}
                 />
             )}
 
@@ -194,6 +195,7 @@ export default function MatchCard({ match, onFeedback }) {
                     borderColor="rgba(52,199,89,0.2)"
                     expanded={showGives}
                     onToggle={() => setShowGives(v => !v)}
+                    lang={lang}
                 />
             )}
 
@@ -205,6 +207,7 @@ export default function MatchCard({ match, onFeedback }) {
                     borderColor="rgba(255,149,0,0.2)"
                     expanded={showWants}
                     onToggle={() => setShowWants(v => !v)}
+                    lang={lang}
                 />
             )}
 
@@ -294,7 +297,7 @@ export default function MatchCard({ match, onFeedback }) {
     )
 }
 
-function InfoSection({ label, text, borderColor, expanded, onToggle }) {
+function InfoSection({ label, text, borderColor, expanded, onToggle, lang = 'en' }) {
     const isLong = text.length > 120
     return (
         <div style={{ marginBottom: 20, paddingLeft: 12, borderLeft: `2px solid ${borderColor}` }}>
@@ -314,7 +317,7 @@ function InfoSection({ label, text, borderColor, expanded, onToggle }) {
                     background: 'none', border: 'none', padding: '4px 0 0',
                     cursor: 'pointer', fontFamily: 'inherit',
                 }}>
-                    {expanded ? (currentLang === 'zh' ? '收起' : currentLang === 'ru' ? 'Свернуть' : 'Show less') : (currentLang === 'zh' ? '展开' : currentLang === 'ru' ? 'Читать далее' : 'Read more')}
+                    {expanded ? (lang === 'zh' ? '收起' : lang === 'ru' ? 'Свернуть' : 'Show less') : (lang === 'zh' ? '展开' : lang === 'ru' ? 'Читать далее' : 'Read more')}
                 </button>
             )}
         </div>

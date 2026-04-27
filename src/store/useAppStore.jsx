@@ -144,49 +144,87 @@ export function AppProvider({ children }) {
         if (!user?.id) return
         userRef.current = user
 
+        // Use stable channel names to prevent duplicate subscriptions
+        const profileChannelName = `profile_updates_${user.id}`
+        const matchChannelName = `match_updates_${user.id}`
+
+        // Check if channels already exist
+        const existingChannels = supabase.getChannels()
+        const hasProfileChannel = existingChannels.some(ch => ch.topic === profileChannelName)
+        const hasMatchChannel = existingChannels.some(ch => ch.topic === matchChannelName)
+
+        if (hasProfileChannel && hasMatchChannel) {
+            console.log('[Realtime] Channels already subscribed')
+            return
+        }
+
+        // Profile updates channel
         const profileChannel = supabase
-            .channel('profile_rt_' + user.id)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
-                (payload) => {
-                    const db = payload.new
-                    if (db.coffee_credits !== undefined) {
-                        setSubscription(prev => {
-                            const newCredits = db.coffee_credits ?? 0
-                            // Show toast only if credits increased
-                            if (newCredits > (prev.credits ?? 0)) {
-                                toast.success(`☕ +${newCredits - prev.credits} credit added!`, {
-                                    duration: 4000,
-                                    style: { background: '#34c759', color: '#fff', borderRadius: 20, fontWeight: 700, fontSize: 15, padding: '14px 24px' },
-                                })
-                            }
-                            return {
-                                status: db.subscription_status || 'trial',
-                                credits: newCredits,
-                                start: db.subscription_start || null,
-                                end: db.subscription_end || null,
-                            }
-                        })
-                    }
-                })
+            .channel(profileChannelName)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'profiles',
+                filter: `id=eq.${user.id}`
+            }, (payload) => {
+                const db = payload.new
+                if (db.coffee_credits !== undefined) {
+                    setSubscription(prev => {
+                        const newCredits = db.coffee_credits ?? 0
+                        // Show toast only if credits increased
+                        if (newCredits > (prev.credits ?? 0)) {
+                            toast.success(`☕ +${newCredits - prev.credits} credit added!`, {
+                                duration: 4000,
+                                style: { background: '#34c759', color: '#fff', borderRadius: 20, fontWeight: 700, fontSize: 15, padding: '14px 24px' },
+                            })
+                        }
+                        return {
+                            status: db.subscription_status || 'trial',
+                            credits: newCredits,
+                            start: db.subscription_start || null,
+                            end: db.subscription_end || null,
+                        }
+                    })
+                }
+            })
             .subscribe()
 
+        // Match updates channel
         const matchChannel = supabase
-            .channel('matches_rt_' + user.id)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' },
-                async (payload) => {
-                    const m = payload.new
-                    const uid = userRef.current?.id
-                    if (!uid || (m.user1_id !== uid && m.user2_id !== uid)) return
-                    const partnerId = m.user1_id === uid ? m.user2_id : m.user1_id
-                    const { data: partner } = await supabase.from('profiles').select('name').eq('id', partnerId).maybeSingle()
+            .channel(matchChannelName)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'matches'
+            }, async (payload) => {
+                const m = payload.new
+                const uid = userRef.current?.id
+                if (!uid || (m.user1_id !== uid && m.user2_id !== uid)) return
+
+                const partnerId = m.user1_id === uid ? m.user2_id : m.user1_id
+                try {
+                    const { data: partner } = await supabase
+                        .from('profiles')
+                        .select('name')
+                        .eq('id', partnerId)
+                        .maybeSingle()
+
                     toast.success(`🎉 New match: ${partner?.name || 'Someone'}!`, {
                         duration: 5000,
                         style: { background: 'linear-gradient(135deg, #007aff, #5856d6)', color: '#fff', borderRadius: 20, fontWeight: 700, fontSize: 15, padding: '14px 24px' },
                     })
-                })
+                } catch (err) {
+                    console.error('[Realtime] Failed to fetch partner name:', err)
+                }
+            })
             .subscribe()
 
-        return () => { supabase.removeChannel(profileChannel); supabase.removeChannel(matchChannel) }
+        return () => {
+            profileChannel.unsubscribe()
+            matchChannel.unsubscribe()
+            supabase.removeChannel(profileChannel)
+            supabase.removeChannel(matchChannel)
+        }
     }, [user?.id])
 
     const loginUser = (userData, phoneNum, code) => {
