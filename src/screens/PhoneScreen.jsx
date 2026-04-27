@@ -6,12 +6,63 @@ import DarkToggle from '@/components/DarkToggle'
 import { Button } from '@/components/ui/button'
 import { InputCard, Input } from '@/components/ui/input'
 import { sendOtp } from '@/lib/supabaseClient'
-
-function LegalModal({ type, onClose, t }) {
+function LegalModal({ type, onClose, t, lang }) {
     const content = {
         terms: {
             title: t('terms'),
-            text: `Random Coffee HK — Terms of Service
+            text: lang === 'zh' ? `Random Coffee HK — 服务条款
+最后更新：2026年1月
+
+1. 接受
+使用 Random Coffee HK 即表示您同意这些条款。
+
+2. 资格
+您必须年满16岁才能使用本服务。
+
+3. 用户行为
+- 尊重其他用户
+- 提供准确的个人资料
+- 不得骚扰其他用户
+- 不得将平台用于商业招揽
+
+4. 会议
+Random Coffee HK 促进介绍，但不对会议结果负责。
+
+5. 积分与付款
+积分一经使用不可退款。购买的积分12个月后到期。
+
+6. 账户终止
+我们保留终止违反条款账户的权利。
+
+7. 联系方式
+support@randomcoffeehk.com
+Denis Ivanov Limited, 香港 (HK 79643900)` : lang === 'ru' ? `Random Coffee HK — Условия использования
+Последнее обновление: январь 2026
+
+1. Принятие
+Используя Random Coffee HK, вы соглашаетесь с этими условиями.
+
+2. Возраст
+Вам должно быть не менее 16 лет для использования сервиса.
+
+3. Поведение пользователей
+- Уважайте других пользователей
+- Предоставляйте точную информацию в профиле
+- Не спамьте и не преследуйте других пользователей
+- Не используйте платформу для коммерческих предложений
+
+4. Встречи
+Random Coffee HK способствует знакомствам, но не несёт ответственности за результат встреч.
+
+5. Кредиты и платежи
+Кредиты не возвращаются после использования. Срок действия — 12 месяцев.
+
+6. Блокировка аккаунта
+Мы оставляем за собой право заблокировать аккаунты, нарушающие условия.
+
+7. Контакты
+support@randomcoffeehk.com
+Denis Ivanov Limited, Гонконг (HK 79643900)` : `Random Coffee HK — Terms of Service
 Last updated: January 2026
 
 1. Acceptance
@@ -41,7 +92,51 @@ Denis Ivanov Limited, Hong Kong (HK 79643900)`
         },
         privacy: {
             title: t('privacy'),
-            text: `Random Coffee HK — Privacy Policy
+            text: lang === 'zh' ? `Random Coffee HK — 隐私政策
+最后更新：2026年1月
+
+1. 我们收集的信息
+我们收集：姓名、邮箱、出生日期、性别、地区和个人资料详情。
+
+2. 我们如何使用您的信息
+您的个人资料用于为您匹配咖啡会面伙伴。我们不出售您的个人数据。
+
+3. 数据存储
+您的数据安全存储在 Supabase 服务器上，采用行业标准加密。
+
+4. 个人资料可见性
+您的个人资料（姓名、照片、关于我、能提供、想获取）对其他注册用户可见。
+
+5. 数据删除
+联系我们请求删除：+852 51741164
+
+6. Cookie
+我们使用本地存储来维护您的会话和偏好设置。
+
+7. 联系方式
+support@randomcoffeehk.com` : lang === 'ru' ? `Random Coffee HK — Политика конфиденциальности
+Последнее обновление: январь 2026
+
+1. Информация, которую мы собираем
+Мы собираем: имя, email, дату рождения, пол, регион и данные профиля.
+
+2. Как мы используем вашу информацию
+Ваш профиль используется для подбора партнёров для кофе-встреч. Мы не продаём ваши данные.
+
+3. Хранение данных
+Ваши данные хранятся на серверах Supabase с шифрованием по отраслевым стандартам.
+
+4. Видимость профиля
+Ваш профиль (имя, фото, о себе, могу дать, хочу получить) виден другим зарегистрированным пользователям.
+
+5. Удаление данных
+Запрос на удаление: +852 51741164
+
+6. Cookies
+Мы используем локальное хранилище для поддержания вашей сессии и настроек.
+
+7. Контакты
+support@randomcoffeehk.com` : `Random Coffee HK — Privacy Policy
 Last updated: January 2026
 
 1. Information We Collect
@@ -104,11 +199,12 @@ support@randomcoffeehk.com`
 }
 
 export default function PhoneScreen() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { setScreen, setPhone } = useApp()
     const [email, setEmail] = useState('')
     const [loading, setLoading] = useState(false)
-    const [modal, setModal] = useState(null) // 'terms' | 'privacy' | null
+    const [modal, setModal] = useState(null)
+    const lang = i18n.language
 
     const handleNext = async () => {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -132,7 +228,7 @@ export default function PhoneScreen() {
                 <DarkToggle />
             </div>
 
-            {modal && <LegalModal type={modal} onClose={() => setModal(null)} t={t} />}
+            {modal && <LegalModal type={modal} onClose={() => setModal(null)} t={t} lang={lang} />}
 
             <div className="flex-1 flex flex-col items-center justify-center px-5">
                 <div className="screen-content w-full">
