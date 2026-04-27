@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
-import { likeUser, unlikeUser, checkMatchExists } from '@/lib/supabaseClient'
+import { likeUser, checkMatchExists } from '@/lib/supabaseClient'
 import toast from 'react-hot-toast'
 
 export function usePeopleLike(initialLikedIds = []) {
