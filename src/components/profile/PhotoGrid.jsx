@@ -60,24 +60,32 @@ export default function PhotoGrid({ photos, userId, onPhotosChange }) {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                     {normalized.map((photo, i) => (
-                        <div key={i} onClick={() => handlePick(i)} style={{
-                            aspectRatio: '1/1', borderRadius: 10,
-                            backgroundImage: photo ? `url(${photo})` : 'none',
-                            backgroundSize: 'cover', backgroundPosition: 'center',
-                            backgroundColor: 'rgba(120,120,128,0.08)',
-                            border: photo ? '2px solid transparent' : '1px dashed rgba(120,120,128,0.25)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', position: 'relative', overflow: 'hidden',
-                        }}>
+                        <button
+                            key={`photo-${i}`}
+                            onClick={() => handlePick(i)}
+                            aria-label={photo ? `Photo ${i + 1}, click to change` : `Add photo ${i + 1}`}
+                            style={{
+                                aspectRatio: '1/1', borderRadius: 10,
+                                backgroundImage: photo ? `url(${photo})` : 'none',
+                                backgroundSize: 'cover', backgroundPosition: 'center',
+                                backgroundColor: 'rgba(120,120,128,0.08)',
+                                border: photo ? '2px solid transparent' : '1px dashed rgba(120,120,128,0.25)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                                padding: 0,
+                            }}>
                             {!photo && <span style={{ fontSize: 18, color: 'rgba(120,120,128,0.4)' }}>+</span>}
                             {photo && (
-                                <div onClick={(e) => handleRemove(i, e)} style={{
-                                    position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 11, color: '#fff', cursor: 'pointer', fontWeight: 700,
-                                }}>×</div>
+                                <button
+                                    onClick={(e) => handleRemove(i, e)}
+                                    aria-label={`Remove photo ${i + 1}`}
+                                    style={{
+                                        position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%',
+                                        background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 11, color: '#fff', cursor: 'pointer', fontWeight: 700, border: 'none', padding: 0,
+                                    }}>×</button>
                             )}
-                        </div>
+                        </button>
                     ))}
                 </div>
             </div>
@@ -87,14 +95,19 @@ export default function PhotoGrid({ photos, userId, onPhotosChange }) {
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
             {normalized.map((_, i) => (
-                <div key={i} onClick={() => handlePick(i)} style={{
-                    aspectRatio: '1/1', borderRadius: 12,
-                    backgroundColor: 'rgba(120,120,128,0.08)',
-                    border: '1px dashed rgba(120,120,128,0.25)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                }}>
+                <button
+                    key={`empty-${i}`}
+                    onClick={() => handlePick(i)}
+                    aria-label={`Add photo ${i + 1}`}
+                    style={{
+                        aspectRatio: '1/1', borderRadius: 12,
+                        backgroundColor: 'rgba(120,120,128,0.08)',
+                        border: '1px dashed rgba(120,120,128,0.25)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', padding: 0,
+                    }}>
                     <span style={{ fontSize: 22, color: 'rgba(120,120,128,0.4)' }}>+</span>
-                </div>
+                </button>
             ))}
         </div>
     )

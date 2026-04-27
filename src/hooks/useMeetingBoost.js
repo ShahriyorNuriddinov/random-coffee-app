@@ -49,11 +49,6 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
             if (searchFilters.regions.length > 0) {
                 people = people.filter(p => searchFilters.regions.includes(p.region))
             }
-            if (searchFilters.langs.length > 0) {
-                people = people.filter(p =>
-                    Array.isArray(p.languages) && p.languages.some(l => searchFilters.langs.includes(l))
-                )
-            }
 
             const candidates = people.filter(p => !matchedIds.has(p.id))
 
