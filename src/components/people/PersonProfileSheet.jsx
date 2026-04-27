@@ -16,9 +16,18 @@ export default function PersonProfileSheet({ person, liked, onLike, onClose }) {
     const tags = Array.isArray(person.tags) ? person.tags : []
     const langs = Array.isArray(person.languages) ? person.languages : []
     const photos = Array.isArray(person.photos) ? person.photos.filter(Boolean) : []
-    const allPhotos = person.avatar_url
-        ? [person.avatar_url, ...photos.filter(p => p !== person.avatar_url)]
-        : photos
+    // Build unique photo list: avatar first, then other photos (deduplicated)
+    const allPhotos = (() => {
+        const seen = new Set()
+        const result = []
+        const candidates = person.avatar_url
+            ? [person.avatar_url, ...photos]
+            : photos
+        for (const p of candidates) {
+            if (p && !seen.has(p)) { seen.add(p); result.push(p) }
+        }
+        return result
+    })()
 
     const [translated, setTranslated] = useState(false)
     const [translatedData, setTranslatedData] = useState(null)
