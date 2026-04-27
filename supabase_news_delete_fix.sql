@@ -1,15 +1,24 @@
--- Fix: ensure news table has proper delete policy
--- Run this in Supabase SQL Editor if delete still fails
+-- Fix: news delete + moments admin delete policy
+-- Run this in Supabase SQL Editor
 
--- Option 1: Refresh existing policy (already covers DELETE via FOR ALL)
+-- 1. Add moment_id column to news if not exists
+ALTER TABLE news ADD COLUMN IF NOT EXISTS moment_id UUID;
+
+-- 2. Refresh news write policy
 DROP POLICY IF EXISTS "news_auth_write" ON news;
 CREATE POLICY "news_auth_write" ON news
   FOR ALL
   USING (is_staff())
   WITH CHECK (is_staff());
 
--- Option 2: Add moment_id column to news if not exists
-ALTER TABLE news ADD COLUMN IF NOT EXISTS moment_id UUID REFERENCES moments(id) ON DELETE SET NULL;
+-- 3. Allow staff to delete any moment (admin posts have is_admin_post=true)
+DROP POLICY IF EXISTS "moments_delete_staff" ON moments;
+CREATE POLICY "moments_delete_staff" ON moments
+  FOR DELETE
+  USING (auth.uid()::text = user_id::text OR is_staff());
 
--- Option 3: If is_staff() check fails, verify the function works
--- SELECT is_staff(); -- run as logged-in admin user to test
+-- 4. Allow staff to update any moment
+DROP POLICY IF EXISTS "moments_update_staff" ON moments;
+CREATE POLICY "moments_update_staff" ON moments
+  FOR UPDATE
+  USING (auth.uid()::text = user_id::text OR is_staff());

@@ -308,13 +308,19 @@ export const updateNews = async (id, updates) => {
 }
 
 export const deleteNews = async (id) => {
-    // Also delete linked admin moment if exists
-    const { data: newsRow } = await supabase.from('news').select('moment_id').eq('id', id).single()
-    if (newsRow?.moment_id) {
-        await supabase.from('moments').delete().eq('id', newsRow.moment_id)
-    }
+    // Try to delete linked admin moment (best-effort, don't block on error)
+    try {
+        const { data: newsRow } = await supabase.from('news').select('moment_id').eq('id', id).single()
+        if (newsRow?.moment_id) {
+            await supabase.from('moments').delete().eq('id', newsRow.moment_id)
+        }
+    } catch { /* ignore */ }
+
     const { error } = await supabase.from('news').delete().eq('id', id)
-    if (error) return { success: false, error: error.message }
+    if (error) {
+        console.error('[deleteNews]', error.message, error.code)
+        return { success: false, error: error.message }
+    }
     return { success: true }
 }
 
