@@ -308,6 +308,11 @@ export const updateNews = async (id, updates) => {
 }
 
 export const deleteNews = async (id) => {
+    // Also delete linked admin moment if exists
+    const { data: newsRow } = await supabase.from('news').select('moment_id').eq('id', id).single()
+    if (newsRow?.moment_id) {
+        await supabase.from('moments').delete().eq('id', newsRow.moment_id)
+    }
     const { error } = await supabase.from('news').delete().eq('id', id)
     if (error) return { success: false, error: error.message }
     return { success: true }

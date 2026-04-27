@@ -152,13 +152,26 @@ function NewsEditor({ item, onSave, onClose, lang }) {
 // ─── Post actions sheet ───────────────────────────────────────────────────────
 function PostActionsSheet({ item, onEdit, onPin, onDelete, onClose, lang }) {
     const t = getT('news', lang)
+    const [confirmDelete, setConfirmDelete] = useState(false)
     return (
         <BottomSheet onClose={onClose}>
             <SheetHeader title={t.managePost} />
-            <SheetAction label={t.editPost} onClick={onEdit} icon={Pencil} />
-            <SheetAction label={item?.pinned ? t.unpin : t.pinToTop} onClick={onPin} icon={Pin} />
-            <SheetAction label={t.deletePost} onClick={onDelete} icon={Trash2} danger />
-            <SheetAction label={getT('common', lang).cancel} onClick={onClose} cancel />
+            {!confirmDelete ? (
+                <>
+                    <SheetAction label={t.editPost} onClick={onEdit} icon={Pencil} />
+                    <SheetAction label={item?.pinned ? t.unpin : t.pinToTop} onClick={onPin} icon={Pin} />
+                    <SheetAction label={t.deletePost} onClick={() => setConfirmDelete(true)} icon={Trash2} danger />
+                    <SheetAction label={getT('common', lang).cancel} onClick={onClose} cancel />
+                </>
+            ) : (
+                <>
+                    <div className="px-4 py-3 text-center text-[14px] font-semibold text-gray-700">
+                        {t.deleteConfirm || 'Delete this post?'}
+                    </div>
+                    <SheetAction label={t.deletePost || 'Delete'} onClick={onDelete} icon={Trash2} danger />
+                    <SheetAction label={getT('common', lang).cancel} onClick={() => setConfirmDelete(false)} cancel />
+                </>
+            )}
         </BottomSheet>
     )
 }
@@ -282,7 +295,6 @@ export default function AdminNews() {
 
     const handleDelete = async () => {
         if (!actionsItem) return
-        if (!confirm(t.deleteConfirm)) return
         const res = await deleteNews(actionsItem.id)
         if (res.success) { toast.success(getT('common', lang).deleted); load() }
         else toast.error(res.error)
