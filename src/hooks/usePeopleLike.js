@@ -11,13 +11,7 @@ export function usePeopleLike(initialLikedIds = []) {
 
     const handleLike = async (person) => {
         if (!user?.id) return
-
-        if (likedIds.has(person.id)) {
-            setLikedIds(prev => { const next = new Set(prev); next.delete(person.id); return next })
-            await unlikeUser(user.id, person.id)
-            toast.success(t('toast_request_cancelled', 'Request cancelled'))
-            return
-        }
+        if (likedIds.has(person.id)) return // already liked, do nothing
 
         setLikedIds(prev => new Set([...prev, person.id]))
         const result = await likeUser(user.id, person.id)

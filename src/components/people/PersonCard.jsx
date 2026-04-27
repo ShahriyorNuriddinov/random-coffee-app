@@ -80,11 +80,12 @@ export default function PersonCard({ person, liked, onLike, onOpen }) {
 
                 {/* .interest-btn */}
                 <button
-                    onClick={onLike}
+                    onClick={liked ? undefined : onLike}
+                    disabled={liked}
                     style={{
                         flexShrink: 0, marginLeft: 12,
                         padding: '10px 16px', borderRadius: 12, border: 'none',
-                        cursor: 'pointer',
+                        cursor: liked ? 'default' : 'pointer',
                         background: liked
                             ? 'rgba(52,199,89,0.1)'
                             : 'linear-gradient(135deg, #007aff 0%, #5856d6 100%)',
