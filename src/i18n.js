@@ -342,6 +342,15 @@ const resources = {
             filter_languages: 'Languages',
             // Offline
             offline_banner: 'No internet connection',
+            // Profile modals
+            close: 'Close',
+            confirm_delete: 'Delete your account? This cannot be undone.',
+            confirm_delete2: 'Are you absolutely sure? All your data will be removed.',
+            toast_delete_failed: 'Failed to delete account',
+            change_email_title: 'Change Email Address',
+            change_email_hint: 'Enter your new email address below.',
+            toast_email_updated: 'Email updated!',
+            toast_image_failed: 'Failed to process images',
         }
     },
     zh: {
@@ -672,6 +681,14 @@ const resources = {
             filter_location: '地区',
             filter_languages: '语言',
             offline_banner: '无网络连接',
+            close: '关闭',
+            confirm_delete: '删除账户？此操作无法撤销。',
+            confirm_delete2: '您确定要删除吗？所有数据将被移除。',
+            toast_delete_failed: '删除账户失败',
+            change_email_title: '更改邮箱地址',
+            change_email_hint: '请在下方输入新的邮箱地址。',
+            toast_email_updated: '邮箱已更新！',
+            toast_image_failed: '图片处理失败',
         }
     },
     ru: {
@@ -975,6 +992,14 @@ const resources = {
             filter_location: 'Регион',
             filter_languages: 'Языки',
             offline_banner: 'Нет подключения к интернету',
+            close: 'Закрыть',
+            confirm_delete: 'Удалить аккаунт? Это действие необратимо.',
+            confirm_delete2: 'Вы абсолютно уверены? Все данные будут удалены.',
+            toast_delete_failed: 'Не удалось удалить аккаунт',
+            change_email_title: 'Изменить email',
+            change_email_hint: 'Введите новый адрес электронной почты.',
+            toast_email_updated: 'Email обновлён!',
+            toast_image_failed: 'Не удалось обработать изображения',
         }
     },
 }
