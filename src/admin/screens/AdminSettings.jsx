@@ -31,7 +31,7 @@ export default function AdminSettings() {
         standard_price: 15, standard_cups: 1,
         best_price: 30, best_cups: 3,
         reward_referral: 1, reward_birthday: 2, reward_post: 1,
-        lang_en: true, lang_zh: true,
+        lang_en: true, lang_zh: true, lang_ru: false,
         ai_matching_prompt: DEFAULT_AI_PROMPT,
     })
     const [showAddStaff, setShowAddStaff] = useState(false)
@@ -52,7 +52,15 @@ export default function AdminSettings() {
     })
 
     useEffect(() => {
-        if (settingsData) setSettings(prev => ({ ...prev, ...settingsData, ai_matching_prompt: settingsData.ai_matching_prompt || DEFAULT_AI_PROMPT }))
+        if (settingsData) setSettings(prev => ({
+            ...prev,
+            ...settingsData,
+            // Ensure booleans are always true booleans, never null
+            lang_en: settingsData.lang_en !== false,
+            lang_zh: settingsData.lang_zh !== false,
+            lang_ru: settingsData.lang_ru === true,
+            ai_matching_prompt: settingsData.ai_matching_prompt || DEFAULT_AI_PROMPT,
+        }))
     }, [settingsData])
 
     const handleSave = async () => {
@@ -108,13 +116,16 @@ export default function AdminSettings() {
             <div>
                 <SectionLabel>{t.languages}</SectionLabel>
                 <Card>
-                    {[{ key: 'lang_en', label: 'English' }, { key: 'lang_zh', label: '中文 (Chinese)' }]
-                        .map(({ key, label }, i, arr) => (
-                            <div key={key} className={`flex items-center justify-between px-4 py-3 ${i < arr.length - 1 ? 'border-b border-black/5' : ''}`}>
-                                <span className="text-[14px] font-medium text-gray-600">{label}</span>
-                                <Switch checked={!!settings[key]} onCheckedChange={set(key)} />
-                            </div>
-                        ))}
+                    {[
+                        { key: 'lang_en', label: 'English' },
+                        { key: 'lang_zh', label: '中文 (Chinese)' },
+                        { key: 'lang_ru', label: 'Русский (Russian)' },
+                    ].map(({ key, label }, i, arr) => (
+                        <div key={key} className={`flex items-center justify-between px-4 py-3 ${i < arr.length - 1 ? 'border-b border-black/5' : ''}`}>
+                            <span className="text-[14px] font-medium text-gray-600">{label}</span>
+                            <Switch checked={settings[key] === true} onCheckedChange={set(key)} />
+                        </div>
+                    ))}
                 </Card>
             </div>
 

@@ -42,12 +42,16 @@ function dbToProfile(db) {
 
 export function AppProvider({ children }) {
     // Read token from localStorage synchronously — no network needed
+    // Supabase stores session with refresh_token — check both access and refresh tokens
     const getSbUser = () => {
         try {
             const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
             if (!key) return null
             const t = JSON.parse(localStorage.getItem(key))
-            if (t?.user?.id && t?.expires_at && t.expires_at * 1000 > Date.now()) return t.user
+            // Has valid user ID — either access token still valid OR refresh token exists
+            if (t?.user?.id && (t?.refresh_token || (t?.expires_at && t.expires_at * 1000 > Date.now()))) {
+                return t.user
+            }
         } catch { }
         return null
     }
@@ -86,7 +90,8 @@ export function AppProvider({ children }) {
 
     // authResolved prevents the 8s fallback from flashing onboarding for
     // authenticated users on slow connections.
-    const [authResolved, setAuthResolved] = useState(!!sbUser)
+    // Start as false always — we need to verify session with Supabase first
+    const [authResolved, setAuthResolved] = useState(false)
 
     const restoreFromUser = useCallback(async (authUser) => {
         if (!authUser) { setAuthResolved(true); return }
@@ -110,12 +115,19 @@ export function AppProvider({ children }) {
                 setProfileWelcomeSeen(true)
                 setScreen('profile')
             } else if (db !== null && db !== undefined) {
+                // Profile exists but incomplete (no name yet)
+                setUser({ id: uid, email })
+                userRef.current = { id: uid, email }
+                setScreen('personal')
+            } else {
+                // No profile at all — new user
                 setUser({ id: uid, email })
                 userRef.current = { id: uid, email }
                 setScreen('personal')
             }
         } catch (err) {
             console.error('[restoreFromUser]', err)
+            // On error, still mark as resolved to unblock UI
         } finally {
             setAuthResolved(true)
         }
@@ -125,12 +137,24 @@ export function AppProvider({ children }) {
         const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (event === 'INITIAL_SESSION') {
-                    // Background refresh — screen already shown from token
-                    if (session?.user) restoreFromUser(session.user).catch(() => { setAuthResolved(true) })
-                    else setAuthResolved(true)
+                    if (session?.user) {
+                        // Session valid — restore profile in background
+                        restoreFromUser(session.user).catch(() => { setAuthResolved(true) })
+                    } else {
+                        // No session — try to refresh silently before giving up
+                        const { data: refreshed } = await supabase.auth.refreshSession().catch(() => ({ data: null }))
+                        if (refreshed?.session?.user) {
+                            restoreFromUser(refreshed.session.user).catch(() => { setAuthResolved(true) })
+                        } else {
+                            setAuthResolved(true)
+                        }
+                    }
                 } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     if (session?.user && !userRef.current) {
                         await restoreFromUser(session.user)
+                    } else if (session?.user && userRef.current) {
+                        // Token refreshed — just update auth resolved
+                        setAuthResolved(true)
                     }
                 } else if (event === 'SIGNED_OUT') {
                     setUser(null)

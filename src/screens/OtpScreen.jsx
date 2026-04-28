@@ -2,7 +2,6 @@ import { useRef, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { useApp } from '@/store/useAppStore'
-import LangSwitcher from '@/components/LangSwitcher'
 import DarkToggle from '@/components/DarkToggle'
 import { Button } from '@/components/ui/button'
 import { verifyOtp, sendOtp, getProfile, saveProfile } from '@/lib/supabaseClient'
@@ -167,7 +166,7 @@ export default function OtpScreen() {
                             padding: '10px 0', cursor: 'pointer', fontFamily: 'inherit',
                         }}
                     >
-                        {t('back_change_email') || t('back')}
+                        {t('back')}
                     </button>
                 </div>
             </div>

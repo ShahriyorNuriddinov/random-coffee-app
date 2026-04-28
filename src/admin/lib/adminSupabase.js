@@ -336,7 +336,14 @@ export const getSettings = async () => {
         console.error('[getSettings]', error.message)
         return null
     }
-    return data
+    if (!data) return null
+    // Normalize booleans: null → default values
+    return {
+        ...data,
+        lang_en: data.lang_en !== false,   // default true
+        lang_zh: data.lang_zh !== false,   // default true
+        lang_ru: data.lang_ru === true,    // default false
+    }
 }
 
 export const saveSettings = async (settings) => {
