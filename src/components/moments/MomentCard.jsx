@@ -54,11 +54,11 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
     const timeAgo = (dateStr) => {
         const diff = Date.now() - new Date(dateStr).getTime()
         const m = Math.floor(diff / 60000)
-        if (m < 1) return 'just now'
-        if (m < 60) return `${m}m ago`
+        if (m < 1) return t('time_just_now')
+        if (m < 60) return t('time_m_ago', { count: m })
         const h = Math.floor(m / 60)
-        if (h < 24) return `${h}h ago`
-        return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+        if (h < 24) return t('time_h_ago', { count: h })
+        return new Date(dateStr).toLocaleDateString(currentLang === 'zh' ? 'zh-CN' : currentLang === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short' })
     }
 
     const handleReaction = async (emoji) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Download } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getMembers, supabase } from '../lib/adminSupabase'
@@ -30,15 +30,14 @@ export default function AdminMembers() {
     const members = data?.members ?? []
     const total = data?.total ?? 0
 
-    // Load new today count on mount
-    useState(() => {
+    useEffect(() => {
         const todayStart = new Date()
         todayStart.setHours(0, 0, 0, 0)
         supabase.from('profiles').select('id', { count: 'exact', head: true })
             .gte('created_at', todayStart.toISOString())
             .then(({ count }) => setNewToday(count || 0))
             .catch((err) => console.error('[AdminMembers] Failed to load new today count:', err))
-    })
+    }, [])
 
     const exportCSV = () => {
         if (!members.length) return

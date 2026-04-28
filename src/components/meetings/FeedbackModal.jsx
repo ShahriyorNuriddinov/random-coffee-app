@@ -14,13 +14,13 @@ export default function FeedbackModal({ onClose, onPost, matchId }) {
     const [failReason, setFailReason] = useState(null)
     const [saving, setSaving] = useState(false)
 
-    const RATINGS = ['Not great 😒', 'Fine 😐', 'Good 😊', 'Excellent 🤩']
+    const RATINGS = [t('rating_not_great'), t('rating_fine'), t('rating_good'), t('rating_excellent')]
     const FAIL_REASONS = [
-        'Time conflict ⏳',
-        'Not interested 🤷‍♂️',
-        "Didn't like the partner 👎",
-        'No response 📭',
-        'Custom reason ✏️',
+        t('fail_time'),
+        t('fail_not_interested'),
+        t('fail_not_liked'),
+        t('fail_no_response'),
+        t('fail_custom'),
     ]
 
     const saveFeedback = async ({ status, ratingVal, noteVal, reason }) => {

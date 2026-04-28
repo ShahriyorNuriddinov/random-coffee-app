@@ -69,7 +69,7 @@ export default function NewMomentModal({ matchId, onClose, onPosted }) {
         const validFiles = files.filter(f => allowedTypes.includes(f.type) && f.size <= 20 * 1024 * 1024)
 
         if (validFiles.length < files.length) {
-            toast.error('Some files skipped: only JPG/PNG/WebP/GIF under 20MB allowed')
+            toast.error(t('toast_files_skipped'))
         }
 
         const remaining = 4 - images.length
@@ -110,12 +110,12 @@ export default function NewMomentModal({ matchId, onClose, onPosted }) {
         }
 
         if (trimmedText.length > 2000) {
-            toast.error('Text is too long. Maximum 2000 characters.')
+            toast.error(t('toast_text_too_long'))
             return
         }
 
         if (!user?.id) {
-            toast.error('You must be logged in to post')
+            toast.error(t('toast_login_required'))
             return
         }
 

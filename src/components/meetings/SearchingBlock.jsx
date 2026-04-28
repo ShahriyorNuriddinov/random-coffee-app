@@ -42,8 +42,8 @@ export default function SearchingBlock({ onPeople, onBoost, boosting, filters })
                     <div>
                         <strong>{t('active_search', 'Active search request:')}</strong><br />
                         {[
-                            filters.regions?.length > 0 && `Location: ${filters.regions.join(', ')}`,
-                            filters.langs?.length > 0 && `Languages: ${filters.langs.join(', ')}`,
+                            filters.regions?.length > 0 && `${t('filter_location')}: ${filters.regions.join(', ')}`,
+                            filters.langs?.length > 0 && `${t('filter_languages')}: ${filters.langs.join(', ')}`,
                             filters.prompt?.trim() && `"${filters.prompt}"`,
                         ].filter(Boolean).join(' · ')}
                     </div>

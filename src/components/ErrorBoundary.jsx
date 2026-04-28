@@ -16,15 +16,18 @@ export default class ErrorBoundary extends Component {
 
     render() {
         if (this.state.hasError) {
+            const isDark = document.documentElement.classList.contains('dark') ||
+                window.matchMedia?.('(prefers-color-scheme: dark)').matches
             return (
                 <div style={{
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
                     height: '100vh', padding: 32, textAlign: 'center',
-                    background: '#f4f7f9', fontFamily: '-apple-system, sans-serif',
+                    background: isDark ? '#1c1c1e' : '#f4f7f9',
+                    fontFamily: '-apple-system, sans-serif',
                 }}>
                     <div style={{ fontSize: 56, marginBottom: 16 }}>☕</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1c1c1e', marginBottom: 8 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: isDark ? '#f2f2f7' : '#1c1c1e', marginBottom: 8 }}>
                         Something went wrong
                     </div>
                     <div style={{ fontSize: 14, color: '#8e8e93', marginBottom: 24, lineHeight: 1.5 }}>

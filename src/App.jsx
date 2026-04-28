@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Toaster } from 'react-hot-toast'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppProvider, useApp } from '@/store/useAppStore'
@@ -43,6 +44,7 @@ function ScreenFallback() {
 
 function OfflineBanner() {
   const { isOnline } = useApp()
+  const { t } = useTranslation()
   if (isOnline) return null
   return (
     <div style={{
@@ -51,7 +53,7 @@ function OfflineBanner() {
       padding: '8px 16px', fontSize: 13, fontWeight: 700,
       fontFamily: '-apple-system, sans-serif',
     }}>
-      No internet connection
+      {t('offline_banner')}
     </div>
   )
 }

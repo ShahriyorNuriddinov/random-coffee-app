@@ -59,8 +59,8 @@ export default function ProfileEditScreen() {
         if (!file) return
         // Validate file type and size
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-        if (!allowedTypes.includes(file.type)) { toast.error('Only JPG, PNG, WebP or GIF allowed'); return }
-        if (file.size > 10 * 1024 * 1024) { toast.error('File too large. Max 10MB'); return }
+        if (!allowedTypes.includes(file.type)) { toast.error(t('toast_file_type')); return }
+        if (file.size > 10 * 1024 * 1024) { toast.error(t('toast_file_size')); return }
         const localUrl = URL.createObjectURL(file)
         setAvatar(localUrl)
         const publicUrl = await uploadAvatar(user?.id || 'mock', file)
