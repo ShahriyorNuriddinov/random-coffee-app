@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 import { useApp } from '@/store/useAppStore'
@@ -8,22 +8,38 @@ import toast from 'react-hot-toast'
 
 // Compress image to max 800px and ~200KB
 async function compressImage(file, maxWidth = 800, quality = 0.75) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const img = new Image()
         const url = URL.createObjectURL(file)
+
+        const timeout = setTimeout(() => {
+            URL.revokeObjectURL(url)
+            reject(new Error('Image compression timeout'))
+        }, 10000) // 10 second timeout
+
         img.onload = () => {
-            const canvas = document.createElement('canvas')
-            const ratio = Math.min(maxWidth / img.width, maxWidth / img.height, 1)
-            canvas.width = img.width * ratio
-            canvas.height = img.height * ratio
-            const ctx = canvas.getContext('2d')
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-            canvas.toBlob((blob) => {
+            clearTimeout(timeout)
+            try {
+                const canvas = document.createElement('canvas')
+                const ratio = Math.min(maxWidth / img.width, maxWidth / img.height, 1)
+                canvas.width = img.width * ratio
+                canvas.height = img.height * ratio
+                const ctx = canvas.getContext('2d')
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+                canvas.toBlob((blob) => {
+                    URL.revokeObjectURL(url)
+                    resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file)
+                }, 'image/jpeg', quality)
+            } catch (err) {
                 URL.revokeObjectURL(url)
-                resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file)
-            }, 'image/jpeg', quality)
+                reject(err)
+            }
         }
-        img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+        img.onerror = () => {
+            clearTimeout(timeout)
+            URL.revokeObjectURL(url)
+            reject(new Error('Failed to load image'))
+        }
         img.src = url
     })
 }
@@ -36,40 +52,100 @@ export default function NewMomentModal({ matchId, onClose, onPosted }) {
     const [loading, setLoading] = useState(false)
     const fileRef = useRef()
 
+    // Cleanup image URLs on unmount to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            images.forEach(img => {
+                if (img.url) URL.revokeObjectURL(img.url)
+            })
+        }
+    }, [images])
+
     const handleImage = async (e) => {
         const files = Array.from(e.target.files || [])
         if (!files.length) return
+
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
         const validFiles = files.filter(f => allowedTypes.includes(f.type) && f.size <= 20 * 1024 * 1024)
-        if (validFiles.length < files.length) toast.error('Some files skipped: only JPG/PNG/WebP/GIF under 20MB allowed')
+
+        if (validFiles.length < files.length) {
+            toast.error('Some files skipped: only JPG/PNG/WebP/GIF under 20MB allowed')
+        }
+
         const remaining = 4 - images.length
         const toAdd = validFiles.slice(0, remaining)
-        const compressed = await Promise.all(toAdd.map(f => compressImage(f)))
-        const previews = compressed.map(f => ({ file: f, url: URL.createObjectURL(f) }))
-        setImages(prev => [...prev, ...previews])
+
+        try {
+            const compressed = await Promise.all(
+                toAdd.map(f => compressImage(f).catch(err => {
+                    console.error('[handleImage] Compression failed:', err)
+                    return f // Return original if compression fails
+                }))
+            )
+            const previews = compressed.map(f => ({ file: f, url: URL.createObjectURL(f) }))
+            setImages(prev => [...prev, ...previews])
+        } catch (err) {
+            console.error('[handleImage] Error:', err)
+            toast.error('Failed to process images')
+        }
     }
 
     const removeImage = (i) => {
-        setImages(prev => prev.filter((_, idx) => idx !== i))
+        setImages(prev => {
+            const removed = prev[i]
+            if (removed?.url) {
+                URL.revokeObjectURL(removed.url) // Clean up memory
+            }
+            return prev.filter((_, idx) => idx !== i)
+        })
     }
 
     const handlePost = async () => {
-        if (!text.trim()) { toast.error(t('toast_write_something', 'Write something first')); return }
-        if (!user?.id) return
+        const trimmedText = text.trim()
+
+        // Validation
+        if (!trimmedText) {
+            toast.error(t('toast_write_something', 'Write something first'))
+            return
+        }
+
+        if (trimmedText.length > 2000) {
+            toast.error('Text is too long. Maximum 2000 characters.')
+            return
+        }
+
+        if (!user?.id) {
+            toast.error('You must be logged in to post')
+            return
+        }
+
         if (loading) return // Prevent double submission
 
         setLoading(true)
 
         let imageUrl = null
         let imageUrls = null
+
         if (images.length > 0) {
-            const uploaded = await Promise.all(images.map(img => uploadMomentImage(user.id, img.file)))
-            const validUrls = uploaded.filter(Boolean)
-            imageUrl = validUrls[0] || null
-            imageUrls = validUrls.length > 1 ? validUrls : null
+            try {
+                const uploaded = await Promise.all(
+                    images.map(img =>
+                        uploadMomentImage(user.id, img.file).catch(err => {
+                            console.error('[handlePost] Image upload failed:', err)
+                            return null
+                        })
+                    )
+                )
+                const validUrls = uploaded.filter(Boolean)
+                imageUrl = validUrls[0] || null
+                imageUrls = validUrls.length > 1 ? validUrls : null
+            } catch (err) {
+                console.error('[handlePost] Image upload error:', err)
+                // Continue without images if upload fails
+            }
         }
 
-        const trimmedText = text.trim()
+        // Detect language from text content
         const isChinese = /[\u4e00-\u9fff]/.test(trimmedText)
         const isCyrillic = /[\u0400-\u04ff]/.test(trimmedText)
 
@@ -91,8 +167,13 @@ export default function NewMomentModal({ matchId, onClose, onPosted }) {
 
         // Mark moment as posted for this match
         if (result && matchId) {
-            const { markMomentPosted } = await import('@/lib/supabaseClient')
-            await markMomentPosted(matchId)
+            try {
+                const { markMomentPosted } = await import('@/lib/supabaseClient')
+                await markMomentPosted(matchId)
+            } catch (err) {
+                console.error('[handlePost] Failed to mark moment as posted:', err)
+                // Non-critical error, continue
+            }
         }
 
         setLoading(false)
@@ -123,9 +204,13 @@ export default function NewMomentModal({ matchId, onClose, onPosted }) {
                     if (t1) update[targets[0][1]] = t1
                     if (t2) update[targets[1][1]] = t2
                     if (Object.keys(update).length > 0) {
-                        supabase.from('moments').update(update).eq('id', result.id).then(() => { })
+                        supabase.from('moments').update(update).eq('id', result.id)
+                            .then(() => console.log('[NewMomentModal] Translations updated'))
+                            .catch(err => console.error('[NewMomentModal] Translation update failed:', err))
                     }
-                }).catch(() => { })
+                }).catch(err => {
+                    console.error('[NewMomentModal] Translation failed:', err)
+                })
             }
         } else {
             toast.error(t('toast_post_failed', 'Failed to post. Try again.'))

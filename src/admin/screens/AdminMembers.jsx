@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getMembers, supabase } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
+import { useDebounce } from '@/hooks/useDebounce'
 import SectionLabel from '../components/ui/SectionLabel'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import MemberSheet from '../components/members/MemberSheet'
@@ -13,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function AdminMembers() {
     const { lang } = useAdmin()
     const [search, setSearch] = useState('')
+    const debouncedSearch = useDebounce(search, 300) // Debounce search input
     const [status, setStatus] = useState('active')
     const [selectedId, setSelectedId] = useState(null)
     const [newToday, setNewToday] = useState(0)
@@ -21,8 +23,8 @@ export default function AdminMembers() {
     const t = getT('members', lang)
 
     const { data, isLoading } = useQuery({
-        queryKey: ['admin-members', search, status],
-        queryFn: () => getMembers({ search, status }),
+        queryKey: ['admin-members', debouncedSearch, status], // Use debounced value
+        queryFn: () => getMembers({ search: debouncedSearch, status }),
     })
 
     const members = data?.members ?? []

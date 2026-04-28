@@ -3,13 +3,19 @@
 -- This enables user reporting and blocking functionality
 -- ============================================================================
 
+-- 0. DROP EXISTING TABLES IF THEY HAVE WRONG TYPES (SAFE - recreates with correct types)
+-- ============================================================================
+DROP VIEW IF EXISTS admin_reports_view CASCADE;
+DROP TABLE IF EXISTS reports CASCADE;
+DROP TABLE IF EXISTS blocked_users CASCADE;
+
 -- 1. CREATE REPORTS TABLE
 -- ============================================================================
--- Note: Using UUID for user IDs to match auth.users and ensure type consistency
+-- Note: reported_id is TEXT to match profiles.id type (not UUID)
 CREATE TABLE IF NOT EXISTS reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reporter_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    reported_id UUID NOT NULL,
+    reported_id TEXT NOT NULL,  -- TEXT to match profiles.id
     reason TEXT NOT NULL,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'resolved', 'dismissed')),
     admin_notes TEXT,
@@ -22,18 +28,18 @@ CREATE TABLE IF NOT EXISTS reports (
 
 -- 2. CREATE BLOCKED USERS TABLE
 -- ============================================================================
--- Note: Using UUID for user IDs to match auth.users and ensure type consistency
+-- Note: blocked_id is TEXT to match profiles.id type (not UUID)
 CREATE TABLE IF NOT EXISTS blocked_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     blocker_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    blocked_id UUID NOT NULL,
+    blocked_id TEXT NOT NULL,  -- TEXT to match profiles.id
     created_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- Prevent duplicate blocks
     CONSTRAINT unique_block UNIQUE (blocker_id, blocked_id),
     
-    -- Prevent self-blocking
-    CONSTRAINT no_self_block CHECK (blocker_id != blocked_id)
+    -- Prevent self-blocking (comparing UUID to TEXT requires cast)
+    CONSTRAINT no_self_block CHECK (blocker_id::text != blocked_id)
 );
 
 -- 3. CREATE INDEXES FOR PERFORMANCE
@@ -117,15 +123,15 @@ SELECT
     r.created_at,
     r.updated_at,
     r.reporter_id,
-    reporter.name as reporter_name,
-    reporter.email as reporter_email,
+    COALESCE(reporter.name, 'Unknown') as reporter_name,
+    COALESCE(reporter.email, 'No email') as reporter_email,
     r.reported_id,
-    reported.name as reported_name,
-    reported.email as reported_email
+    COALESCE(reported.name, 'Unknown') as reported_name,
+    COALESCE(reported.email, 'No email') as reported_email
 FROM reports r
 LEFT JOIN auth.users reporter_auth ON r.reporter_id = reporter_auth.id
 LEFT JOIN profiles reporter ON reporter_auth.id::text = reporter.id
-LEFT JOIN profiles reported ON r.reported_id::text = reported.id
+LEFT JOIN profiles reported ON r.reported_id = reported.id  -- Both are TEXT now
 ORDER BY r.created_at DESC;
 
 -- Grant access to admin view

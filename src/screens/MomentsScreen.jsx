@@ -6,7 +6,7 @@ import BottomNav from '@/components/BottomNav'
 import ScreenHeader from '@/components/ui/ScreenHeader'
 import MomentCard from '@/components/moments/MomentCard'
 import NewMomentModal from '@/components/moments/NewMomentModal'
-import { getMoments, getMeetingHistory, supabase } from '@/lib/supabaseClient'
+import { getMoments, getMeetingHistory, supabase, getBlockedUserIds } from '@/lib/supabaseClient'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const PAGE_SIZE = 15
@@ -91,8 +91,19 @@ export default function MomentsScreen() {
     // ── Realtime: invalidate on moments/likes change ────────────────────────────
     useEffect(() => {
         if (!user?.id) return
+
+        // Use stable channel name to prevent duplicate subscriptions
+        const channelName = `moments_rt_${user.id}`
+
+        // Check if channel already exists
+        const existingChannels = supabase.getChannels()
+        if (existingChannels.some(ch => ch.topic === channelName)) {
+            console.log('[MomentsScreen] Channel already subscribed')
+            return
+        }
+
         const ch = supabase
-            .channel('moments_rt_' + user.id)
+            .channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'moments' }, () => {
                 queryClient.invalidateQueries({ queryKey: ['moments', user.id] })
             })
@@ -101,7 +112,13 @@ export default function MomentsScreen() {
             })
             .subscribe()
         channelRef.current = ch
-        return () => { supabase.removeChannel(ch) }
+
+        return () => {
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current)
+                channelRef.current = null
+            }
+        }
     }, [user?.id, queryClient])
 
     // ── Intersection observer for infinite scroll ───────────────────────────────

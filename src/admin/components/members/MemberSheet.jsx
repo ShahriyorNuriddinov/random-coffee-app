@@ -12,37 +12,59 @@ import FullScreenModal from '../ui/FullScreenModal'
 import Toggle from '../ui/Toggle'
 import { PrimaryButton } from '../ui/PrimaryButton'
 
-export default function MemberSheet({ memberId, onClose, lang }) {
-    const [member, setMember] = useState(null)
-    const [loading, setLoading] = useState(true)
+export default function MemberSheet({ memberId, member: memberProp, onClose, lang }) {
+    const [member, setMember] = useState(memberProp || null)
+    const [loading, setLoading] = useState(!memberProp)
     const [saving, setSaving] = useState(false)
     const [form, setForm] = useState({})
     const t = getT('members', lang)
     const tc = getT('common', lang)
 
     useEffect(() => {
-        getMemberById(memberId).then(m => {
-            setMember(m)
+        // If member prop is provided, use it directly
+        if (memberProp) {
+            setMember(memberProp)
             setForm({
-                name: m?.name || '',
-                email: m?.email || '',
-                coffee_credits: m?.coffee_credits || 0,
-                about: m?.about || '',
-                gives: m?.gives || '',
-                wants: m?.wants || '',
-                wechat: m?.wechat || '',
-                whatsapp: m?.whatsapp || '',
-                email_verified: m?.email_verified ?? false,
+                name: memberProp?.name || '',
+                email: memberProp?.email || '',
+                coffee_credits: memberProp?.coffee_credits || 0,
+                about: memberProp?.about || '',
+                gives: memberProp?.gives || '',
+                wants: memberProp?.wants || '',
+                wechat: memberProp?.wechat || '',
+                whatsapp: memberProp?.whatsapp || '',
+                email_verified: memberProp?.email_verified ?? false,
             })
             setLoading(false)
-        })
-    }, [memberId])
+            return
+        }
+
+        // Otherwise fetch by ID
+        if (memberId) {
+            getMemberById(memberId).then(m => {
+                setMember(m)
+                setForm({
+                    name: m?.name || '',
+                    email: m?.email || '',
+                    coffee_credits: m?.coffee_credits || 0,
+                    about: m?.about || '',
+                    gives: m?.gives || '',
+                    wants: m?.wants || '',
+                    wechat: m?.wechat || '',
+                    whatsapp: m?.whatsapp || '',
+                    email_verified: m?.email_verified ?? false,
+                })
+                setLoading(false)
+            })
+        }
+    }, [memberId, memberProp])
 
     const set = key => val => setForm(f => ({ ...f, [key]: val }))
 
     const handleSave = async () => {
         setSaving(true)
-        const res = await updateMember(memberId, form)
+        const actualMemberId = memberId || member?.id
+        const res = await updateMember(actualMemberId, form)
         setSaving(false)
         if (res.success) { toast.success(tc.saved); onClose() }
         else toast.error(res.error)
@@ -50,7 +72,8 @@ export default function MemberSheet({ memberId, onClose, lang }) {
 
     const handleBan = async () => {
         if (!confirm(member?.banned ? t.unbanConfirm : t.banConfirm)) return
-        const res = member?.banned ? await unbanMember(memberId) : await banMember(memberId)
+        const actualMemberId = memberId || member?.id
+        const res = member?.banned ? await unbanMember(actualMemberId) : await banMember(actualMemberId)
         if (res.success) { toast.success(tc.done); onClose() }
         else toast.error(res.error)
     }
@@ -199,7 +222,8 @@ export default function MemberSheet({ memberId, onClose, lang }) {
 }
 
 MemberSheet.propTypes = {
-    memberId: PropTypes.string.isRequired,
+    memberId: PropTypes.string,
+    member: PropTypes.object,
     onClose: PropTypes.func.isRequired,
     lang: PropTypes.string.isRequired,
 }

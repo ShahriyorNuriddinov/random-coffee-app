@@ -80,8 +80,9 @@ export default function PeopleScreen() {
     const { data, isLoading } = useQuery({
         queryKey: ['people', user?.id],
         queryFn: () => fetchPeople(user.id, profile),
-        enabled: !!user?.id,
-        staleTime: 2 * 60 * 1000, // 2 min — people list doesn't change often
+        enabled: !!user?.id && !!profile.name, // Only fetch when profile is loaded
+        staleTime: 2 * 60 * 1000, // 2 min
+        gcTime: 5 * 60 * 1000, // 5 min
     })
 
     const people = data?.people ?? []

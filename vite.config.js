@@ -31,6 +31,8 @@ export default defineConfig({
         // Don't cache API calls
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/admin/],
+        // Increase max size for caching
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         runtimeCaching: [
           {
             // Cache Supabase images
@@ -39,6 +41,7 @@ export default defineConfig({
             options: {
               cacheName: 'supabase-images',
               expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
@@ -48,6 +51,7 @@ export default defineConfig({
             options: {
               cacheName: 'profile-photos',
               expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],

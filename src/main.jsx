@@ -2,6 +2,25 @@ import React, { lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import './i18n'
+import { validateEnvironment } from './lib/envValidation'
+
+// Validate environment variables before app starts
+try {
+  validateEnvironment()
+} catch (error) {
+  console.error('Environment validation failed:', error)
+  // Show user-friendly error
+  document.getElementById('root').innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; font-family: -apple-system, sans-serif;">
+            <div>
+                <h1 style="color: #ff3b30; margin-bottom: 16px;">⚠️ Configuration Error</h1>
+                <p style="color: #666; margin-bottom: 8px;">The application is not properly configured.</p>
+                <p style="color: #999; font-size: 14px;">Please contact support or check the console for details.</p>
+            </div>
+        </div>
+    `
+  throw error
+}
 
 // Global error handlers
 window.addEventListener('unhandledrejection', (event) => {

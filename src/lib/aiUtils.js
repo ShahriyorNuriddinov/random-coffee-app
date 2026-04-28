@@ -2,10 +2,16 @@
  * AI Utilities — Groq (primary) + OpenAI (fallback)
  */
 
+// ⚠️ SECURITY WARNING: API keys should NEVER be in client-side code!
+// These keys are exposed in the browser and can be stolen.
+// TODO: Move all AI calls to Supabase Edge Functions
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY
 const OPENAI_KEY = import.meta.env.VITE_OPENAI_API_KEY
 
+// Temporary client-side usage - MUST migrate to Edge Functions before production!
+
 // ─── Groq API call ────────────────────────────────────────────────────────────
+// WARNING: No rate limiting implemented! Add throttling in production.
 async function callGroq(prompt, maxTokens = 300) {
     if (!GROQ_KEY) return null
     try {
@@ -23,16 +29,19 @@ async function callGroq(prompt, maxTokens = 300) {
             }),
         })
         if (!res.ok) {
+            console.error('[Groq] API error:', res.status, res.statusText)
             return null
         }
         const json = await res.json()
         return json.choices?.[0]?.message?.content?.trim() || null
     } catch (e) {
+        console.error('[Groq] Network error:', e)
         return null
     }
 }
 
-// ─── OpenAI API call (fallback) ───────────────────────────────────────────────
+
+
 async function callOpenAI(prompt, maxTokens = 200) {
     if (!OPENAI_KEY || OPENAI_KEY === 'sk-your-openai-key-here') return null
     try {

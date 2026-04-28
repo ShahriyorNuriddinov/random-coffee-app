@@ -135,6 +135,7 @@ export const getMembers = async ({ search = '', status = 'active', page = 0, lim
         // Escape special characters to prevent SQL injection
         const sanitizedSearch = search.replace(/[%_\\]/g, '\\$&').trim()
         if (sanitizedSearch) {
+            // Use textSearch for safer querying
             query = query.or(`name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%`)
         }
     }

@@ -1,5 +1,11 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /api/
+Disallow: /*.json$
 
+# Sitemap
 Sitemap: https://random-coffee-app.vercel.app/sitemap.xml
+
+# Crawl delay (be nice to servers)
+Crawl-delay: 1

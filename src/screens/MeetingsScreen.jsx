@@ -61,10 +61,21 @@ export default function MeetingsScreen() {
     // Reload subscription from DB on mount to get fresh credits
     useEffect(() => {
         if (!user?.id) return
-        getSubscription(user.id).then(data => {
-            if (data) setSubscription({ status: data.subscription_status || 'trial', credits: data.coffee_credits ?? 2, start: data.subscription_start || null, end: data.subscription_end || null })
-        }).catch(() => { })
-    }, [user?.id])
+        getSubscription(user.id)
+            .then(data => {
+                if (data) {
+                    setSubscription({
+                        status: data.subscription_status || 'trial',
+                        credits: data.coffee_credits ?? 2,
+                        start: data.subscription_start || null,
+                        end: data.subscription_end || null
+                    })
+                }
+            })
+            .catch((err) => {
+                console.error('[MeetingsScreen] Failed to load subscription:', err)
+            })
+    }, [user?.id, setSubscription])
 
     const handleFeedbackPost = () => {
         setShowFeedback(false)
@@ -148,13 +159,17 @@ export default function MeetingsScreen() {
 
 function SettingsButton({ active, onClick }) {
     return (
-        <button onClick={onClick} style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: active ? 'rgba(0,122,255,0.1)' : 'rgba(120,120,128,0.06)',
-            border: active ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', position: 'relative',
-        }}>
+        <button
+            onClick={onClick}
+            aria-label="Search settings"
+            aria-pressed={active}
+            style={{
+                width: 34, height: 34, borderRadius: '50%',
+                background: active ? 'rgba(0,122,255,0.1)' : 'rgba(120,120,128,0.06)',
+                border: active ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', position: 'relative',
+            }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill={active ? 'var(--app-primary)' : '#555'}>
                 <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.97 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.12L14.47,2.45C14.43,2.22 14.24,2.05 14,2.05H10C9.76,2.05 9.57,2.22 9.53,2.45L9.14,5.12C8.53,5.34 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.97 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.95C7.96,18.34 8.53,18.66 9.14,18.88L9.53,21.55C9.57,21.78 9.76,21.95 10,21.95H10C10.24,21.95 10.43,21.78 10.47,21.55L10.86,18.88C11.47,18.66 12.04,18.34 12.56,17.95L15.05,18.95C15.27,19.03 15.54,18.95 15.66,18.73L17.66,15.27C17.78,15.05 17.73,14.78 17.54,14.63L19.43,12.97Z" />
             </svg>

@@ -196,8 +196,8 @@ export const confirmPayment = async ({ userId, paymentIntentId, credits, amount,
             return { success: false, error: error.message }
         }
 
-        // Credit referral bonus if applicable
-        await supabase.rpc('credit_referral_bonus', { p_referred_id: userId }).catch(err => {
+        // Credit referral bonus if applicable (non-blocking)
+        supabase.rpc('credit_referral_bonus', { p_referred_id: userId }).catch(err => {
             console.warn('[confirmPayment] Referral bonus failed:', err)
         })
 
@@ -378,9 +378,30 @@ export const getMoments = async (limit = 20, userId = null, offset = 0) => {
 }
 
 export const postMoment = async (userId, text, imageUrl = null, text_en = null, text_zh = null, imageUrls = null, text_ru = null) => {
+    // Sanitize text input to prevent XSS
+    const sanitizeText = (str) => {
+        if (!str) return str
+        return str
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;')
+            .replace(/\//g, '&#x2F;')
+            .trim()
+    }
+
     const { data, error } = await supabase
         .from('moments')
-        .insert({ user_id: userId, text, image_url: imageUrl, image_urls: imageUrls, text_en, text_zh, text_ru, status: 'pending' })
+        .insert({
+            user_id: userId,
+            text: sanitizeText(text),
+            image_url: imageUrl,
+            image_urls: imageUrls,
+            text_en: sanitizeText(text_en),
+            text_zh: sanitizeText(text_zh),
+            text_ru: sanitizeText(text_ru),
+            status: 'pending'
+        })
         .select(`id, text, text_en, text_zh, text_ru, image_url, image_urls, likes_count, created_at, status, author:user_id(id, name, avatar_url, region)`)
         .single()
     if (error) return null
