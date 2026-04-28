@@ -13,7 +13,7 @@ const TABS = [
     { id: 'settings', icon: Settings },
 ]
 
-export default function AdminBottomNav({ tab, setTab, lang, unreadCount = 0 }) {
+export default function AdminBottomNav({ tab, setTab, lang, unreadCount = 0, newReportsCount = 0 }) {
     const t = getT('nav', lang)
 
     return (
@@ -38,6 +38,18 @@ export default function AdminBottomNav({ tab, setTab, lang, unreadCount = 0 }) {
                                 {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                         )}
+                        {id === 'reports' && newReportsCount > 0 && (
+                            <span style={{
+                                position: 'absolute', top: -5, right: -7,
+                                background: '#ff9500', color: '#fff',
+                                fontSize: 9, fontWeight: 800,
+                                minWidth: 16, height: 16, borderRadius: 8,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                padding: '0 3px', lineHeight: 1,
+                            }}>
+                                {newReportsCount > 99 ? '99+' : newReportsCount}
+                            </span>
+                        )}
                     </div>
                     <span>{t[id]}</span>
                 </button>
@@ -51,4 +63,5 @@ AdminBottomNav.propTypes = {
     setTab: PropTypes.func.isRequired,
     lang: PropTypes.string.isRequired,
     unreadCount: PropTypes.number,
+    newReportsCount: PropTypes.number,
 }

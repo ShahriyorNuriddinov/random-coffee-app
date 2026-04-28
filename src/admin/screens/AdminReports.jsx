@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
-import { getT } from '../i18n'
 import SectionLabel from '../components/ui/SectionLabel'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,12 +9,10 @@ import toast from 'react-hot-toast'
 import MemberSheet from '../components/members/MemberSheet'
 
 export default function AdminReports() {
-    const { lang } = useAdmin()
+    const { lang, setNewReportsCount } = useAdmin()
     const [status, setStatus] = useState('pending')
     const [selectedMember, setSelectedMember] = useState(null)
     const queryClient = useQueryClient()
-
-    const t = getT('reports', lang)
 
     const { data: reports = [], isLoading, error } = useQuery({
         queryKey: ['admin-reports', status],
@@ -36,6 +33,57 @@ export default function AdminReports() {
         retry: 1,
         staleTime: 30000, // 30 seconds
     })
+
+    // ── Realtime: Listen for new reports ────────────────────────────────────
+    useEffect(() => {
+        const channelName = 'admin_reports_realtime'
+
+        // Check if channel already exists
+        const existingChannels = supabase.getChannels()
+        if (existingChannels.some(ch => ch.topic === channelName)) {
+            console.log('[AdminReports] Channel already subscribed')
+            return
+        }
+
+        const channel = supabase
+            .channel(channelName)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'reports'
+            }, (payload) => {
+                console.log('[AdminReports] New report received:', payload)
+
+                // Show toast notification
+                toast.success('🚨 New report received!', {
+                    duration: 5000,
+                    style: {
+                        background: '#ff3b30',
+                        color: '#fff',
+                        borderRadius: 20,
+                        fontWeight: 700,
+                        fontSize: 15,
+                        padding: '14px 24px',
+                    },
+                })
+
+                // Invalidate queries to refresh data
+                queryClient.invalidateQueries({ queryKey: ['admin-reports'] })
+            })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'reports'
+            }, () => {
+                // Refresh when report status changes
+                queryClient.invalidateQueries({ queryKey: ['admin-reports'] })
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [queryClient])
 
     if (error) {
         return (

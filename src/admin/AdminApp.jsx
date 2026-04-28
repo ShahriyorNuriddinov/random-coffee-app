@@ -67,6 +67,7 @@ export default function AdminApp() {
     const [tab, setTab] = useState('dashboard')
     const [lang, setLang] = useState('en')
     const [unreadCount, setUnreadCount] = useState(0)
+    const [newReportsCount, setNewReportsCount] = useState(0)
 
     // Server-side validation: verify stored email exists in staff table
     useEffect(() => {
@@ -134,14 +135,36 @@ export default function AdminApp() {
         }
         loadInitialCount().catch(() => { })
 
+        // Load initial pending reports count
+        const loadReportsCount = async () => {
+            const { count } = await supabase
+                .from('reports')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'pending')
+            setNewReportsCount(count || 0)
+        }
+        loadReportsCount().catch(() => { })
+
         // Realtime bump on new events
         const bump = () => setUnreadCount(n => n + 1)
+        const bumpReports = () => setNewReportsCount(n => n + 1)
+
         const ch = supabase
             .channel('app_badge_v3')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moments' }, bump)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, bump)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, bump)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, bump)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reports' }, bumpReports)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'reports',
+                filter: 'status=eq.pending'
+            }, () => {
+                // Reload count when report status changes
+                loadReportsCount().catch(() => { })
+            })
             .subscribe()
         return () => supabase.removeChannel(ch)
     }, [authed])
@@ -156,11 +179,16 @@ export default function AdminApp() {
             news: 'admin-news',
             settings: 'admin-settings',
             notifications: 'admin-notifications',
+            reports: 'admin-reports',
         }
         if (queryMap[t]) adminQueryClient.invalidateQueries({ queryKey: [queryMap[t]] })
         if (t === 'notifications') {
             supabase.from('app_settings').update({ notif_seen_at: new Date().toISOString() }).eq('id', 1).then(() => { })
             setUnreadCount(0)
+        }
+        if (t === 'reports') {
+            // Reset reports counter when viewing reports tab
+            setNewReportsCount(0)
         }
     }
 
@@ -174,14 +202,14 @@ export default function AdminApp() {
         <QueryClientProvider client={adminQueryClient}>
             <ErrorBoundary>
                 <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-                <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount }}>
+                <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount, setNewReportsCount }}>
                     <AdminHeader tab={tab} lang={lang} setLang={setLang} />
                     <div className={`w-full max-w-[1200px] mx-auto pb-20 box-border ${tab === 'notifications' ? 'px-0' : 'px-4'}`}>
                         <Suspense fallback={<AdminScreenFallback />}>
                             <Screen />
                         </Suspense>
                     </div>
-                    <AdminBottomNav tab={tab} setTab={handleTabChange} lang={lang} unreadCount={unreadCount} />
+                    <AdminBottomNav tab={tab} setTab={handleTabChange} lang={lang} unreadCount={unreadCount} newReportsCount={newReportsCount} />
                 </AdminCtx.Provider>
             </ErrorBoundary>
         </QueryClientProvider>
