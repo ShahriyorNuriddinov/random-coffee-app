@@ -349,8 +349,36 @@ export const getMoments = async (limit = 20, userId = null, offset = 0) => {
         return []
     }
 
-    const moments = data || []
+    let moments = data || []
     if (moments.length === 0) return moments
+
+    // For admin posts, fetch pinned status from news table
+    const adminPostIds = moments.filter(m => m.is_admin_post).map(m => m.id)
+    if (adminPostIds.length > 0) {
+        const { data: newsData } = await supabase
+            .from('news')
+            .select('moment_id, pinned')
+            .in('moment_id', adminPostIds)
+
+        const pinnedMap = {}
+        if (newsData) {
+            for (const n of newsData) {
+                pinnedMap[n.moment_id] = n.pinned
+            }
+        }
+
+        // Add pinned flag to moments
+        for (const m of moments) {
+            m.pinned = pinnedMap[m.id] || false
+        }
+
+        // Sort: pinned admin posts first, then by created_at
+        moments = moments.sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1
+            if (!a.pinned && b.pinned) return 1
+            return new Date(b.created_at) - new Date(a.created_at)
+        })
+    }
 
     // reactions aggregation removed — use likes_count column for display counts.
     // Per-user reactions are fetched separately in MomentsScreen to avoid

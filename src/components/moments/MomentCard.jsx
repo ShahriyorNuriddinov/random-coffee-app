@@ -200,7 +200,12 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {isOfficial && (
+                    {moment.pinned && (
+                        <Badge variant="default" className="text-[10px] gap-1">
+                            📌 {currentLang === 'zh' ? '置顶' : currentLang === 'ru' ? 'Закреплено' : 'Pinned'}
+                        </Badge>
+                    )}
+                    {isOfficial && !moment.pinned && (
                         <Badge variant="default" className="text-[10px]">Official</Badge>
                     )}
                     {moment.status === 'pending' && isOwn && (
