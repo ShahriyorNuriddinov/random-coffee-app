@@ -1,6 +1,6 @@
 // ─── PersonProfileSheet — bottom sheet modal ─────────────────────────────────
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Pagination, Navigation } from 'swiper/modules'
@@ -17,7 +17,9 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
     const { t, i18n } = useTranslation()
     const { user } = useApp()
     const queryClient = useQueryClient()
-    const targetLang = i18n.language === 'zh' ? 'zh' : i18n.language === 'ru' ? 'ru' : 'en'
+    const targetLang = useMemo(() => {
+        return i18n.language === 'zh' ? 'zh' : i18n.language === 'ru' ? 'ru' : 'en'
+    }, [i18n.language])
     const tags = Array.isArray(person.tags) ? person.tags : []
     const langs = Array.isArray(person.languages) ? person.languages : []
     const photos = Array.isArray(person.photos) ? person.photos.filter(Boolean) : []
@@ -37,6 +39,12 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
     const [showReportMenu, setShowReportMenu] = useState(false)
     const [blocking, setBlocking] = useState(false)
     const [showBlockConfirm, setShowBlockConfirm] = useState(false)
+
+    // Reset translation state when language changes
+    useEffect(() => {
+        setTranslated(false)
+        setTranslatedData(null)
+    }, [i18n.language, person.id])
 
     const handleBlock = async () => {
         if (!user?.id) return
@@ -136,13 +144,98 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
         }
     }
 
-    const display = translated && translatedData
-        ? translatedData
-        : (targetLang === 'zh' && (person.about_zh || person.gives_zh || person.wants_zh))
-            ? { about: person.about_zh || person.about, gives: person.gives_zh || person.gives, wants: person.wants_zh || person.wants }
-            : (targetLang === 'ru' && (person.about_ru || person.gives_ru || person.wants_ru))
-                ? { about: person.about_ru || person.about, gives: person.gives_ru || person.gives, wants: person.wants_ru || person.wants }
-                : { about: person.about, gives: person.gives, wants: person.wants }
+    const display = useMemo(() => {
+        if (translated && translatedData) {
+            return translatedData
+        }
+        if (targetLang === 'zh' && (person.about_zh || person.gives_zh || person.wants_zh)) {
+            return {
+                about: person.about_zh || person.about,
+                gives: person.gives_zh || person.gives,
+                wants: person.wants_zh || person.wants
+            }
+        }
+        if (targetLang === 'ru' && (person.about_ru || person.gives_ru || person.wants_ru)) {
+            return {
+                about: person.about_ru || person.about,
+                gives: person.gives_ru || person.gives,
+                wants: person.wants_ru || person.wants
+            }
+        }
+        return {
+            about: person.about,
+            gives: person.gives,
+            wants: person.wants
+        }
+    }, [translated, translatedData, targetLang, person])
+
+    // Get localized labels
+    const labels = useMemo(() => {
+        if (targetLang === 'zh') {
+            return {
+                aboutMe: '关于我',
+                canGive: '能提供',
+                wantsToGet: '想获得',
+                meetingBalance: '会议平衡',
+                fun: '娱乐',
+                benefits: '效益',
+                translate: '🌐 翻译',
+                showOriginal: '🔤 显示原文',
+                sendInterest: '🤍 发送兴趣',
+                cancelRequest: '✕ 取消请求',
+                itsAMatch: '✓ 匹配成功！',
+                reportIssue: '举报问题',
+                blockUser: '屏蔽用户',
+                cancel: '取消',
+                block: '屏蔽',
+                blocking: '屏蔽中...',
+                blockConfirmTitle: '屏蔽',
+                blockConfirmText: '对方将无法看到您的个人资料或联系您。您可以稍后在设置中解除屏蔽。'
+            }
+        }
+        if (targetLang === 'ru') {
+            return {
+                aboutMe: 'О себе',
+                canGive: 'Могу дать',
+                wantsToGet: 'Хочу получить',
+                meetingBalance: 'Баланс встречи',
+                fun: 'Развлечение',
+                benefits: 'Польза',
+                translate: '🌐 Перевести',
+                showOriginal: '🔤 Показать оригинал',
+                sendInterest: '🤍 Проявить интерес',
+                cancelRequest: '✕ Отменить запрос',
+                itsAMatch: '✓ Совпадение!',
+                reportIssue: 'Пожаловаться',
+                blockUser: 'Заблокировать',
+                cancel: 'Отмена',
+                block: 'Заблокировать',
+                blocking: 'Блокировка...',
+                blockConfirmTitle: 'Заблокировать',
+                blockConfirmText: 'Они не смогут видеть ваш профиль или связаться с вами. Вы можете разблокировать их позже в настройках.'
+            }
+        }
+        return {
+            aboutMe: 'About Me',
+            canGive: 'Can Give',
+            wantsToGet: 'Wants to Get',
+            meetingBalance: 'Meeting Balance',
+            fun: 'Fun',
+            benefits: 'Benefits',
+            translate: '🌐 Translate',
+            showOriginal: '🔤 Show original',
+            sendInterest: '🤍 Send Interest',
+            cancelRequest: '✕ Cancel Request',
+            itsAMatch: '✓ It\'s a Match!',
+            reportIssue: 'Report Issue',
+            blockUser: 'Block User',
+            cancel: 'Cancel',
+            block: 'Block',
+            blocking: 'Blocking...',
+            blockConfirmTitle: 'Block',
+            blockConfirmText: 'They won\'t be able to see your profile or contact you. You can unblock them later from settings.'
+        }
+    }, [targetLang])
 
     return (
         <div
@@ -317,7 +410,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                                         onMouseLeave={e => e.currentTarget.style.background = 'none'}
                                     >
                                         <span style={{ fontSize: 16 }}>🚫</span>
-                                        <span>Block User</span>
+                                        <span>{labels.blockUser}</span>
                                     </button>
                                 </div>
                             </>
@@ -360,9 +453,9 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                     )}
 
                     {/* About / Gives / Wants */}
-                    {display.about && <SheetSection label="About Me" text={display.about} borderColor="rgba(0,122,255,0.25)" />}
-                    {display.gives && <SheetSection label="Can Give" text={display.gives} borderColor="rgba(52,199,89,0.25)" />}
-                    {display.wants && <SheetSection label="Wants to Get" text={display.wants} borderColor="rgba(255,149,0,0.25)" />}
+                    {display.about && <SheetSection label={labels.aboutMe} text={display.about} borderColor="rgba(0,122,255,0.25)" />}
+                    {display.gives && <SheetSection label={labels.canGive} text={display.gives} borderColor="rgba(52,199,89,0.25)" />}
+                    {display.wants && <SheetSection label={labels.wantsToGet} text={display.wants} borderColor="rgba(255,149,0,0.25)" />}
 
                     {/* Translate button */}
                     {(person.about || person.gives || person.wants) && (
@@ -372,7 +465,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                             fontFamily: 'inherit', padding: '0 0 16px',
                             opacity: translating ? 0.5 : 1,
                         }}>
-                            {translating ? '...' : translated ? '🔤 Show original' : '🌐 Translate'}
+                            {translating ? '...' : translated ? labels.showOriginal : labels.translate}
                         </button>
                     )}
 
@@ -380,11 +473,11 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                     {person.balance && (
                         <div style={{ marginBottom: 20 }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--app-hint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                                Meeting Balance
+                                {labels.meetingBalance}
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--app-text)', marginBottom: 8 }}>
-                                <span>{fun}% Fun</span>
-                                <span>{ben}% Benefits</span>
+                                <span>{fun}% {labels.fun}</span>
+                                <span>{ben}% {labels.benefits}</span>
                             </div>
                             <div style={{ width: '100%', height: 6, background: 'rgba(120,120,128,0.12)', borderRadius: 3, position: 'relative' }}>
                                 <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${fun}%`, background: '#ff9500', borderRadius: 3 }} />
@@ -408,7 +501,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                         transition: 'all 0.2s',
                         opacity: matched ? 0.9 : 1,
                     }}>
-                        {matched ? '✓ It\'s a Match!' : liked ? '✕ Cancel Request' : '🤍 Send Interest'}
+                        {matched ? labels.itsAMatch : liked ? labels.cancelRequest : labels.sendInterest}
                     </button>
                 </div>
             </div>
@@ -461,7 +554,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                             textAlign: 'center',
                             marginBottom: 8,
                             letterSpacing: -0.3,
-                        }}>Block {person.name}?</div>
+                        }}>{labels.blockConfirmTitle} {person.name}?</div>
 
                         <div style={{
                             fontSize: 14,
@@ -470,7 +563,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                             lineHeight: 1.5,
                             marginBottom: 24,
                         }}>
-                            They won't be able to see your profile or contact you. You can unblock them later from settings.
+                            {labels.blockConfirmText}
                         </div>
 
                         <div style={{ display: 'flex', gap: 10 }}>
@@ -491,7 +584,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                                 }}
                                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(120,120,128,0.15)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(120,120,128,0.1)'}
-                            >Cancel</button>
+                            >{labels.cancel}</button>
 
                             <button
                                 onClick={handleBlock}
@@ -512,7 +605,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                                 }}
                                 onMouseEnter={e => !blocking && (e.currentTarget.style.background = '#e63329')}
                                 onMouseLeave={e => !blocking && (e.currentTarget.style.background = '#ff3b30')}
-                            >{blocking ? 'Blocking...' : 'Block'}</button>
+                            >{blocking ? labels.blocking : labels.block}</button>
                         </div>
                     </div>
                 </div>
