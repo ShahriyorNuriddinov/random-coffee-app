@@ -17,7 +17,7 @@ export default function MatchCard({ match, onFeedback }) {
     const [showQuestions, setShowQuestions] = useState(false)
     const [loadingAI, setLoadingAI] = useState(false)
     const [aiTranslated, setAiTranslated] = useState(null)
-
+    
     const displayPartner = useMemo(() => {
         if (!partner) return partner
         if (lang === 'zh') {

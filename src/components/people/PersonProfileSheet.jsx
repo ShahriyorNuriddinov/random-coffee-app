@@ -17,7 +17,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
     const { t, i18n } = useTranslation()
     const { user } = useApp()
     const queryClient = useQueryClient()
-    const targetLang = i18n.language === 'zh' ? 'zh' : 'en'
+    const targetLang = i18n.language === 'zh' ? 'zh' : i18n.language === 'ru' ? 'ru' : 'en'
     const tags = Array.isArray(person.tags) ? person.tags : []
     const langs = Array.isArray(person.languages) ? person.languages : []
     const photos = Array.isArray(person.photos) ? person.photos.filter(Boolean) : []
@@ -96,12 +96,21 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
 
     const handleTranslate = async () => {
         if (translated) { setTranslated(false); return }
-        // Use DB translations first
-        if (person.about_zh || person.gives_zh || person.wants_zh) {
+        // Use DB translations first based on target language
+        if (targetLang === 'zh' && (person.about_zh || person.gives_zh || person.wants_zh)) {
             setTranslatedData({
                 about: person.about_zh || person.about,
                 gives: person.gives_zh || person.gives,
                 wants: person.wants_zh || person.wants,
+            })
+            setTranslated(true)
+            return
+        }
+        if (targetLang === 'ru' && (person.about_ru || person.gives_ru || person.wants_ru)) {
+            setTranslatedData({
+                about: person.about_ru || person.about,
+                gives: person.gives_ru || person.gives,
+                wants: person.wants_ru || person.wants,
             })
             setTranslated(true)
             return
@@ -131,7 +140,9 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
         ? translatedData
         : (targetLang === 'zh' && (person.about_zh || person.gives_zh || person.wants_zh))
             ? { about: person.about_zh || person.about, gives: person.gives_zh || person.gives, wants: person.wants_zh || person.wants }
-            : { about: person.about, gives: person.gives, wants: person.wants }
+            : (targetLang === 'ru' && (person.about_ru || person.gives_ru || person.wants_ru))
+                ? { about: person.about_ru || person.about, gives: person.gives_ru || person.gives, wants: person.wants_ru || person.wants }
+                : { about: person.about, gives: person.gives, wants: person.wants }
 
     return (
         <div
