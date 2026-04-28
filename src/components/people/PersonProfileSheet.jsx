@@ -54,7 +54,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
         const res = await blockUser(user.id, person.id)
         setBlocking(false)
         if (res.success) {
-            toast.success('User blocked successfully')
+            toast.success(t('toast_user_blocked'))
             // Invalidate queries to refresh lists
             queryClient.invalidateQueries({ queryKey: ['people'] })
             queryClient.invalidateQueries({ queryKey: ['meeting-history'] })
@@ -63,12 +63,12 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
         } else {
             // Check if it's a duplicate block error
             if (res.error && res.error.includes('unique_block')) {
-                toast('You have already blocked this user.', {
+                toast(t('toast_already_blocked'), {
                     icon: 'ℹ️',
                     duration: 3000,
                 })
             } else {
-                toast.error('Failed to block user. Please try again.')
+                toast.error(t('toast_block_failed'))
             }
         }
     }
@@ -78,18 +78,18 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
         setShowReportMenu(false)
         const res = await reportUser(user.id, person.id, reason)
         if (res.success) {
-            toast.success('Report submitted. Thank you for keeping our community safe!', {
+            toast.success(t('toast_report_sent'), {
                 duration: 3000,
             })
         } else {
             // Check if it's a duplicate report error
             if (res.error && res.error.includes('unique_report')) {
-                toast('You have already reported this user for this reason.', {
+                toast(t('toast_already_reported'), {
                     icon: 'ℹ️',
                     duration: 3000,
                 })
             } else {
-                toast.error('Failed to submit report. Please try again.')
+                toast.error(t('toast_report_failed'))
             }
         }
     }

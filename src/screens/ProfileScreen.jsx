@@ -29,6 +29,7 @@ function calcCompleteness(profile) {
 }
 
 function ProfileCompleteness({ profile, onEdit }) {
+    const { t } = useTranslation()
     const pct = calcCompleteness(profile)
     if (pct >= 100) return null
     return (
@@ -42,7 +43,7 @@ function ProfileCompleteness({ profile, onEdit }) {
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--app-text)' }}>
-                    Complete your profile
+                    {t('complete_profile')}
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--app-primary)' }}>{pct}%</span>
             </div>
@@ -54,18 +55,18 @@ function ProfileCompleteness({ profile, onEdit }) {
                 }} />
             </div>
             <p style={{ fontSize: 12, color: 'var(--app-hint)', marginTop: 6 }}>
-                {pct < 50 ? 'Add photo, bio and contacts to get matched' :
-                    pct < 80 ? 'Almost there! Fill in remaining fields' :
-                        'Just a few more details needed'}
+                {pct < 50 ? t('complete_hint_low') :
+                    pct < 80 ? t('complete_hint_mid') :
+                        t('complete_hint_high')}
             </p>
         </div>
     )
 }
 
-const SUB_CONFIG = {
-    trial: { border: '1.5px solid #ff9500', background: 'rgba(255,149,0,0.08)', titleColor: '#ff9500', title: 'Trial Period Active', desc: 'Enjoy 2 free coffee credits!', btnLabel: 'Upgrade', btnBg: '#ff9500' },
-    empty: { border: '1.5px solid #ff3b30', background: 'rgba(255,59,48,0.08)', titleColor: '#ff3b30', title: 'No Credits Left', desc: 'Top up your balance.', btnLabel: 'Buy Credits', btnBg: '#ff3b30' },
-    active: { border: '1.5px solid #34c759', background: 'rgba(52,199,89,0.08)', titleColor: '#34c759', title: 'Premium Active', desc: (n) => `${n} credit${n !== 1 ? 's' : ''} remaining.`, btnLabel: 'Top Up', btnBg: '#34c759' },
+const SUB_STYLE = {
+    trial: { border: '1.5px solid #ff9500', background: 'rgba(255,149,0,0.08)', titleColor: '#ff9500', titleKey: 'sub_trial_title', descKey: 'sub_trial_desc', btnKey: 'sub_upgrade', btnBg: '#ff9500' },
+    empty: { border: '1.5px solid #ff3b30', background: 'rgba(255,59,48,0.08)', titleColor: '#ff3b30', titleKey: 'sub_empty_title', descKey: 'sub_empty_desc', btnKey: 'sub_buy', btnBg: '#ff3b30' },
+    active: { border: '1.5px solid #34c759', background: 'rgba(52,199,89,0.08)', titleColor: '#34c759', titleKey: 'sub_active_title', descKey: 'sub_active_desc', btnKey: 'sub_topup', btnBg: '#34c759' },
 }
 
 export default function ProfileScreen() {
@@ -100,8 +101,8 @@ export default function ProfileScreen() {
     const effectiveStatus = (subscription.credits ?? 0) === 0 ? 'empty'
         : subscription.status === 'trial' ? 'trial'
             : 'active'
-    const sub = SUB_CONFIG[effectiveStatus] || SUB_CONFIG.trial
-    const subDesc = typeof sub.desc === 'function' ? sub.desc(subscription.credits) : sub.desc
+    const sub = SUB_STYLE[effectiveStatus] || SUB_STYLE.trial
+    const subDesc = effectiveStatus === 'active' ? `${subscription.credits} ${t(sub.descKey)}` : t(sub.descKey)
     const regionFlag = profile.region === 'Macau' ? '🇲🇴'
         : profile.region === 'Mainland' ? '🇨🇳'
             : profile.region === 'Other' ? '🌍'
@@ -160,14 +161,14 @@ export default function ProfileScreen() {
                         style={{ borderRadius: 14, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: sub.border, background: sub.background, cursor: 'pointer' }}
                     >
                         <div>
-                            <div style={{ fontWeight: 700, fontSize: 15, color: sub.titleColor }}>{sub.title}</div>
+                            <div style={{ fontWeight: 700, fontSize: 15, color: sub.titleColor }}>{t(sub.titleKey)}</div>
                             <div style={{ fontSize: 13, color: 'var(--app-hint)', marginTop: 2 }}>{subDesc}</div>
                         </div>
                         <button
                             onClick={e => { e.stopPropagation(); setModal('buy') }}
                             style={{ background: sub.btnBg, color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, marginLeft: 12 }}
                         >
-                            {sub.btnLabel}
+                            {t(sub.btnKey)}
                         </button>
                     </div>
 
@@ -181,13 +182,13 @@ export default function ProfileScreen() {
                         <CardRow label={t('notif_news')} right={<IosToggle checked={notifImportantNews} onChange={() => handleToggleNotif('news')} />} />
                         <CardRow label={t('language')} right={<LangSwitcher />} />
                         <CardRow
-                            label="Email"
+                            label={t('email_label_profile')}
                             value={
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <span style={{ color: 'var(--app-hint)', fontSize: 13 }}>{profile.email || '—'}</span>
                                     {profile.email && (
                                         <span style={{ background: 'rgba(52,199,89,0.15)', color: '#34c759', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 8 }}>
-                                            Verified
+                                            {t('verified')}
                                         </span>
                                     )}
                                 </span>
@@ -206,7 +207,7 @@ export default function ProfileScreen() {
                     <Card>
                         <CardRow label={t('logout')} onClick={handleLogout} />
                         <CardRow
-                            label={<span style={{ color: '#ff3b30' }}>Delete Account</span>}
+                            label={<span style={{ color: '#ff3b30' }}>{t('delete_account')}</span>}
                             onClick={handleDeleteAccount}
                             isLast
                         />
@@ -226,38 +227,38 @@ export default function ProfileScreen() {
             {modal === 'email' && <EmailModal email={profile.email} userId={user?.id} onClose={() => setModal(null)} />}
             {modal === 'trial-info' && (
                 <InfoModal
-                    title="Trial Activated! 🎉"
+                    title={t('trial_info_title')}
                     onClose={() => setModal(null)}
                     onAction={() => setModal('buy')}
-                    actionLabel="Buy More Credits"
+                    actionLabel={t('trial_info_btn')}
                 >
                     <p style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 12 }}>
-                        We've credited 2 free coffee cups to your account. Every Monday, 1 credit is deducted to find you a perfect match.
+                        {t('trial_info_text')}
                     </p>
                     <div style={{ background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.2)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#ff9500', fontWeight: 600, marginBottom: 12 }}>
-                        Balance: {subscription.credits} Coffee Credits
+                        {t('trial_info_balance', { count: subscription.credits })}
                     </div>
                     <p style={{ fontSize: 12, color: 'var(--app-hint)', lineHeight: 1.4 }}>
-                        You can upgrade and add more credits at any time without losing trial ones.
+                        {t('trial_info_note')}
                     </p>
                 </InfoModal>
             )}
             {modal === 'active-info' && (
                 <InfoModal
-                    title="Your Premium Status"
+                    title={t('active_info_title')}
                     onClose={() => setModal(null)}
                     onAction={() => setModal('buy')}
-                    actionLabel="Top Up Balance"
+                    actionLabel={t('active_info_btn')}
                 >
                     <p style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 12 }}>
-                        You are in the game! The system automatically deducts 1 credit on Monday and schedules your meeting.
+                        {t('active_info_text')}
                     </p>
                     <div style={{ fontSize: 28, fontWeight: 800, color: '#34c759', marginBottom: 4 }}>
                         {subscription.credits}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--app-hint)', marginBottom: 12 }}>Coffee credits remaining</div>
+                    <div style={{ fontSize: 12, color: 'var(--app-hint)', marginBottom: 12 }}>{t('active_info_remaining')}</div>
                     <div style={{ background: 'rgba(120,120,128,0.08)', padding: '10px 12px', borderRadius: 12, fontSize: 12, lineHeight: 1.4, color: 'var(--app-text)' }}>
-                        🔥 <b>Using Boost?</b> If you activate "Boost Mode" in meetings, it will consume additional credits, finding you matches immediately!
+                        {t('active_info_boost')}
                     </div>
                 </InfoModal>
             )}

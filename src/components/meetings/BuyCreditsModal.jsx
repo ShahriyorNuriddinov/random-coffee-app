@@ -22,8 +22,8 @@ import { confirmPayment, createPaymentIntent, supabase } from '@/lib/supabaseCli
 import toast from 'react-hot-toast'
 
 const DEFAULT_PLANS = [
-    { label: 'Standard', price: 'HK$15', amount: 15, credits: 1, desc: '1 Cup' },
-    { label: 'Best Value', price: 'HK$30', amount: 30, credits: 3, desc: '3 Cups', badge: true },
+    { labelKey: 'plan_standard', price: 'HK$15', amount: 15, credits: 1 },
+    { labelKey: 'plan_best_value', price: 'HK$30', amount: 30, credits: 3, badge: true },
 ]
 
 function buildPlans(s) {
@@ -33,8 +33,8 @@ function buildPlans(s) {
     const bp = Number(s.best_price ?? 30)
     const bc = Number(s.best_cups ?? 3)
     return [
-        { label: 'Standard', price: 'HK$' + sp, amount: sp, credits: sc, desc: sc + ' Cup' + (sc !== 1 ? 's' : '') },
-        { label: 'Best Value', price: 'HK$' + bp, amount: bp, credits: bc, desc: bc + ' Cups', badge: true },
+        { labelKey: 'plan_standard', price: 'HK$' + sp, amount: sp, credits: sc },
+        { labelKey: 'plan_best_value', price: 'HK$' + bp, amount: bp, credits: bc, badge: true },
     ]
 }
 
@@ -158,7 +158,7 @@ export default function BuyCreditsModal({ onClose }) {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                             {plans.map((p, i) => (
                                 <div
-                                    key={p.label}
+                                    key={p.labelKey}
                                     onClick={() => setSelected(i)}
                                     style={{
                                         background: selected === i ? 'rgba(0,122,255,0.06)' : 'rgba(120,120,128,0.06)',
@@ -171,7 +171,7 @@ export default function BuyCreditsModal({ onClose }) {
                                 >
                                     <div style={{ textAlign: 'left' }}>
                                         <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--app-primary)' }}>{p.price}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--app-hint)', marginTop: 2 }}>{p.desc}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--app-hint)', marginTop: 2 }}>{p.credits === 1 ? t('plan_cup', { count: p.credits }) : t('plan_cups', { count: p.credits })}</div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                         {p.badge && (

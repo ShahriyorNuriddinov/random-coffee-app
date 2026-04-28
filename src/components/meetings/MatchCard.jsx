@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 export default function MatchCard({ match, onFeedback }) {
     const { partner, createdAt } = match
     const { profile } = useApp()
-    const { i18n } = useTranslation()
+    const { t, i18n } = useTranslation()
     const lang = i18n.language === 'zh' ? 'zh' : i18n.language === 'ru' ? 'ru' : 'en'
     const [showAbout, setShowAbout] = useState(false)
     const [showGives, setShowGives] = useState(false)
@@ -103,8 +103,8 @@ export default function MatchCard({ match, onFeedback }) {
     const handleWeChat = () => {
         if (!partner.wechat) return
         navigator.clipboard?.writeText(partner.wechat)
-            .then(() => toast.success(`WeChat ID copied: ${partner.wechat}`))
-            .catch(() => toast(`WeChat ID: ${partner.wechat}`))
+            .then(() => toast.success(t('toast_wechat_copied', { id: partner.wechat })))
+            .catch(() => toast(t('toast_wechat_show', { id: partner.wechat })))
     }
 
     return (
