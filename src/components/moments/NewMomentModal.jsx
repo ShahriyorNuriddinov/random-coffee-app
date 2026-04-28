@@ -86,7 +86,7 @@ export default function NewMomentModal({ matchId, onClose, onPosted }) {
             setImages(prev => [...prev, ...previews])
         } catch (err) {
             console.error('[handleImage] Error:', err)
-            toast.error('Failed to process images')
+            toast.error(t('toast_image_failed'))
         }
     }
 

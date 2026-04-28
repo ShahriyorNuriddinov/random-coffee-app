@@ -119,11 +119,11 @@ export default function ProfileScreen() {
     const handleLogout = async () => { await signOut(); logoutUser() }
 
     const handleDeleteAccount = async () => {
-        if (!window.confirm('Delete your account? This cannot be undone.')) return
-        if (!window.confirm('Are you absolutely sure? All your data will be removed.')) return
+        if (!window.confirm(t('confirm_delete'))) return
+        if (!window.confirm(t('confirm_delete2'))) return
         const res = await deleteAccount(user.id)
         if (res.success) { logoutUser() }
-        else toast.error(res.error || 'Failed to delete account')
+        else toast.error(res.error || t('toast_delete_failed'))
     }
 
     return (
@@ -288,7 +288,7 @@ function InfoModal({ title, children, onClose, onAction, actionLabel }) {
                         <button onClick={onAction} className="btn-gradient" style={{ borderRadius: 14 }}>{actionLabel}</button>
                     )}
                     <button onClick={onClose} style={{ width: '100%', padding: '13px 0', borderRadius: 14, border: 'none', background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        Close
+                        {t('close')}
                     </button>
                 </div>
             </div>
@@ -297,6 +297,7 @@ function InfoModal({ title, children, onClose, onAction, actionLabel }) {
 }
 
 function EmailModal({ email, userId, onClose }) {
+    const { t } = useTranslation()
     const [newEmail, setNewEmail] = useState(email || '')
     const [saving, setSaving] = useState(false)
 
@@ -306,7 +307,7 @@ function EmailModal({ email, userId, onClose }) {
         const { error } = await supabase.from('profiles').update({ email: newEmail.trim() }).eq('id', userId)
         setSaving(false)
         if (!error) {
-            toast.success('Email updated!')
+            toast.success(t('toast_email_updated'))
             onClose()
         } else {
             toast.error(error.message)
@@ -316,8 +317,8 @@ function EmailModal({ email, userId, onClose }) {
     return (
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
             <div onClick={e => e.stopPropagation()} style={{ background: 'var(--app-card)', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxSizing: 'border-box', textAlign: 'center' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>Change Email Address</div>
-                <p style={{ fontSize: 14, color: 'var(--app-hint)', marginBottom: 16 }}>Enter your new email address below.</p>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>{t('change_email_title')}</div>
+                <p style={{ fontSize: 14, color: 'var(--app-hint)', marginBottom: 16 }}>{t('change_email_hint')}</p>
                 <input
                     type="email"
                     value={newEmail}
@@ -326,8 +327,8 @@ function EmailModal({ email, userId, onClose }) {
                     style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--app-border)', background: 'var(--app-bg)', color: 'var(--app-text)', fontSize: 15, boxSizing: 'border-box', marginBottom: 12, fontFamily: 'inherit', outline: 'none', textAlign: 'center' }}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <button onClick={handleSave} disabled={saving} className="btn-gradient" style={{ borderRadius: 14 }}>{saving ? '...' : 'Save'}</button>
-                    <button onClick={onClose} style={{ width: '100%', padding: '13px 0', borderRadius: 14, border: 'none', background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                    <button onClick={handleSave} disabled={saving} className="btn-gradient" style={{ borderRadius: 14 }}>{saving ? '...' : t('save')}</button>
+                    <button onClick={onClose} style={{ width: '100%', padding: '13px 0', borderRadius: 14, border: 'none', background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('cancel')}</button>
                 </div>
             </div>
         </div>
