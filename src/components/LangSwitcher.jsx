@@ -5,25 +5,35 @@ import { supabase } from '@/lib/supabaseClient'
 const ALL_LANGS = [
     { code: 'en', label: 'EN', settingKey: 'lang_en' },
     { code: 'zh', label: '中文', settingKey: 'lang_zh' },
-    { code: 'ru', label: 'RU', settingKey: null }, // always shown
+    { code: 'ru', label: 'RU', settingKey: 'lang_ru' },
 ]
 
 export default function LangSwitcher() {
     const { i18n } = useTranslation()
     const current = i18n.language
-    const [enabledLangs, setEnabledLangs] = useState(ALL_LANGS)
+    const [enabledLangs, setEnabledLangs] = useState([ALL_LANGS[0]]) // default: EN only until loaded
 
     useEffect(() => {
-        supabase.from('app_settings').select('lang_en,lang_zh').eq('id', 1).single()
+        supabase
+            .from('app_settings')
+            .select('lang_en, lang_zh, lang_ru')
+            .eq('id', 1)
+            .single()
             .then(({ data }) => {
-                if (!data) return
+                if (!data) {
+                    setEnabledLangs(ALL_LANGS)
+                    return
+                }
                 const filtered = ALL_LANGS.filter(l => {
-                    if (!l.settingKey) return true // ru always shown
-                    return data[l.settingKey] !== false
+                    // null → treat as true for EN/ZH (legacy), false for RU
+                    if (l.settingKey === 'lang_en') return data.lang_en !== false
+                    if (l.settingKey === 'lang_zh') return data.lang_zh !== false
+                    if (l.settingKey === 'lang_ru') return data.lang_ru === true
+                    return true
                 })
-                setEnabledLangs(filtered.length > 0 ? filtered : ALL_LANGS)
+                setEnabledLangs(filtered.length > 0 ? filtered : [ALL_LANGS[0]])
             })
-            .catch(() => { })
+            .catch(() => { setEnabledLangs(ALL_LANGS) })
     }, [])
 
     const set = (lang) => {

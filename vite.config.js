@@ -81,5 +81,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
     minify: 'esbuild',
     sourcemap: false,
+    // Remove console statements in production
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+    },
   },
 })

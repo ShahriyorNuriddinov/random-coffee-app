@@ -347,11 +347,17 @@ export const getSettings = async () => {
 }
 
 export const saveSettings = async (settings) => {
-    // Remove non-column fields
+    // Remove non-column fields, ensure booleans are never null
     const { id: _id, created_at: _c, ...rest } = settings
+    const clean = {
+        ...rest,
+        lang_en: rest.lang_en === true,
+        lang_zh: rest.lang_zh === true,
+        lang_ru: rest.lang_ru === true,
+    }
     const { error } = await supabase
         .from('app_settings')
-        .upsert({ id: 1, ...rest, updated_at: new Date().toISOString() })
+        .upsert({ id: 1, ...clean, updated_at: new Date().toISOString() })
     if (error) return { success: false, error: error.message }
     return { success: true }
 }

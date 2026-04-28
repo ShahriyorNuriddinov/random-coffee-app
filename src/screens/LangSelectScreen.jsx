@@ -1,10 +1,12 @@
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
+import { supabase } from '@/lib/supabaseClient'
 
-const LANGS = [
-    { code: 'en', label: 'English', flag: '🇬🇧', sub: 'English' },
-    { code: 'zh', label: '中文', flag: '🇨🇳', sub: 'Chinese' },
-    { code: 'ru', label: 'Русский', flag: '🇷🇺', sub: 'Russian' },
+const ALL_LANGS = [
+    { code: 'en', label: 'English', flag: '🇬🇧', sub: 'English', settingKey: 'lang_en' },
+    { code: 'zh', label: '中文', flag: '🇨🇳', sub: 'Chinese', settingKey: 'lang_zh' },
+    { code: 'ru', label: 'Русский', flag: '🇷🇺', sub: 'Russian', settingKey: 'lang_ru' },
 ]
 
 const LANG_KEY = 'rc_lang_selected'
@@ -12,6 +14,26 @@ const LANG_KEY = 'rc_lang_selected'
 export default function LangSelectScreen() {
     const { i18n } = useTranslation()
     const { setScreen } = useApp()
+    const [langs, setLangs] = useState(ALL_LANGS) // show all by default
+
+    useEffect(() => {
+        supabase
+            .from('app_settings')
+            .select('lang_en, lang_zh, lang_ru')
+            .eq('id', 1)
+            .single()
+            .then(({ data }) => {
+                if (!data) return
+                const filtered = ALL_LANGS.filter(l => {
+                    if (l.settingKey === 'lang_en') return data.lang_en !== false
+                    if (l.settingKey === 'lang_zh') return data.lang_zh !== false
+                    if (l.settingKey === 'lang_ru') return data.lang_ru === true
+                    return true
+                })
+                setLangs(filtered.length > 0 ? filtered : ALL_LANGS)
+            })
+            .catch(() => { }) // on error show all langs
+    }, [])
 
     const handleSelect = (code) => {
         i18n.changeLanguage(code)
@@ -44,7 +66,7 @@ export default function LangSelectScreen() {
 
             {/* Language options */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320 }}>
-                {LANGS.map(lang => (
+                {langs.map(lang => (
                     <button
                         key={lang.code}
                         onClick={() => handleSelect(lang.code)}
