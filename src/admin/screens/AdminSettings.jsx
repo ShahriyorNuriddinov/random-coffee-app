@@ -74,7 +74,7 @@ export default function AdminSettings() {
     const set = key => val => setSettings(s => ({ ...s, [key]: val }))
 
     return (
-        <div className="p-5 flex flex-col gap-5 pb-8">
+        <div className="px-4 py-4 flex flex-col gap-5 pb-8">
             {showAddStaff && (
                 <AddStaffSheet
                     onAdd={() => { setShowAddStaff(false); refetchStaff() }}

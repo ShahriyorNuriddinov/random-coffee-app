@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react'
 import { Toaster } from 'react-hot-toast'
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ErrorBoundary from '../components/ErrorBoundary'
 import AdminLogin from './screens/AdminLogin'
 
@@ -204,7 +204,7 @@ export default function AdminApp() {
                 <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
                 <AdminCtx.Provider value={{ lang, setLang, tab, setTab, logout: () => { clearSession(); setAuthed(false) }, setUnreadCount, setNewReportsCount }}>
                     <AdminHeader tab={tab} lang={lang} setLang={setLang} />
-                    <div className={`w-full max-w-[1200px] mx-auto pb-20 box-border ${tab === 'notifications' ? 'px-0' : 'px-4'}`}>
+                    <div className={`w-full max-w-[1200px] mx-auto pb-20 box-border`}>
                         <Suspense fallback={<AdminScreenFallback />}>
                             <Screen />
                         </Suspense>

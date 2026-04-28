@@ -67,7 +67,7 @@ export default function AdminMembers() {
     ]
 
     return (
-        <div className="p-5 flex flex-col gap-4">
+        <div className="px-4 py-4 flex flex-col gap-4">
             {selectedId && (
                 <MemberSheet
                     memberId={selectedId}

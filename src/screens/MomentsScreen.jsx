@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useApp } from '@/store/useAppStore'
@@ -48,18 +48,24 @@ export default function MomentsScreen() {
     const allMoments = data?.pages.flat() ?? []
 
     // Filter out moments from blocked users
-    const filteredMoments = allMoments.filter(m => !blockedUserIds.has(m.author?.id))
+    const filteredMoments = useMemo(
+        () => allMoments.filter(m => !blockedUserIds.has(m.author?.id)),
+        [allMoments, blockedUserIds]
+    )
 
     // ── Derived: display text by language ──────────────────────────────────────
     const lang = i18n.language
-    const displayMoments = filteredMoments.map(m => ({
+    const displayMoments = useMemo(() => filteredMoments.map(m => ({
         ...m,
         text: lang === 'zh' ? (m.text_zh || m.text_en || m.text)
             : lang === 'ru' ? (m.text_ru || m.text_en || m.text)
                 : (m.text_en || m.text),
-    }))
+    })), [filteredMoments, lang])
 
     // ── Load reactions ──────────────────────────────────────────────────────────
+    // Use a stable key (sorted IDs) so the effect re-runs when the actual
+    // moment set changes, not just when the count changes.
+    const filteredMomentKey = filteredMoments.map(m => m.id).join(',')
     useEffect(() => {
         if (!user?.id || !filteredMoments.length) return
         const ids = filteredMoments.map(m => m.id)
@@ -71,7 +77,7 @@ export default function MomentsScreen() {
                 }
                 setUserReactions(userR)
             })
-    }, [filteredMoments.length, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [filteredMomentKey, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Meeting history check ───────────────────────────────────────────────────
     useEffect(() => {
@@ -274,6 +280,7 @@ function LoadingSkeleton() {
 }
 
 function EmptyState({ onNew }) {
+    const { t } = useTranslation()
     return (
         <div style={{
             display: 'flex', flexDirection: 'column',
@@ -281,12 +288,12 @@ function EmptyState({ onNew }) {
             padding: 40, textAlign: 'center', marginTop: 80,
         }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>✨</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>No moments yet</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>{t('no_moments')}</div>
             <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, maxWidth: 260, marginBottom: 24 }}>
-                Share your coffee meeting experience and earn +1 credit!
+                {t('no_moments_hint')}
             </div>
             <button onClick={onNew} className="btn-gradient" style={{ borderRadius: 14, maxWidth: 200 }}>
-                Share a Moment
+                {t('share_moment')}
             </button>
         </div>
     )

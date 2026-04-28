@@ -4,13 +4,12 @@ import { supabase } from '@/lib/supabaseClient'
 export { supabase }
 
 // ─── DASHBOARD STATS ──────────────────────────────────────────────────────────
-// NOTE: profiles RLS allows reading all rows (public select policy added in admin SQL)
-// matches uses user1_id/user2_id (supabase_stage2.sql version)
+// Uses get_dashboard_stats() secure RPC for cached counts (admin-only).
+// Revenue, charts, and feedback are fetched separately with live queries.
 
 // incomeTab: 'today' | 'week' | 'month' | 'year'
 export const getDashboardStats = async (incomeTab = 'week') => {
     const now = new Date()
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
     const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
     const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
     const twoMonthsAgo = new Date(now - 60 * 24 * 60 * 60 * 1000)
@@ -25,22 +24,14 @@ export const getDashboardStats = async (incomeTab = 'week') => {
         return weekAgo
     })()
 
-    // ── Parallel queries — server-side filtering, no full table scans ──────────
+    // ── Parallel queries ───────────────────────────────────────────────────────
     const [
-        totalMembersRes, activeMembersRes, menRes, womenRes,
-        newTodayRes, newWeekRes, newMonthRes, newPrevMonthRes,
+        cachedStatsRes,                                          // secure RPC — admin only
         totalMatchesRes, successMatchesRes, cancelledMatchesRes,
         momentsCountRes, revenueRes, chartPaymentsRes,
         chartProfilesRes, feedbackRes,
     ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('subscription_status', 'active'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('gender', 'male'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('gender', 'female'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', monthAgo.toISOString()),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', twoMonthsAgo.toISOString()).lt('created_at', monthAgo.toISOString()),
+        supabase.rpc('get_dashboard_stats'),                     // replaces direct table access
         supabase.from('matches').select('*', { count: 'exact', head: true }),
         supabase.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
         supabase.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'cancelled'),
@@ -51,15 +42,19 @@ export const getDashboardStats = async (incomeTab = 'week') => {
         supabase.from('meeting_feedback').select('status, rating, fail_reason'),
     ])
 
-    const totalMembers = totalMembersRes.count || 0
-    const activeMembers = activeMembersRes.count || 0
-    const men = menRes.count || 0
-    const women = womenRes.count || 0
-    const newToday = newTodayRes.count || 0
-    const newThisWeek = newWeekRes.count || 0
-    const newThisMonth = newMonthRes.count || 0
-    const newPrevMonth = newPrevMonthRes.count || 0
-    const growthPct = newPrevMonth > 0 ? Math.round((newThisMonth - newPrevMonth) / newPrevMonth * 100) : 0
+    // Extract cached stats (single row from materialized view)
+    const cached = cachedStatsRes.data?.[0] || {}
+    const totalMembers = Number(cached.total_members ?? 0)
+    const activeMembers = Number(cached.active_members ?? 0)
+    const men = Number(cached.men_count ?? 0)
+    const women = Number(cached.women_count ?? 0)
+    const newToday = Number(cached.new_today ?? 0)
+    const newThisWeek = Number(cached.new_week ?? 0)
+    const newThisMonth = Number(cached.new_month ?? 0)
+    const newPrevMonth = Number(cached.new_prev_month ?? 0)
+    const growthPct = newPrevMonth > 0
+        ? Math.round((newThisMonth - newPrevMonth) / newPrevMonth * 100)
+        : 0
 
     const payments = revenueRes.data || []
     const totalRevenue = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
@@ -377,3 +372,4 @@ export const removeStaff = async (id) => {
     if (error) return { success: false, error: error.message }
     return { success: true }
 }
+

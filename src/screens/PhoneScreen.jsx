@@ -230,7 +230,7 @@ export default function PhoneScreen() {
 
             {modal && <LegalModal type={modal} onClose={() => setModal(null)} t={t} lang={lang} />}
 
-            <div className="flex-1 flex flex-col items-center justify-center px-5">
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
                 <div className="screen-content w-full">
                     <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 10, letterSpacing: -1, color: 'var(--app-text)' }}>
                         {t('auth_title')}

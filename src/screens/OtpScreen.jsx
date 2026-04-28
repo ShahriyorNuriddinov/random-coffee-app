@@ -110,7 +110,7 @@ export default function OtpScreen() {
                 <DarkToggle />
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center px-5">
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
                 <div className="screen-content w-full text-center">
                     <h1 className="text-[26px] font-extrabold mb-[10px] tracking-tight text-[var(--app-text)]">
                         {t('otp_title')}

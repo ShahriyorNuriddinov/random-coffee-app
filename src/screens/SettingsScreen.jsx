@@ -42,7 +42,7 @@ export default function SettingsScreen() {
                 <DarkToggle />
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center px-5">
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
                 <div className="screen-content w-full text-center">
                     <div className="text-[60px] mb-5">✉️</div>
 

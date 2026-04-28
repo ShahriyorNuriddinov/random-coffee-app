@@ -4,6 +4,8 @@ import './index.css'
 import './i18n'
 import { validateEnvironment } from './lib/envValidation'
 
+
+
 // Validate environment variables before app starts
 try {
   validateEnvironment()

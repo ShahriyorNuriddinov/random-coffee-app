@@ -8,21 +8,23 @@ import PersonCard from '@/components/people/PersonCard'
 import PersonProfileSheet from '@/components/people/PersonProfileSheet'
 import PeopleFilterModal from '@/components/people/PeopleFilterModal'
 import { getPeople, getLikedUserIds, getMatches, getBlockedUserIds, supabase } from '@/lib/supabaseClient'
-import { calcMatchScoresBatch } from '@/lib/aiUtils'
+import { calcMatchScoresBatch, calcMatchScore } from '@/lib/aiUtils'
 import { usePeopleLike } from '@/hooks/usePeopleLike'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import { Skeleton } from '@/components/ui/skeleton'
 
 async function fetchPeople(userId, profile) {
-    const [allPeople, liked, matches, blockedUsers] = await Promise.all([
+    const [allPeople, liked, matches, blockedUsers, likedMeRes] = await Promise.all([
         getPeople(userId),
         getLikedUserIds(userId),
         getMatches(userId),
         getBlockedUserIds(userId),
+        supabase.from('likes').select('from_user_id').eq('to_user_id', userId),
     ])
 
     const matchedIds = new Set(matches.map(m => m.partner?.id).filter(Boolean))
     const blockedIds = new Set(blockedUsers)
+    const likedMeIds = new Set((likedMeRes.data || []).map(r => r.from_user_id))
 
     const myProfile = {
         gives: profile.gives || '',
@@ -46,13 +48,15 @@ async function fetchPeople(userId, profile) {
     } catch { sessionStorage.removeItem(cacheKey) }
 
     if (!scores) {
-        try { scores = await calcMatchScoresBatch(myProfile, candidates) } catch { scores = [] }
+        try {
+            scores = await calcMatchScoresBatch(myProfile, candidates)
+        } catch {
+            // Fallback to keyword-based scoring so order is still meaningful
+            scores = candidates.map(p => calcMatchScore(myProfile, p))
+        }
         if (!Array.isArray(scores)) scores = []
         try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: scores, ts: Date.now() })) } catch { }
     }
-
-    const { data: likedMeData } = await supabase.from('likes').select('from_user_id').eq('to_user_id', userId)
-    const likedMeIds = new Set((likedMeData || []).map(r => r.from_user_id))
 
     const sorted = candidates
         .map((p, i) => ({ ...p, score: Array.isArray(scores) ? (scores[i] ?? 0) : 0 }))
@@ -205,12 +209,15 @@ function LoadingSkeleton() {
 }
 
 function EmptyState({ hasSearch }) {
+    const { t } = useTranslation()
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center', marginTop: 60 }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>{hasSearch ? '🔍' : '👥'}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>{hasSearch ? 'No results' : 'No people yet'}</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>
+                {hasSearch ? t('no_results') : t('no_people')}
+            </div>
             <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, maxWidth: 260 }}>
-                {hasSearch ? 'Try changing your search or filters.' : 'Be the first to complete your profile and appear here!'}
+                {hasSearch ? t('no_results_hint') : t('no_people_hint')}
             </div>
         </div>
     )

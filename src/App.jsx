@@ -59,7 +59,11 @@ function OfflineBanner() {
 }
 
 function Router() {
-  const { screen } = useApp()
+  const { screen, authResolved } = useApp()
+
+  // Block rendering until auth state is known — prevents flashing onboarding
+  // for authenticated users on slow connections.
+  if (!authResolved) return <ScreenFallback />
 
   const critical = {
     'lang-select': <LangSelectScreen />,

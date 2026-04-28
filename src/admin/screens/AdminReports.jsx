@@ -9,7 +9,7 @@ import toast from 'react-hot-toast'
 import MemberSheet from '../components/members/MemberSheet'
 
 export default function AdminReports() {
-    const { lang, setNewReportsCount } = useAdmin()
+    const { lang } = useAdmin()
     const [status, setStatus] = useState('pending')
     const [selectedMember, setSelectedMember] = useState(null)
     const queryClient = useQueryClient()
@@ -38,23 +38,13 @@ export default function AdminReports() {
     useEffect(() => {
         const channelName = 'admin_reports_realtime'
 
-        // Check if channel already exists
-        const existingChannels = supabase.getChannels()
-        if (existingChannels.some(ch => ch.topic === channelName)) {
-            console.log('[AdminReports] Channel already subscribed')
-            return
-        }
-
         const channel = supabase
             .channel(channelName)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'reports'
-            }, (payload) => {
-                console.log('[AdminReports] New report received:', payload)
-
-                // Show toast notification
+            }, () => {
                 toast.success('🚨 New report received!', {
                     duration: 5000,
                     style: {
@@ -66,8 +56,6 @@ export default function AdminReports() {
                         padding: '14px 24px',
                     },
                 })
-
-                // Invalidate queries to refresh data
                 queryClient.invalidateQueries({ queryKey: ['admin-reports'] })
             })
             .on('postgres_changes', {
@@ -75,7 +63,6 @@ export default function AdminReports() {
                 schema: 'public',
                 table: 'reports'
             }, () => {
-                // Refresh when report status changes
                 queryClient.invalidateQueries({ queryKey: ['admin-reports'] })
             })
             .subscribe()
@@ -208,7 +195,7 @@ export default function AdminReports() {
     ]
 
     return (
-        <div className="p-5 flex flex-col gap-4">
+        <div className="px-4 py-4 flex flex-col gap-4">
             <SectionLabel className="mb-0">
                 {lang === 'en' ? 'User Reports' : '用户举报'} ({reports.length})
             </SectionLabel>
@@ -249,8 +236,6 @@ export default function AdminReports() {
 }
 
 function ReportCard({ report, onUpdateStatus, onBlockUser, onViewProfile, lang }) {
-    // Debug: Log report to see the reason
-    console.log('[ReportCard] Report:', report)
 
     const reasonIcons = {
         'Spam': '📧',

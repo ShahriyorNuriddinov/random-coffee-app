@@ -68,16 +68,20 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
             let partner
             try {
                 if (myProfile.gives || myProfile.wants || searchFilters.prompt?.trim()) {
-                    // Load admin-configured AI prompt from DB
                     const systemPrompt = await getAiPrompt()
-                    const scores = await calcMatchScoresBatch(
+                    const rawScores = await calcMatchScoresBatch(
                         myProfile,
                         candidates,
                         searchFilters.prompt?.trim() || '',
                         systemPrompt
                     )
-                    const bestIdx = (scores?.length > 0) ? scores.indexOf(Math.max(...scores)) : 0
-                    partner = candidates[bestIdx] || candidates[0]
+                    const scores = Array.isArray(rawScores) && rawScores.length > 0 ? rawScores : null
+                    if (scores) {
+                        const bestIdx = scores.indexOf(Math.max(...scores))
+                        partner = candidates[bestIdx] || candidates[0]
+                    } else {
+                        partner = candidates[0]
+                    }
                 } else {
                     partner = candidates[0]
                 }
@@ -90,26 +94,28 @@ export function useMeetingBoost({ history, setHistory, searchFilters, hasActiveF
                 return
             }
 
-            // Create match (prevent duplicates)
+            // Create match atomically — deduct credit only for NEW matches
             const u1 = user.id < partner.id ? user.id : partner.id
             const u2 = user.id < partner.id ? partner.id : user.id
             const { data: existing } = await supabase.from('matches')
                 .select('id').eq('user1_id', u1).eq('user2_id', u2).maybeSingle()
 
-            // Only deduct credit if this is a NEW match
             if (!existing) {
-                await supabase.from('matches').insert({ user1_id: u1, user2_id: u2 })
-
-                // Atomic decrement to avoid race condition
-                const { error: creditError } = await supabase.rpc('increment_credits', {
+                // Use atomic RPC: inserts match AND decrements credit in one transaction
+                const { error: boostError } = await supabase.rpc('create_boost_match', {
                     p_user_id: user.id,
-                    p_credits: -1,
+                    p_partner_id: partner.id,
                 })
-                if (!creditError) {
-                    const newCredits = Math.max(0, (subscription.credits ?? 1) - 1)
-                    const newStatus = newCredits === 0 ? 'empty' : (subscription.status === 'trial' ? 'trial' : 'active')
-                    setSubscription(s => ({ ...s, credits: newCredits, status: newStatus }))
+                if (boostError) {
+                    if (boostError.message?.includes('insufficient_credits')) {
+                        onBuyCredits()
+                        return
+                    }
+                    throw boostError
                 }
+                const newCredits = Math.max(0, (subscription.credits ?? 1) - 1)
+                const newStatus = newCredits === 0 ? 'empty' : (subscription.status === 'trial' ? 'trial' : 'active')
+                setSubscription(s => ({ ...s, credits: newCredits, status: newStatus }))
             }
 
             const updated = await getMeetingHistory(user.id)

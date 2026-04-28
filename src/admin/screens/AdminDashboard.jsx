@@ -230,7 +230,7 @@ export default function AdminDashboard() {
     ]
 
     return (
-        <div className="p-5 flex flex-col gap-5 pb-8">
+        <div className="px-4 py-4 flex flex-col gap-5 pb-8">
 
             {showCancelModal && (
                 <CancelledModal onClose={() => setShowCancelModal(false)} t={t} cancelReasons={stats.cancelReasons} />

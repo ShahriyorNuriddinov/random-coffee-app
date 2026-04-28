@@ -46,14 +46,14 @@ create table if not exists public.profiles (
 
 -- ─── AUTO referral_code ──────────────────────────────────────────
 create or replace function generate_referral_code()
-returns trigger language plpgsql as $
+returns trigger language plpgsql as $trig1$
 begin
   if new.referral_code is null then
     new.referral_code := upper(substring(md5(new.id || now()::text) from 1 for 8));
   end if;
   return new;
 end;
-$;
+$trig1$;
 
 drop trigger if exists trg_referral_code on public.profiles;
 create trigger trg_referral_code
@@ -62,12 +62,12 @@ create trigger trg_referral_code
 
 -- ─── AUTO updated_at ─────────────────────────────────────────────
 create or replace function update_updated_at()
-returns trigger language plpgsql as $
+returns trigger language plpgsql as $trig2$
 begin
   new.updated_at := now();
   return new;
 end;
-$;
+$trig2$;
 
 drop trigger if exists trg_updated_at on public.profiles;
 create trigger trg_updated_at

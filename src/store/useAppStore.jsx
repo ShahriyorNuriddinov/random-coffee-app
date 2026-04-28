@@ -84,8 +84,12 @@ export function AppProvider({ children }) {
         return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline) }
     }, [])
 
+    // authResolved prevents the 8s fallback from flashing onboarding for
+    // authenticated users on slow connections.
+    const [authResolved, setAuthResolved] = useState(!!sbUser)
+
     const restoreFromUser = useCallback(async (authUser) => {
-        if (!authUser) return
+        if (!authUser) { setAuthResolved(true); return }
         const uid = authUser.id
         const email = authUser.email
         try {
@@ -112,6 +116,8 @@ export function AppProvider({ children }) {
             }
         } catch (err) {
             console.error('[restoreFromUser]', err)
+        } finally {
+            setAuthResolved(true)
         }
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -120,7 +126,8 @@ export function AppProvider({ children }) {
             async (event, session) => {
                 if (event === 'INITIAL_SESSION') {
                     // Background refresh — screen already shown from token
-                    if (session?.user) restoreFromUser(session.user).catch(() => { })
+                    if (session?.user) restoreFromUser(session.user).catch(() => { setAuthResolved(true) })
+                    else setAuthResolved(true)
                 } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     if (session?.user && !userRef.current) {
                         await restoreFromUser(session.user)
@@ -130,11 +137,13 @@ export function AppProvider({ children }) {
                     userRef.current = null
                     setProfile(EMPTY_PROFILE)
                     setScreen('onboarding')
+                    setAuthResolved(true)
                 }
             }
         )
         const fallback = setTimeout(() => {
-            // If auth hasn't resolved after 8s and no user, go to onboarding
+            // Last-resort: if auth hasn't resolved after 8s, unblock the UI
+            setAuthResolved(true)
             if (!userRef.current) setScreen('onboarding')
         }, 8000)
         return () => { authSub.unsubscribe(); clearTimeout(fallback) }
@@ -265,7 +274,7 @@ export function AppProvider({ children }) {
             notifNewMatches, setNotifNewMatches,
             notifImportantNews, setNotifImportantNews,
             profileWelcomeSeen, setProfileWelcomeSeen,
-            isOnline,
+            isOnline, authResolved,
         }}>
             {children}
         </AppContext.Provider>

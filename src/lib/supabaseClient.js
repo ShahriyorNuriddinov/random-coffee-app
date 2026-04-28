@@ -138,22 +138,19 @@ export const getReferralCode = async (userId) => {
 }
 
 export const applyReferralCode = async (referralCode, newUserId) => {
-    const { data: referrer, error } = await supabase.from('profiles').select('id, coffee_credits').eq('referral_code', referralCode.toUpperCase()).single()
+    const { data: referrer, error } = await supabase.from('profiles').select('id').eq('referral_code', referralCode.toUpperCase()).single()
     if (error || !referrer) return { success: false, error: 'Invalid referral code' }
     if (referrer.id === newUserId) return { success: false, error: 'Cannot refer yourself' }
     const { error: refError } = await supabase.from('referrals').insert({ referrer_id: referrer.id, referred_id: newUserId })
     if (refError) return { success: false, error: refError.message }
     await supabase.from('profiles').update({ referred_by: referrer.id }).eq('id', newUserId)
 
-    // Give referral reward to referrer from app_settings
+    // Give referral reward to referrer from app_settings — use atomic increment to avoid race condition
     const { data: cfg } = await supabase.from('app_settings').select('reward_referral').eq('id', 1).single()
     const reward = Number(cfg?.reward_referral ?? 1)
     if (reward > 0) {
-        await supabase.from('profiles').update({
-            coffee_credits: (referrer.coffee_credits ?? 0) + reward,
-            subscription_status: 'active',
-            updated_at: new Date().toISOString(),
-        }).eq('id', referrer.id)
+        // Atomic increment prevents read-modify-write race condition
+        await supabase.rpc('increment_credits', { p_user_id: referrer.id, p_credits: reward })
     }
     return { success: true }
 }
@@ -293,16 +290,13 @@ export const getLikedUserIds = async (userId) => {
     return (data || []).map(r => r.to_user_id)
 }
 
-export const getBlockedUserIds = async (userId) => {
+export const getBlockedUserIds = async (_userId) => {
+    // _userId kept for API compatibility but RLS enforces auth.uid() server-side
     try {
-        // Get the current user's UUID from auth
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return []
-
         const { data, error } = await supabase
             .from('blocked_users')
             .select('blocked_id')
-            .eq('blocker_id', user.id)
+        // RLS policy: blocker_id = auth.uid() — no extra auth call needed
 
         if (error) {
             console.error('[getBlockedUserIds] error:', error)
@@ -358,21 +352,11 @@ export const getMoments = async (limit = 20, userId = null, offset = 0) => {
     const moments = data || []
     if (moments.length === 0) return moments
 
-    const momentIds = moments.map(m => m.id)
-    const { data: allReactions } = await supabase
-        .from('moment_likes')
-        .select('moment_id, emoji')
-        .in('moment_id', momentIds)
-
-    const reactionMap = {}
-    if (allReactions) {
-        for (const r of allReactions) {
-            if (!reactionMap[r.moment_id]) reactionMap[r.moment_id] = {}
-            reactionMap[r.moment_id][r.emoji] = (reactionMap[r.moment_id][r.emoji] || 0) + 1
-        }
-    }
+    // reactions aggregation removed — use likes_count column for display counts.
+    // Per-user reactions are fetched separately in MomentsScreen to avoid
+    // fetching potentially thousands of rows for popular posts.
     for (const m of moments) {
-        m.reactions = reactionMap[m.id] || {}
+        m.reactions = {}
     }
     return moments
 }
@@ -410,10 +394,13 @@ export const postMoment = async (userId, text, imageUrl = null, text_en = null, 
 
 export const toggleMomentLike = async (userId, momentId, currentlyLiked) => {
     if (currentlyLiked) {
-        await supabase.from('moment_likes').delete().eq('user_id', userId).eq('moment_id', momentId).eq('emoji', '❤️')
+        const { error } = await supabase.from('moment_likes').delete().eq('user_id', userId).eq('moment_id', momentId).eq('emoji', '❤️')
+        if (error) return { success: false, error: error.message }
     } else {
-        await supabase.from('moment_likes').insert({ user_id: userId, moment_id: momentId, emoji: '❤️' })
+        const { error } = await supabase.from('moment_likes').insert({ user_id: userId, moment_id: momentId, emoji: '❤️' })
+        if (error && error.code !== '23505') return { success: false, error: error.message }
     }
+    return { success: true }
 }
 
 export const getUserMomentReaction = async (userId, momentId) => {
@@ -500,22 +487,17 @@ export const cancelMeeting = async (matchId) => {
 }
 
 // ─── BLOCK / REPORT USER ─────────────────────────────────────────────────────
-export const blockUser = async (blockerId, blockedId) => {
+// Note: _blockerId / _reporterId params kept for API compatibility but are unused —
+// RLS enforces auth.uid() server-side, so the caller cannot spoof the actor.
+export const blockUser = async (_blockerId, blockedId) => {
     try {
-        // Get the current user's UUID from auth
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return { success: false, error: 'Not authenticated' }
-
         const { error } = await supabase.from('blocked_users').insert({
-            blocker_id: user.id, // Use auth UUID
+            blocker_id: (await supabase.auth.getUser()).data.user?.id,
             blocked_id: blockedId,
         })
 
         if (error) {
-            // Check for duplicate block
-            if (error.code === '23505') {
-                return { success: false, error: 'unique_block' }
-            }
+            if (error.code === '23505') return { success: false, error: 'unique_block' }
             return { success: false, error: error.message }
         }
         return { success: true }
@@ -524,24 +506,17 @@ export const blockUser = async (blockerId, blockedId) => {
     }
 }
 
-export const reportUser = async (reporterId, reportedId, reason = '') => {
+export const reportUser = async (_reporterId, reportedId, reason = '') => {
     try {
-        // Get the current user's UUID from auth
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return { success: false, error: 'Not authenticated' }
-
         const { error } = await supabase.from('reports').insert({
-            reporter_id: user.id, // Use auth UUID
+            reporter_id: (await supabase.auth.getUser()).data.user?.id,
             reported_id: reportedId,
             reason,
             created_at: new Date().toISOString(),
         })
 
         if (error) {
-            // Check for duplicate report
-            if (error.code === '23505') {
-                return { success: false, error: 'unique_report' }
-            }
+            if (error.code === '23505') return { success: false, error: 'unique_report' }
             return { success: false, error: error.message }
         }
         return { success: true }
@@ -551,8 +526,11 @@ export const reportUser = async (reporterId, reportedId, reason = '') => {
 }
 
 // ─── DELETE ACCOUNT ───────────────────────────────────────────────────────────
-export const deleteAccount = async (userId) => {
+export const deleteAccount = async (_userId) => {
+    // _userId kept for API compatibility; auth.uid() is used server-side via RLS
     // Soft delete — mark as deleted, anonymize data
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Not authenticated' }
     const { error } = await supabase.from('profiles').update({
         name: 'Deleted User',
         about: '',
@@ -565,7 +543,7 @@ export const deleteAccount = async (userId) => {
         whatsapp: null,
         deleted_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-    }).eq('id', userId)
+    }).eq('id', user.id)
     if (error) return { success: false, error: error.message }
     await supabase.auth.signOut()
     return { success: true }

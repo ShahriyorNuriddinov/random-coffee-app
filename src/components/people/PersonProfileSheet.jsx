@@ -276,7 +276,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                                 <SwiperSlide key={i}>
                                     <img
                                         src={photo}
-                                        alt=""
+                                        alt={`Photo ${i + 1} of ${person.name}`}
                                         style={{
                                             width: '100%',
                                             height: 320,
@@ -301,7 +301,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                         background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)',
                         pointerEvents: 'none', zIndex: 10,
                     }} />
-                    <button onClick={onClose} style={{
+                    <button onClick={onClose} aria-label="Close profile" style={{
                         position: 'absolute', top: 16, right: 16, zIndex: 20,
                         width: 34, height: 34, borderRadius: '50%',
                         background: 'rgba(0,0,0,0.45)', border: 'none',
@@ -312,7 +312,11 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                     {/* Report/Block menu */}
                     <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 20 }}>
                         <button
+                            aria-haspopup="menu"
+                            aria-expanded={showReportMenu}
+                            aria-label="Report or block user"
                             onClick={() => setShowReportMenu(v => !v)}
+                            onKeyDown={e => e.key === 'Escape' && setShowReportMenu(false)}
                             style={{
                                 width: 34, height: 34, borderRadius: '50%',
                                 background: 'rgba(0,0,0,0.5)',
@@ -336,16 +340,20 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                                     }}
                                 />
                                 {/* Menu */}
-                                <div style={{
-                                    position: 'absolute', top: 42, left: 0, zIndex: 30,
-                                    background: 'var(--app-card)',
-                                    borderRadius: 16,
-                                    boxShadow: '0 12px 32px rgba(0,0,0,0.2)',
-                                    border: '0.5px solid var(--app-border)',
-                                    overflow: 'hidden',
-                                    minWidth: 200,
-                                    animation: 'menuSlideIn 0.2s cubic-bezier(0.4,0,0.2,1)',
-                                }}>
+                                <div
+                                    role="menu"
+                                    aria-label="Report or block options"
+                                    onKeyDown={e => e.key === 'Escape' && setShowReportMenu(false)}
+                                    style={{
+                                        position: 'absolute', top: 42, left: 0, zIndex: 30,
+                                        background: 'var(--app-card)',
+                                        borderRadius: 16,
+                                        boxShadow: '0 12px 32px rgba(0,0,0,0.2)',
+                                        border: '0.5px solid var(--app-border)',
+                                        overflow: 'hidden',
+                                        minWidth: 200,
+                                        animation: 'menuSlideIn 0.2s cubic-bezier(0.4,0,0.2,1)',
+                                    }}>
                                     <div style={{
                                         padding: '10px 16px',
                                         fontSize: 11,
@@ -361,7 +369,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                                         { reason: 'Fake profile', icon: '🎭', color: '#ff9500' },
                                         { reason: 'Harassment', icon: '🚨', color: '#ff3b30' },
                                     ].map(({ reason, icon, color }) => (
-                                        <button key={reason} onClick={() => handleReport(reason)} style={{
+                                        <button key={reason} role="menuitem" onClick={() => handleReport(reason)} style={{
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: 10,
@@ -386,6 +394,7 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                                         </button>
                                     ))}
                                     <button
+                                        role="menuitem"
                                         onClick={() => {
                                             setShowReportMenu(false)
                                             setShowBlockConfirm(true)
@@ -647,7 +656,10 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
 
 function SheetSection({ label, text, borderColor }) {
     const [expanded, setExpanded] = useState(false)
-    const isLong = text.length > 150
+    // Use a conservative threshold: ~40 chars per line × 3 lines = 120 chars.
+    // Chinese/wide characters are visually wider so we use a lower threshold.
+    const hasWideChars = /[\u3000-\u9fff\uff00-\uffef]/.test(text)
+    const isLong = hasWideChars ? text.length > 60 : text.length > 150
     return (
         <div style={{ marginBottom: 18, paddingLeft: 12, borderLeft: `2px solid ${borderColor}` }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--app-hint)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>

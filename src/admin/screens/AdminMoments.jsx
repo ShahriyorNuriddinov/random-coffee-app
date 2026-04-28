@@ -207,7 +207,7 @@ export default function AdminMoments() {
     ]
 
     return (
-        <div className="p-5 flex flex-col gap-4">
+        <div className="px-4 py-4 flex flex-col gap-4">
             {rejectTarget && (
                 <RejectSheet
                     onConfirm={handleReject}

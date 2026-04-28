@@ -2,7 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
-Disallow: /*.json$
 
 # Sitemap
 Sitemap: https://random-coffee-app.vercel.app/sitemap.xml
