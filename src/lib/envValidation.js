@@ -6,11 +6,10 @@
 const REQUIRED_ENV_VARS = [
     'VITE_SUPABASE_URL',
     'VITE_SUPABASE_ANON_KEY',
+    'VITE_GROQ_API_KEY',  // Required for AI features
 ]
 
 const OPTIONAL_ENV_VARS = [
-    'VITE_GROQ_API_KEY',
-    'VITE_OPENAI_API_KEY',
     'VITE_AIRWALLEX_ENV',
 ]
 

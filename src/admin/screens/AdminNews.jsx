@@ -132,19 +132,25 @@ function NewsEditor({ item, onSave, onClose, lang }) {
                 </button>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
-                <ImageUploader imageUrl={imageUrl} setImageUrl={setImageUrl} lang={lang} />
+            {/* Body - Centered with max-width like other admin screens */}
+            <div className="flex-1 overflow-y-auto">
+                <div className="w-full max-w-[1200px] mx-auto p-5 flex flex-col gap-5">
+                    <ImageUploader imageUrl={imageUrl} setImageUrl={setImageUrl} lang={lang} />
 
-                <div>
-                    <SectionLabel>{t.contentEn}</SectionLabel>
-                    <textarea
-                        value={text}
-                        onChange={e => setText(e.target.value)}
-                        rows={5}
-                        placeholder="Write post content..."
-                        className="w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-[14px] outline-none resize-none"
-                    />
+                    <div>
+                        <SectionLabel>{t.contentEn}</SectionLabel>
+                        <textarea
+                            value={text}
+                            onChange={e => setText(e.target.value)}
+                            rows={8}
+                            placeholder={lang === 'zh' ? '输入帖子内容...' : lang === 'ru' ? 'Введите содержание поста...' : 'Write post content...'}
+                            className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-[15px] outline-none resize-none focus:border-[#007aff] focus:ring-2 focus:ring-[#007aff]/20 transition-all"
+                            style={{ minHeight: '200px' }}
+                        />
+                        <p className="text-[12px] text-gray-400 mt-2">
+                            {lang === 'zh' ? '支持中文、英文和俄文。保存后会自动翻译。' : lang === 'ru' ? 'Поддерживается китайский, английский и русский. Автоматический перевод после сохранения.' : 'Supports Chinese, English, and Russian. Auto-translates after saving.'}
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

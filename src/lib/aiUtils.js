@@ -1,19 +1,21 @@
 /**
- * AI Utilities — Groq (primary) + OpenAI (fallback)
+ * AI Utilities — Groq ONLY (fast, free, no limits)
  */
 
 // ⚠️ SECURITY WARNING: API keys should NEVER be in client-side code!
 // These keys are exposed in the browser and can be stolen.
 // TODO: Move all AI calls to Supabase Edge Functions
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY
-const OPENAI_KEY = import.meta.env.VITE_OPENAI_API_KEY
 
 // Temporary client-side usage - MUST migrate to Edge Functions before production!
 
 // ─── Groq API call ────────────────────────────────────────────────────────────
-// WARNING: No rate limiting implemented! Add throttling in production.
-async function callGroq(prompt, maxTokens = 300) {
-    if (!GROQ_KEY) return null
+async function callGroq(prompt, maxTokens = 500) {
+    if (!GROQ_KEY) {
+        console.error('[Groq] API key not found')
+        return null
+    }
+
     try {
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
@@ -25,56 +27,40 @@ async function callGroq(prompt, maxTokens = 300) {
                 model: 'llama-3.1-8b-instant',
                 messages: [{ role: 'user', content: prompt }],
                 max_tokens: maxTokens,
-                temperature: 0.2,
+                temperature: 0.3,
             }),
         })
+
         if (!res.ok) {
-            console.error('[Groq] API error:', res.status, res.statusText)
+            const errorText = await res.text()
+            console.error('[Groq] API error:', res.status, res.statusText, errorText)
             return null
         }
+
         const json = await res.json()
-        return json.choices?.[0]?.message?.content?.trim() || null
+        const content = json.choices?.[0]?.message?.content?.trim()
+
+        if (!content) {
+            console.error('[Groq] Empty response')
+            return null
+        }
+
+        return content
     } catch (e) {
         console.error('[Groq] Network error:', e)
         return null
     }
 }
 
-
-
-async function callOpenAI(prompt, maxTokens = 200) {
-    if (!OPENAI_KEY || OPENAI_KEY === 'sk-your-openai-key-here') return null
-    try {
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_KEY}`,
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'user', content: prompt }],
-                max_tokens: maxTokens,
-                temperature: 0.2,
-            }),
-        })
-        const json = await res.json()
-        return json.choices?.[0]?.message?.content?.trim() || null
-    } catch (e) {
-        return null
-    }
-}
-
-async function callAI(prompt, maxTokens = 300) {
-    const groqResult = await callGroq(prompt, maxTokens)
-    if (groqResult) return groqResult
-    return await callOpenAI(prompt, maxTokens)
+// Main AI function - uses Groq only
+async function callAI(prompt, maxTokens = 500) {
+    return await callGroq(prompt, maxTokens)
 }
 
 // ─── Tag extraction ───────────────────────────────────────────────────────────
 export async function extractTags(about = '', gives = '', wants = '') {
     const prompt = `Extract keywords from this networking profile for smart matching.
-Return ONLY a JSON object, no explanation:
+Return ONLY a valid JSON object with no markdown, no explanation, no code blocks:
 {
   "gives_keywords": ["3-6 phrases: what this person can OFFER"],
   "wants_keywords": ["3-6 phrases: what this person WANTS to get"],
@@ -83,76 +69,119 @@ Return ONLY a JSON object, no explanation:
 
 About: ${about}
 Gives: ${gives}
-Wants: ${wants}`
+Wants: ${wants}
 
-    const result = await callAI(prompt, 250)
-    if (!result) return extractTagsFallback(about, gives, wants)
+IMPORTANT: Return ONLY the JSON object, nothing else.`
+
+    const result = await callAI(prompt, 300)
+    if (!result) {
+        console.warn('[extractTags] No result from AI, using fallback')
+        return extractTagsFallback(about, gives, wants)
+    }
 
     try {
-        const match = result.match(/\{[\s\S]*\}/s)
-        if (!match) return extractTagsFallback(about, gives, wants)
+        // Remove markdown code blocks if present
+        let cleaned = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+
+        // Extract JSON object
+        const match = cleaned.match(/\{[\s\S]*\}/s)
+        if (!match) {
+            console.warn('[extractTags] No JSON found in response:', result)
+            return extractTagsFallback(about, gives, wants)
+        }
+
         const parsed = JSON.parse(match[0])
-        return [
-            ...(parsed.gives_keywords || []),
-            ...(parsed.wants_keywords || []),
-            ...(parsed.interests || []),
+        const tags = [
+            ...(Array.isArray(parsed.gives_keywords) ? parsed.gives_keywords : []),
+            ...(Array.isArray(parsed.wants_keywords) ? parsed.wants_keywords : []),
+            ...(Array.isArray(parsed.interests) ? parsed.interests : []),
         ]
-    } catch {
+
+        return tags.length > 0 ? tags : extractTagsFallback(about, gives, wants)
+    } catch (e) {
+        console.error('[extractTags] Parse error:', e, 'Response:', result)
         return extractTagsFallback(about, gives, wants)
     }
 }
 
 // ─── Translation ──────────────────────────────────────────────────────────────
 export async function translateText(text, targetLang = 'zh') {
+    if (!text || text.trim().length === 0) return null
+
     const instructions = {
-        zh: 'Translate the following text to Simplified Chinese. Return ONLY the translation, no explanation, no prefix.',
-        en: 'Translate the following text to English. Return ONLY the translation, no explanation, no prefix.',
-        ru: 'Translate the following text to Russian. Return ONLY the translation, no explanation, no prefix.',
+        zh: 'Translate the following text to Simplified Chinese. Return ONLY the translated text, no explanation, no labels, no quotes.',
+        en: 'Translate the following text to English. Return ONLY the translated text, no explanation, no labels, no quotes.',
+        ru: 'Translate the following text to Russian. Return ONLY the translated text, no explanation, no labels, no quotes.',
     }
+
     const instruction = instructions[targetLang] || instructions.en
-    const prompt = `${instruction}\n\n${text}`
-    const result = await callAI(prompt, 300)
-    if (!result) return null
-    return result
-        .replace(/^(Translation|Translate|翻译|译文|Перевод)\s*:\s*/i, '')
-        .replace(/^["']|["']$/g, '')
+    const prompt = `${instruction}\n\nText to translate:\n${text}`
+
+    const result = await callAI(prompt, 400)
+    if (!result) {
+        console.warn('[translateText] No result from AI')
+        return null
+    }
+
+    // Clean up common prefixes and quotes
+    let cleaned = result
+        .replace(/^(Translation|Translate|翻译|译文|Перевод|Translated text|Here is the translation)\s*:\s*/i, '')
+        .replace(/^["'`]|["'`]$/g, '')
         .trim()
+
+    return cleaned.length > 0 ? cleaned : null
 }
 
-// Translate multiple fields in ONE request to avoid rate limits
+// Translate multiple fields in ONE request
 export async function translateProfile(profile, targetLang = 'zh') {
     const { about, gives, wants } = profile
     if (!about && !gives && !wants) return null
 
     const instructions = {
-        zh: 'Translate each section to Simplified Chinese. Return ONLY a JSON object.',
-        en: 'Translate each section to English. Return ONLY a JSON object.',
-        ru: 'Translate each section to Russian. Return ONLY a JSON object.',
+        zh: 'Translate each field to Simplified Chinese.',
+        en: 'Translate each field to English.',
+        ru: 'Translate each field to Russian.',
     }
     const instruction = instructions[targetLang] || instructions.en
 
     const prompt = `${instruction}
 
-Input:
+Input JSON:
 {"about": ${JSON.stringify(about || '')}, "gives": ${JSON.stringify(gives || '')}, "wants": ${JSON.stringify(wants || '')}}
 
-Return ONLY valid JSON with same keys, translated values.`
+Return ONLY a valid JSON object with the same keys but translated values. No markdown, no code blocks, no explanation.`
 
-    const result = await callAI(prompt, 400)
-    if (!result) return null
+    const result = await callAI(prompt, 500)
+    if (!result) {
+        console.warn('[translateProfile] No result from AI')
+        return null
+    }
 
     try {
-        const match = result.match(/\{[\s\S]*\}/)
-        if (!match) return null
+        // Remove markdown code blocks if present
+        let cleaned = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+
+        const match = cleaned.match(/\{[\s\S]*\}/)
+        if (!match) {
+            console.warn('[translateProfile] No JSON found in response:', result)
+            return null
+        }
+
         const parsed = JSON.parse(match[0])
+
         // Validate: translated text should differ from original
-        if (parsed.about === about && parsed.gives === gives) return null
+        if (parsed.about === about && parsed.gives === gives && parsed.wants === wants) {
+            console.warn('[translateProfile] Translation same as original')
+            return null
+        }
+
         return {
             about: parsed.about || null,
             gives: parsed.gives || null,
             wants: parsed.wants || null,
         }
-    } catch {
+    } catch (e) {
+        console.error('[translateProfile] Parse error:', e, 'Response:', result)
         return null
     }
 }
@@ -176,7 +205,6 @@ function extractTagsFallback(about, gives, wants) {
 // ─── BATCH AI Match Scoring — ONE call for ALL candidates ────────────────────
 /**
  * Score all candidates against myProfile in a SINGLE AI request.
- * Avoids rate limits by batching everything into one prompt.
  *
  * @param {object} myProfile - { gives, wants, about }
  * @param {object[]} candidates - array of { gives, wants, about }
@@ -191,61 +219,75 @@ export async function calcMatchScoresBatch(myProfile = {}, candidates = [], cust
 
     // If my profile is empty — use keyword fallback for all
     if (!myGives && !myWants && !customPrompt) {
+        console.warn('[calcMatchScoresBatch] Empty profile, using fallback')
         return candidates.map(p => calcMatchScore(myProfile, p))
     }
 
-    const candidateList = candidates.map((p, i) =>
-        `${i + 1}. About: "${(p.about || 'n/a').slice(0, 100)}" | Offers: "${(p.gives || 'n/a').slice(0, 120)}" | Needs: "${(p.wants || 'n/a').slice(0, 120)}"`
+    const candidateList = candidates.slice(0, 20).map((p, i) =>
+        `${i + 1}. About: "${(p.about || 'n/a').slice(0, 100)}" | Offers: "${(p.gives || 'n/a').slice(0, 100)}" | Needs: "${(p.wants || 'n/a').slice(0, 100)}"`
     ).join('\n')
 
     // Use admin-configured system prompt if available, otherwise use default
     const basePrompt = systemPrompt?.trim()
         ? systemPrompt.trim()
-        : `SYSTEM: You are a smart matching engine for professional coffee meetings.
-Your task is to score how well each candidate matches Person A for a 1-on-1 meeting.
+        : `You are a smart matching engine for professional coffee meetings.
+Score how well each candidate matches Person A for a 1-on-1 meeting.
 
 RULES:
-- Do NOT give random scores. Base score ONLY on real overlap and mutual value exchange.
-- If there is low synergy, do not force a high score.
-- Focus on "mutual benefit": what A gives B AND what B gives A.
-- Be realistic, not optimistic.
+- Base scores on real overlap and mutual value exchange
+- Focus on mutual benefit: what A gives B AND what B gives A
+- Be realistic, not optimistic
 
 SCORING (0-100):
-- 80-100: Strong mutual benefit — A gives what B needs AND B gives what A needs
-- 50-79: One side benefits more, but still a useful meeting
-- 20-49: Weak match, some common ground
-- 0-19: Poor match, no clear mutual value`
+- 80-100: Strong mutual benefit
+- 50-79: One side benefits more
+- 20-49: Weak match
+- 0-19: Poor match`
 
-    const prompt = `${basePrompt}${customPrompt ? `\n\nSpecial request from Person A: "${customPrompt.slice(0, 200)}" — heavily prioritize this.` : ''}
+    const prompt = `${basePrompt}${customPrompt ? `\n\nSpecial request: "${customPrompt.slice(0, 200)}"` : ''}
 
 Person A:
 - About: ${(myAbout || 'n/a').slice(0, 150)}
-- Can Offer: ${(myGives || 'n/a').slice(0, 150)}
-- Looking For: ${(myWants || 'n/a').slice(0, 150)}
+- Offers: ${(myGives || 'n/a').slice(0, 150)}
+- Needs: ${(myWants || 'n/a').slice(0, 150)}
 
 Candidates:
 ${candidateList}
 
-Return ONLY a JSON array of integers in the same order as candidates.
-Example for 4 candidates: [85, 42, 17, 63]`
+Return ONLY a JSON array of integers (0-100) in the same order.
+Example: [85, 42, 17, 63]
+No explanation, no markdown, just the array.`
 
-    const maxTokens = Math.min(50 + candidates.length * 5, 200)
+    const maxTokens = Math.min(100 + candidates.length * 3, 300)
     const result = await callAI(prompt, maxTokens)
 
     if (!result) {
+        console.warn('[calcMatchScoresBatch] No result from AI, using fallback')
         return candidates.map(p => calcMatchScore(myProfile, p))
     }
 
     try {
-        const match = result.match(/\[[\d,\s]+\]/)
+        // Remove markdown if present
+        let cleaned = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+
+        const match = cleaned.match(/\[[\d,\s]+\]/)
         if (!match) {
+            console.warn('[calcMatchScoresBatch] No array found in response:', result)
             return candidates.map(p => calcMatchScore(myProfile, p))
         }
+
         const scores = JSON.parse(match[0])
+
+        if (!Array.isArray(scores) || scores.length === 0) {
+            console.warn('[calcMatchScoresBatch] Invalid scores array')
+            return candidates.map(p => calcMatchScore(myProfile, p))
+        }
+
         return candidates.map((_, i) =>
             Math.min(100, Math.max(0, Math.round(Number(scores[i]) || 0)))
         )
     } catch (e) {
+        console.error('[calcMatchScoresBatch] Parse error:', e, 'Response:', result)
         return candidates.map(p => calcMatchScore(myProfile, p))
     }
 }
@@ -277,65 +319,73 @@ export function calcMatchScore(myProfile = {}, theirProfile = {}) {
  * Generate a short explanation of why two people are a good match.
  * @param {object} myProfile
  * @param {object} theirProfile
- * @param {string} lang - 'en' | 'zh'
+ * @param {string} lang - 'en' | 'zh' | 'ru'
  */
 export async function explainMatch(myProfile = {}, theirProfile = {}, lang = 'en') {
     const langInstruction = lang === 'zh'
-        ? 'IMPORTANT: Write the entire response in Simplified Chinese only. Do not use any English.'
+        ? 'Write the entire response in Simplified Chinese only.'
         : lang === 'ru'
-            ? 'IMPORTANT: Write the entire response in Russian only. Do not use any English.'
+            ? 'Write the entire response in Russian only.'
             : 'Write the response in English.'
 
-    const prompt = `SYSTEM: You are a smart matching engine for professional coffee meetings.
-Analyze these two people and explain why their meeting would be valuable.
+    const prompt = `You are a smart matching engine for professional coffee meetings.
+Explain why these two people would have a valuable meeting.
 ${langInstruction}
 
 Person A:
 - About: ${(myProfile.about || 'n/a').slice(0, 150)}
-- Can Offer: ${(myProfile.gives || 'n/a').slice(0, 150)}
-- Looking For: ${(myProfile.wants || 'n/a').slice(0, 150)}
+- Offers: ${(myProfile.gives || 'n/a').slice(0, 150)}
+- Needs: ${(myProfile.wants || 'n/a').slice(0, 150)}
 
 Person B:
 - About: ${(theirProfile.about || 'n/a').slice(0, 150)}
-- Can Offer: ${(theirProfile.gives || 'n/a').slice(0, 150)}
-- Looking For: ${(theirProfile.wants || 'n/a').slice(0, 150)}
+- Offers: ${(theirProfile.gives || 'n/a').slice(0, 150)}
+- Needs: ${(theirProfile.wants || 'n/a').slice(0, 150)}
 
-Write 1-2 sentences explaining the mutual value exchange. Be specific and realistic.
-Focus on: what A gives B AND what B gives A.
-Return ONLY the explanation, no labels or formatting.`
+Write 1-2 sentences explaining the mutual value. Be specific.
+Return ONLY the explanation text, no labels.`
 
-    return await callAI(prompt, 180)
+    const result = await callAI(prompt, 200)
+    return result || null
 }
 
 // ─── Meeting Conversation Starters ───────────────────────────────────────────
 /**
- * Generate 3-4 conversation starter questions for a meeting.
+ * Generate 3 conversation starter questions for a meeting.
  * @param {object} myProfile
  * @param {object} theirProfile
- * @param {string} lang - 'en' | 'zh'
+ * @param {string} lang - 'en' | 'zh' | 'ru'
  */
 export async function generateMeetingQuestions(myProfile = {}, theirProfile = {}, lang = 'en') {
     const langInstruction = lang === 'zh'
-        ? 'IMPORTANT: You MUST write all questions in Simplified Chinese only. Do not use any English.'
+        ? 'Write all questions in Simplified Chinese only.'
         : lang === 'ru'
-            ? 'IMPORTANT: You MUST write all questions in Russian only. Do not use any English.'
+            ? 'Write all questions in Russian only.'
             : 'Write all questions in English.'
 
-    const prompt = `Generate 3 specific conversation starter questions for a coffee meeting between these two people. Questions should help them exchange value and get to know each other professionally. ${langInstruction}
+    const prompt = `Generate 3 conversation starter questions for a coffee meeting.
+${langInstruction}
 
-Person A: ${myProfile.about || ''} | Offers: ${myProfile.gives || ''} | Needs: ${myProfile.wants || ''}
-Person B: ${theirProfile.about || ''} | Offers: ${theirProfile.gives || ''} | Needs: ${theirProfile.wants || ''}
+Person A: ${(myProfile.about || '').slice(0, 100)} | Offers: ${(myProfile.gives || '').slice(0, 100)} | Needs: ${(myProfile.wants || '').slice(0, 100)}
+Person B: ${(theirProfile.about || '').slice(0, 100)} | Offers: ${(theirProfile.gives || '').slice(0, 100)} | Needs: ${(theirProfile.wants || '').slice(0, 100)}
 
-Return ONLY a JSON array of 3 question strings.
-Example for Chinese: ["你在X方面最大的挑战是什么？", "你是如何进入Y领域的？", "你现在在做什么项目？"]`
+Return ONLY a JSON array of 3 question strings. No markdown, no explanation.
+Example: ["Question 1?", "Question 2?", "Question 3?"]`
 
-    const result = await callAI(prompt, 200)
+    const result = await callAI(prompt, 250)
     if (!result) return []
+
     try {
-        const match = result.match(/\[[\s\S]*?\]/)
+        // Remove markdown if present
+        let cleaned = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+
+        const match = cleaned.match(/\[[\s\S]*?\]/)
         if (!match) return []
-        return JSON.parse(match[0])
-    } catch {
+
+        const questions = JSON.parse(match[0])
+        return Array.isArray(questions) ? questions.slice(0, 3) : []
+    } catch (e) {
+        console.error('[generateMeetingQuestions] Parse error:', e)
         return []
     }
 }
