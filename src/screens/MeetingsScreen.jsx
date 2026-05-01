@@ -52,7 +52,7 @@ export default function MeetingsScreen() {
 
     const hasActiveFilters = searchFilters.regions.length > 0 || searchFilters.langs.length > 0 || !!searchFilters.prompt.trim()
 
-    const { boosting, hasCredits, handleBoost } = useMeetingBoost({
+    const { boosting, boostActive, hasCredits, handleBoost } = useMeetingBoost({
         history: historyLocal, setHistory: setHistoryLocal, searchFilters, hasActiveFilters,
         onBuyCredits: () => setShowBuyCredits(true),
         onMatchFound: () => setShowBoostModal(true),
@@ -107,7 +107,7 @@ export default function MeetingsScreen() {
 
                     {!loading && (
                         hasCredits
-                            ? <SearchingBlock onPeople={() => setScreen('people')} onBoost={handleBoost} boosting={boosting} filters={searchFilters} />
+                            ? <SearchingBlock onPeople={() => setScreen('people')} onBoost={handleBoost} boosting={boosting} boostActive={boostActive} filters={searchFilters} />
                             : <NoCreditsBlock onTopUp={() => setShowBuyCredits(true)} />
                     )}
 

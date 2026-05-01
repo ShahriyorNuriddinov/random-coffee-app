@@ -228,7 +228,20 @@ export const toggleBoost = async (userId, active) => {
 // ─── PEOPLE / LIKES / MATCHES ─────────────────────────────────────────────────
 
 export const getPeople = async (currentUserId, limit = 100) => {
-    const { data, error } = await supabase
+    // Fetch enabled languages from app_settings
+    const { data: settings } = await supabase
+        .from('app_settings')
+        .select('lang_en, lang_zh, lang_ru')
+        .eq('id', 1)
+        .single()
+        .catch(() => ({ data: null }))
+
+    const enabledLangs = []
+    if (!settings || settings.lang_en !== false) enabledLangs.push('EN')
+    if (!settings || settings.lang_zh !== false) enabledLangs.push('ZH', 'CAN')
+    if (settings?.lang_ru === true) enabledLangs.push('RU')
+
+    let query = supabase
         .from('profiles')
         .select('id, name, dob, gender, region, city, avatar_url, photos, about, gives, wants, about_zh, gives_zh, wants_zh, about_ru, gives_ru, wants_ru, tags, languages, balance')
         .neq('id', currentUserId)
@@ -236,11 +249,23 @@ export const getPeople = async (currentUserId, limit = 100) => {
         .neq('banned', true)
         .neq('name', '')
         .limit(limit)
+
+    const { data, error } = await query
     if (error) {
         console.error('[getPeople]', error.message)
         return []
     }
-    return data || []
+
+    // Filter: only show users who speak at least one enabled language
+    // If no language restrictions, show everyone
+    const people = data || []
+    if (enabledLangs.length === 0) return people
+
+    return people.filter(p => {
+        const userLangs = Array.isArray(p.languages) ? p.languages : []
+        if (userLangs.length === 0) return true // no language set — show anyway
+        return userLangs.some(l => enabledLangs.includes(l))
+    })
 }
 
 export const likeUser = async (fromUserId, toUserId) => {

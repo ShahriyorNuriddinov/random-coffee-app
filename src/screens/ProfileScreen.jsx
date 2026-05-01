@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { useApp } from '@/store/useAppStore'
@@ -8,6 +8,7 @@ import LangSwitcher from '@/components/LangSwitcher'
 import { Card, CardRow } from '@/components/ui/Card'
 import BuyCreditsModal from '@/components/meetings/BuyCreditsModal'
 import PhotoGrid from '@/components/profile/PhotoGrid'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { RefModal, GiftModal } from '@/components/profile/ProfileModals'
 import { signOut, updateNotifications, getReferralCode, getSubscription, supabase, deleteAccount } from '@/lib/supabaseClient'
 
@@ -74,6 +75,7 @@ export default function ProfileScreen() {
     const { setScreen, profile, setProfile, user, subscription, setSubscription, notifNewMatches, setNotifNewMatches, notifImportantNews, setNotifImportantNews, logoutUser } = useApp()
     const [modal, setModal] = useState(null)
     const [referralCode, setReferralCode] = useState(null)
+    const push = usePushNotifications(user?.id)
 
     useEffect(() => {
         if (!user?.id) return
@@ -173,13 +175,40 @@ export default function ProfileScreen() {
                     </div>
 
                     <Card>
-                        <CardRow label={t('ref_program')} value={<span style={{ background: '#34c75926', color: '#34c759', padding: '3px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700 }}>+1 coffee</span>} onClick={() => setModal('ref')} />
+                        <CardRow label={t('ref_program')} value={<RefRewardBadge />} onClick={() => setModal('ref')} />
                         <CardRow label={t('gift_friend')} onClick={() => setModal('gift')} isLast />
                     </Card>
 
                     <Card>
                         <CardRow label={t('notif_new_pairs')} right={<IosToggle checked={notifNewMatches} onChange={() => handleToggleNotif('matches')} />} />
                         <CardRow label={t('notif_news')} right={<IosToggle checked={notifImportantNews} onChange={() => handleToggleNotif('news')} />} />
+                        {push.supported && (
+                            <CardRow
+                                label={t('notif_browser')}
+                                right={
+                                    push.permission === 'denied'
+                                        ? <span style={{ fontSize: 11, color: '#ff3b30', fontWeight: 600 }}>
+                                            {t('notif_browser_denied').split('—')[0].trim()}
+                                        </span>
+                                        : <IosToggle
+                                            checked={push.subscribed}
+                                            onChange={async () => {
+                                                if (push.subscribed) {
+                                                    await push.unsubscribe()
+                                                    toast.success(t('notif_browser_off'))
+                                                } else {
+                                                    const success = await push.subscribe()
+                                                    if (success) {
+                                                        toast.success(t('notif_browser_on'))
+                                                    } else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+                                                        toast.error(t('notif_browser_denied'))
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                }
+                            />
+                        )}
                         <CardRow label={t('language')} right={<LangSwitcher />} />
                         <CardRow
                             label={t('email_label_profile')}
@@ -213,8 +242,11 @@ export default function ProfileScreen() {
                         />
                     </Card>
 
-                    <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--app-hint)', lineHeight: 1.5, paddingBottom: 8 }}>
-                        © 2026, Denis Ivanov Limited.<br />HK 79643900. All rights reserved.
+                    <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--app-hint)', lineHeight: 1.6, paddingBottom: 8 }}>
+                        © 2026, Denis Ivanov Limited.<br />
+                        HK 79643900. All rights reserved.<br />
+                        18/F 299 QRC, 287-299 Queen's Road Central,<br />
+                        Sheung Wan, Hong Kong.
                     </div>
                 </div>
             </div>
@@ -277,7 +309,22 @@ function IosToggle({ checked, onChange }) {
     )
 }
 
+function RefRewardBadge() {
+    const [reward, setReward] = useState(1)
+    useEffect(() => {
+        supabase.from('app_settings').select('reward_referral').eq('id', 1).single()
+            .then(({ data }) => { if (data?.reward_referral) setReward(data.reward_referral) })
+            .catch(() => { })
+    }, [])
+    return (
+        <span style={{ background: '#34c75926', color: '#34c759', padding: '3px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700 }}>
+            +{reward} coffee
+        </span>
+    )
+}
+
 function InfoModal({ title, children, onClose, onAction, actionLabel }) {
+    const { t } = useTranslation()
     return (
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
             <div onClick={e => e.stopPropagation()} style={{ background: 'var(--app-card)', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxSizing: 'border-box', textAlign: 'center' }}>
@@ -299,37 +346,163 @@ function InfoModal({ title, children, onClose, onAction, actionLabel }) {
 function EmailModal({ email, userId, onClose }) {
     const { t } = useTranslation()
     const [newEmail, setNewEmail] = useState(email || '')
-    const [saving, setSaving] = useState(false)
+    const [step, setStep] = useState('input')   // 'input' | 'otp'
+    const [digits, setDigits] = useState(['', '', '', '', '', ''])
+    const [timer, setTimer] = useState(60)
+    const [sending, setSending] = useState(false)
+    const [verifying, setVerifying] = useState(false)
+    const inputs = useRef([])
+    const intervalRef = useRef(null)
+    const verifyingRef = useRef(false)
 
-    const handleSave = async () => {
-        if (!newEmail.trim() || !newEmail.includes('@')) return
-        setSaving(true)
-        const { error } = await supabase.from('profiles').update({ email: newEmail.trim() }).eq('id', userId)
-        setSaving(false)
-        if (!error) {
+    const startTimer = () => {
+        clearInterval(intervalRef.current)
+        setTimer(60)
+        intervalRef.current = setInterval(() => {
+            setTimer(prev => { if (prev <= 1) { clearInterval(intervalRef.current); return 0 } return prev - 1 })
+        }, 1000)
+    }
+
+    const fmt = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
+
+    const handleSendOtp = async () => {
+        const trimmed = newEmail.trim()
+        if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+            toast.error(t('err_email')); return
+        }
+        setSending(true)
+        const { error } = await supabase.auth.signInWithOtp({
+            email: trimmed,
+            options: { shouldCreateUser: false },
+        })
+        setSending(false)
+        if (error) { toast.error(error.message); return }
+        setStep('otp')
+        setDigits(['', '', '', '', '', ''])
+        startTimer()
+        setTimeout(() => inputs.current[0]?.focus(), 300)
+    }
+
+    const handleInput = (i, val) => {
+        if (!/^[0-9]?$/.test(val)) return
+        const next = [...digits]; next[i] = val; setDigits(next)
+        if (val && i < 5) inputs.current[i + 1]?.focus()
+        if (next.every(d => d !== '') && !verifying) {
+            setTimeout(() => handleVerify(next.join('')), 50)
+        }
+    }
+
+    const handleKeyDown = (i, e) => {
+        if (e.key === 'Backspace') {
+            if (!digits[i] && i > 0) { inputs.current[i - 1]?.focus(); const n = [...digits]; n[i - 1] = ''; setDigits(n) }
+            else { const n = [...digits]; n[i] = ''; setDigits(n) }
+        }
+    }
+
+    const handleVerify = async (code) => {
+        if (verifyingRef.current || !code || code.length < 6) return
+        verifyingRef.current = true
+        setVerifying(true)
+        try {
+            const { data, error } = await supabase.auth.verifyOtp({
+                email: newEmail.trim(),
+                token: code,
+                type: 'email',
+            })
+            if (error) {
+                toast.error(t('err_otp'))
+                setDigits(['', '', '', '', '', ''])
+                inputs.current[0]?.focus()
+                return
+            }
+            // OTP verified — save new email to profile
+            await supabase.from('profiles').update({ email: newEmail.trim() }).eq('id', userId)
             toast.success(t('toast_email_updated'))
+            clearInterval(intervalRef.current)
             onClose()
-        } else {
-            toast.error(error.message)
+        } finally {
+            verifyingRef.current = false
+            setVerifying(false)
         }
     }
 
     return (
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
             <div onClick={e => e.stopPropagation()} style={{ background: 'var(--app-card)', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxSizing: 'border-box', textAlign: 'center' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>{t('change_email_title')}</div>
-                <p style={{ fontSize: 14, color: 'var(--app-hint)', marginBottom: 16 }}>{t('change_email_hint')}</p>
-                <input
-                    type="email"
-                    value={newEmail}
-                    onChange={e => setNewEmail(e.target.value)}
-                    placeholder="new@email.com"
-                    style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--app-border)', background: 'var(--app-bg)', color: 'var(--app-text)', fontSize: 15, boxSizing: 'border-box', marginBottom: 12, fontFamily: 'inherit', outline: 'none', textAlign: 'center' }}
-                />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <button onClick={handleSave} disabled={saving} className="btn-gradient" style={{ borderRadius: 14 }}>{saving ? '...' : t('save')}</button>
-                    <button onClick={onClose} style={{ width: '100%', padding: '13px 0', borderRadius: 14, border: 'none', background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('cancel')}</button>
-                </div>
+
+                {step === 'input' && (<>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>{t('change_email_title')}</div>
+                    <p style={{ fontSize: 14, color: 'var(--app-hint)', marginBottom: 16 }}>{t('change_email_hint')}</p>
+                    <input
+                        type="email"
+                        value={newEmail}
+                        onChange={e => setNewEmail(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleSendOtp()}
+                        placeholder="new@email.com"
+                        style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--app-border)', background: 'var(--app-bg)', color: 'var(--app-text)', fontSize: 15, boxSizing: 'border-box', marginBottom: 12, fontFamily: 'inherit', outline: 'none', textAlign: 'center' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <button onClick={handleSendOtp} disabled={sending} className="btn-gradient" style={{ borderRadius: 14 }}>
+                            {sending ? '...' : t('next')}
+                        </button>
+                        <button onClick={onClose} style={{ width: '100%', padding: '13px 0', borderRadius: 14, border: 'none', background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('cancel')}</button>
+                    </div>
+                </>)}
+
+                {step === 'otp' && (<>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 8 }}>{t('otp_title')}</div>
+                    <p style={{ fontSize: 14, color: 'var(--app-hint)', marginBottom: 20, lineHeight: 1.4 }}>
+                        {t('otp_hint')}<br />
+                        <span style={{ fontWeight: 700, color: 'var(--app-text)' }}>{newEmail}</span>
+                    </p>
+
+                    {/* 6-digit boxes */}
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
+                        {digits.map((d, i) => (
+                            <input
+                                key={i}
+                                ref={el => inputs.current[i] = el}
+                                className="sms-input"
+                                style={{ width: 40, height: 50, fontSize: 22 }}
+                                type="tel"
+                                inputMode="numeric"
+                                maxLength={1}
+                                autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                                value={d}
+                                onChange={e => handleInput(i, e.target.value)}
+                                onKeyDown={e => handleKeyDown(i, e)}
+                            />
+                        ))}
+                    </div>
+
+                    <div style={{ fontSize: 13, color: 'var(--app-hint)', marginBottom: 16 }}>
+                        {timer > 0 ? (
+                            <>{t('resend_in')} <span>{fmt(timer)}</span></>
+                        ) : (
+                            <span
+                                onClick={handleSendOtp}
+                                style={{ color: 'var(--app-primary)', fontWeight: 600, cursor: 'pointer' }}
+                            >{t('resend')}</span>
+                        )}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <button
+                            onClick={() => handleVerify(digits.join(''))}
+                            disabled={verifying || digits.some(d => !d)}
+                            className="btn-gradient" style={{ borderRadius: 14 }}
+                        >
+                            {verifying ? '...' : t('next')}
+                        </button>
+                        <button
+                            onClick={() => { setStep('input'); setDigits(['', '', '', '', '', '']); clearInterval(intervalRef.current) }}
+                            style={{ width: '100%', padding: '13px 0', borderRadius: 14, border: 'none', background: 'rgba(120,120,128,0.1)', color: 'var(--app-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                        >
+                            {t('back')}
+                        </button>
+                    </div>
+                </>)}
+
             </div>
         </div>
     )

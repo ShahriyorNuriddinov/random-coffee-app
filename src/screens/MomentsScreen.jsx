@@ -217,7 +217,7 @@ export default function MomentsScreen() {
 
                         {!hasNextPage && filteredMoments.length > 0 && (
                             <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--app-hint)', padding: '8px 0 16px' }}>
-                                {lang === 'zh' ? '没有更多了' : lang === 'ru' ? 'Больше нет' : 'No more posts'}
+                                {lang === 'zh' ? '没有更多了' : lang === 'ru' ? 'Больше нет' : t('no_more_posts', 'No more posts')}
                             </p>
                         )}
                     </div>
@@ -242,12 +242,12 @@ export default function MomentsScreen() {
                         maxWidth: 360, width: '100%', textAlign: 'center',
                     }}>
                         <div style={{ fontSize: 40, marginBottom: 12 }}>🎁</div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 10 }}>Share Your Story</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--app-text)', marginBottom: 10 }}>{t('share_story')}</div>
                         <div style={{ fontSize: 14, color: 'var(--app-hint)', lineHeight: 1.5, marginBottom: 20 }}>
-                            After every successful coffee meeting, you can write a review post and earn <strong>+1 coffee cup</strong>!
+                            {t('share_story_hint')}
                         </div>
                         <button onClick={() => setShowNoMeetingHint(false)} className="btn-gradient" style={{ borderRadius: 14 }}>
-                            Awesome
+                            {t('got_it')}
                         </button>
                     </div>
                 </div>

@@ -10,7 +10,7 @@ export default function AvatarUpload({ avatar, onFile }) {
             <div
                 onClick={() => fileRef.current.click()}
                 style={{
-                    width: 100, height: 100, borderRadius: '50%',
+                    width: 120, height: 120, borderRadius: 18,
                     backgroundImage: avatar ? `url(${avatar})` : 'none',
                     backgroundSize: 'cover', backgroundPosition: 'center',
                     backgroundColor: 'rgba(120,120,128,0.08)',

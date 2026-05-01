@@ -220,7 +220,9 @@ export function AppProvider({ children }) {
                     })
                 }
             })
-            .subscribe()
+            .subscribe((status, err) => {
+                if (err) console.error('[Realtime] Profile channel error:', err)
+            })
 
         // Match updates channel
         const matchChannel = supabase
@@ -250,7 +252,9 @@ export function AppProvider({ children }) {
                     console.error('[Realtime] Failed to fetch partner name:', err)
                 }
             })
-            .subscribe()
+            .subscribe((status, err) => {
+                if (err) console.error('[Realtime] Match channel error:', err)
+            })
 
         return () => {
             profileChannel.unsubscribe()

@@ -26,6 +26,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Import push notification handler into the generated SW
+        importScripts: ['/sw-push.js'],
         // Cache app shell
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         // Don't cache API calls

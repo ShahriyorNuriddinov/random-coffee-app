@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useApp } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabaseClient'
 import { translateText } from '@/lib/aiUtils'
-import i18n from '@/i18n'
 import toast from 'react-hot-toast'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Pagination } from 'swiper/modules'
@@ -16,7 +15,7 @@ const QUICK_REACTIONS = ['👍', '❤️', '🔥', '🎉', '👏']
 
 export default function MomentCard({ moment, userReaction, onReactionChange, onDeleted }) {
     const { user } = useApp()
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
 
     // reactions from DB: moment.reactions = { '❤️': 5, '🔥': 2 }
     const [reactions, setReactions] = useState(moment.reactions || {})
@@ -43,12 +42,12 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
     const isOwn = user?.id && author.id === user.id
     const isOfficial = moment.is_admin_post === true || author.name === 'Random Coffee Team' || author.name === 'MaGollz Team'
 
-    // Show translated text if available in DB, else fall back to AI translate on demand
+    // Show text in current UI language automatically (no button needed for DB translations)
     const currentLang = i18n.language // 'en', 'zh', or 'ru'
     const dbTranslation = currentLang === 'zh' ? moment.text_zh
         : currentLang === 'ru' ? moment.text_ru
             : moment.text_en
-    // If DB already has translation for current lang and it differs from original text, show it directly
+    // Use DB translation if it exists and differs from original; otherwise show original
     const autoTranslated = dbTranslation && dbTranslation !== moment.text ? dbTranslation : null
 
     const timeAgo = (dateStr) => {
@@ -145,8 +144,9 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
         if (translatedText) { setTranslated(true); return }
         setTranslating(true)
         try {
-            // Translate to the "other" language - if ru, go to en; if zh, go to en; if en, go to zh
-            const targetLang = currentLang === 'en' ? 'zh' : 'en'
+            // Translate to current UI language; if already in that lang, translate to EN
+            const sourceLang = currentLang === 'en' ? 'en' : currentLang === 'zh' ? 'zh' : 'ru'
+            const targetLang = sourceLang === 'en' ? 'zh' : sourceLang
             const result = await translateText(moment.text_en || moment.text, targetLang)
             if (result) {
                 setTranslatedText(result)
@@ -257,7 +257,7 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
             <div style={{ padding: '12px 16px', fontSize: 15, lineHeight: 1.45, color: 'var(--app-text)' }}>
                 {translated && translatedText
                     ? translatedText
-                    : autoTranslated || (moment.text_en || moment.text)}
+                    : autoTranslated || moment.text_en || moment.text}
             </div>
 
             <div

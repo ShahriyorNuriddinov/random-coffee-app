@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 /**
  * Reusable modal overlay
  * @param {string} title
@@ -5,6 +7,7 @@
  * @param {function} onClose
  */
 export default function Modal({ title, children, onClose }) {
+    const { t } = useTranslation()
     return (
         <div
             onClick={onClose}
@@ -43,7 +46,7 @@ export default function Modal({ title, children, onClose }) {
                         cursor: 'pointer', color: 'var(--app-text)', fontFamily: 'inherit',
                     }}
                 >
-                    Close
+                    {t('close')}
                 </button>
             </div>
         </div>

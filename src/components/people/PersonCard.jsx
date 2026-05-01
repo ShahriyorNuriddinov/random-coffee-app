@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export default function PersonCard({ person, liked, onLike, onOpen }) {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
+    const lang = i18n.language === 'zh' ? 'zh' : i18n.language === 'ru' ? 'ru' : 'en'
     const regionFlag = person.region === 'Macau' ? '🇲🇴'
         : person.region === 'Mainland' ? '🇨🇳'
             : person.region === 'Other' ? '🌍'
@@ -14,6 +15,15 @@ export default function PersonCard({ person, liked, onLike, onOpen }) {
 
     const map = { '30_70': [30, 70], '50_50': [50, 50], '70_30': [70, 30] }
     const [fun, ben] = map[person.balance] || [50, 50]
+
+    const label = {
+        about: lang === 'zh' ? '关于我' : lang === 'ru' ? 'О себе' : 'About Me',
+        gives: lang === 'zh' ? '能提供' : lang === 'ru' ? 'Могу дать' : 'Can Give',
+        wants: lang === 'zh' ? '想获得' : lang === 'ru' ? 'Хочу получить' : 'Wants to Get',
+        balance: lang === 'zh' ? '会议平衡' : lang === 'ru' ? 'Баланс встречи' : 'Meeting Balance',
+        fun: lang === 'zh' ? '娱乐' : lang === 'ru' ? 'Развлечение' : 'Fun',
+        benefits: lang === 'zh' ? '效益' : lang === 'ru' ? 'Польза' : 'Benefits',
+    }
 
     return (
         <div style={{
@@ -80,38 +90,37 @@ export default function PersonCard({ person, liked, onLike, onOpen }) {
 
                 {/* .interest-btn */}
                 <button
-                    onClick={liked ? undefined : onLike}
-                    disabled={liked}
+                    onClick={onLike}
                     style={{
                         flexShrink: 0, marginLeft: 12,
                         padding: '10px 16px', borderRadius: 12, border: 'none',
-                        cursor: liked ? 'default' : 'pointer',
+                        cursor: 'pointer',
                         background: liked
-                            ? 'rgba(52,199,89,0.1)'
+                            ? 'rgba(255,59,48,0.1)'
                             : 'linear-gradient(135deg, #007aff 0%, #5856d6 100%)',
-                        color: liked ? '#34c759' : '#fff',
+                        color: liked ? '#ff3b30' : '#fff',
                         fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
                         boxShadow: liked ? 'none' : '0 4px 10px rgba(0,122,255,0.15)',
                         transition: 'all 0.2s', whiteSpace: 'nowrap',
                     }}
                 >
-                    {liked ? '✓ ' + t('already_liked') : t('send_interest_short')}
+                    {liked ? '♥ ' + t('already_liked') : t('send_interest_short')}
                 </button>
             </div>
 
             {/* .info-section — About Me */}
             {person.about && (
-                <InfoSection label="About Me" text={person.about} borderColor="rgba(0,122,255,0.2)" onClick={onOpen} />
+                <InfoSection label={label.about} text={person.about} borderColor="rgba(0,122,255,0.2)" onClick={onOpen} />
             )}
 
             {/* .info-section.give — Can Give */}
             {person.gives && (
-                <InfoSection label="Can Give" text={person.gives} borderColor="rgba(52,199,89,0.2)" onClick={onOpen} />
+                <InfoSection label={label.gives} text={person.gives} borderColor="rgba(52,199,89,0.2)" onClick={onOpen} />
             )}
 
             {/* .info-section.take — Wants to Get */}
             {person.wants && (
-                <InfoSection label="Wants to Get" text={person.wants} borderColor="rgba(255,149,0,0.2)" onClick={onOpen} />
+                <InfoSection label={label.wants} text={person.wants} borderColor="rgba(255,149,0,0.2)" onClick={onOpen} />
             )}
 
             {/* .balance-section */}
@@ -121,11 +130,11 @@ export default function PersonCard({ person, liked, onLike, onOpen }) {
                         fontSize: 11, fontWeight: 700, color: 'var(--app-hint)',
                         textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6,
                     }}>
-                        Meeting Balance
+                        {label.balance}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, color: 'var(--app-text)', marginBottom: 6 }}>
-                        <span>{fun}% Fun</span>
-                        <span>{ben}% Benefits</span>
+                        <span>{fun}% {label.fun}</span>
+                        <span>{ben}% {label.benefits}</span>
                     </div>
                     <div style={{ width: '100%', height: 5, background: 'rgba(120,120,128,0.12)', borderRadius: 3, position: 'relative' }}>
                         <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${fun}%`, background: '#ff9500', borderRadius: 3 }} />

@@ -138,14 +138,15 @@ export default function AdminMoments() {
                 const { data: cfg } = await supabase.from('app_settings').select('reward_post').eq('id', 1).single()
                 const reward = Number(cfg?.reward_post ?? 1)
                 if (reward > 0) {
-                    const { data: profile } = await supabase.from('profiles').select('coffee_credits').eq('id', moment.author.id).single()
-                    if (profile) {
-                        await supabase.from('profiles').update({
-                            coffee_credits: (profile.coffee_credits ?? 0) + reward,
-                            subscription_status: 'active',
-                            updated_at: new Date().toISOString(),
-                        }).eq('id', moment.author.id)
-                    }
+                    // Use atomic RPC to prevent race condition
+                    await supabase.rpc('increment_credits', {
+                        p_user_id: moment.author.id,
+                        p_credits: reward,
+                    })
+                    // Ensure subscription_status is active
+                    await supabase.from('profiles')
+                        .update({ subscription_status: 'active', updated_at: new Date().toISOString() })
+                        .eq('id', moment.author.id)
                 }
             }
             toast.success(t.approvedMsg)

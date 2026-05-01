@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Gift } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useQuery } from '@tanstack/react-query'
-import { getSettings, saveSettings, getStaff, removeStaff } from '../lib/adminSupabase'
+import { getSettings, saveSettings, getStaff, removeStaff, supabase } from '../lib/adminSupabase'
 import { useAdmin } from '../AdminApp'
 import { getT } from '../i18n'
 import SectionLabel from '../components/ui/SectionLabel'
@@ -18,8 +18,14 @@ function SettingField({ label, value, onChange, isLast }) {
     return (
         <div className={`flex items-center justify-between px-4 py-3 ${!isLast ? 'border-b border-black/5' : ''}`}>
             <span className="text-[14px] font-medium text-gray-600">{label}</span>
-            <input type="number" value={value ?? ''} onChange={e => onChange(+e.target.value)}
-                className="w-20 text-right text-[15px] font-semibold text-[#007aff] outline-none bg-transparent" />
+            <input
+                type="number"
+                value={value ?? ''}
+                onChange={e => onChange(+e.target.value)}
+                className="w-20 text-right text-[15px] font-semibold text-[#007aff] outline-none bg-transparent"
+                style={{ MozAppearance: 'textfield' }}
+                onWheel={e => e.target.blur()}
+            />
         </div>
     )
 }
@@ -30,6 +36,7 @@ export default function AdminSettings() {
     const [settings, setSettings] = useState({
         standard_price: 15, standard_cups: 1,
         best_price: 30, best_cups: 3,
+        trial_credits: 2,
         reward_referral: 1, reward_birthday: 2, reward_post: 1,
         lang_en: true, lang_zh: true, lang_ru: false,
         ai_matching_prompt: DEFAULT_AI_PROMPT,
@@ -55,10 +62,10 @@ export default function AdminSettings() {
         if (settingsData) setSettings(prev => ({
             ...prev,
             ...settingsData,
-            // Ensure booleans are always true booleans, never null
             lang_en: settingsData.lang_en !== false,
             lang_zh: settingsData.lang_zh !== false,
             lang_ru: settingsData.lang_ru === true,
+            trial_credits: settingsData.trial_credits ?? 2,
             ai_matching_prompt: settingsData.ai_matching_prompt || DEFAULT_AI_PROMPT,
         }))
     }, [settingsData])
@@ -81,6 +88,32 @@ export default function AdminSettings() {
 
     const set = key => val => setSettings(s => ({ ...s, [key]: val }))
 
+    const handleBirthdayBonus = async () => {
+        try {
+            const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/birthday-bonus`
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+            })
+            const data = await res.json()
+            if (data.sent !== undefined) {
+                const msg = lang === 'zh'
+                    ? `🎂 生日奖励已发送给 ${data.sent} 位用户`
+                    : lang === 'ru'
+                        ? `🎂 Бонус ко дню рождения отправлен ${data.sent} пользователям`
+                        : `🎂 Birthday bonus sent to ${data.sent} user${data.sent !== 1 ? 's' : ''}`
+                toast.success(msg)
+            } else {
+                toast.error(data.error || (lang === 'zh' ? '运行失败' : lang === 'ru' ? 'Ошибка запуска' : 'Failed to run birthday bonus'))
+            }
+        } catch (err) {
+            toast.error(lang === 'zh' ? '运行失败' : lang === 'ru' ? 'Ошибка запуска' : 'Failed to run birthday bonus')
+        }
+    }
+
     return (
         <div className="px-4 py-4 flex flex-col gap-5 pb-8">
             {showAddStaff && (
@@ -98,7 +131,13 @@ export default function AdminSettings() {
                     <SettingField label={t.stdPrice} value={settings.standard_price} onChange={set('standard_price')} />
                     <SettingField label={t.stdCups} value={settings.standard_cups} onChange={set('standard_cups')} />
                     <SettingField label={t.bestPrice} value={settings.best_price} onChange={set('best_price')} />
-                    <SettingField label={t.bestCups} value={settings.best_cups} onChange={set('best_cups')} isLast />
+                    <SettingField label={t.bestCups} value={settings.best_cups} onChange={set('best_cups')} />
+                    <SettingField
+                        label={lang === 'zh' ? '试用期积分' : lang === 'ru' ? 'Кредиты пробного периода' : 'Trial Period Credits'}
+                        value={settings.trial_credits}
+                        onChange={set('trial_credits')}
+                        isLast
+                    />
                 </Card>
             </div>
 
@@ -110,6 +149,12 @@ export default function AdminSettings() {
                     <SettingField label={t.bdReward} value={settings.reward_birthday} onChange={set('reward_birthday')} />
                     <SettingField label={t.postReward} value={settings.reward_post} onChange={set('reward_post')} isLast />
                 </Card>
+                <button
+                    onClick={handleBirthdayBonus}
+                    className="mt-2 w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-black/5 bg-white text-[14px] font-semibold text-orange-500 active:bg-orange-50 transition-all"
+                >
+                    <Gift size={16} /> {lang === 'zh' ? '立即发放生日奖励' : lang === 'ru' ? 'Запустить бонус ко дню рождения' : 'Run Birthday Bonus Now'}
+                </button>
             </div>
 
             {/* Languages */}

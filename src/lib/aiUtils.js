@@ -1,18 +1,17 @@
 /**
  * AI Utilities — Groq ONLY (fast, free, no limits)
+ *
+ * NOTE: VITE_GROQ_API_KEY is optional. All AI features degrade gracefully
+ * to keyword-based fallbacks when the key is absent.
+ * TODO: Migrate callGroq() to a Supabase Edge Function to keep the key server-side.
  */
 
-// ⚠️ SECURITY WARNING: API keys should NEVER be in client-side code!
-// These keys are exposed in the browser and can be stolen.
-// TODO: Move all AI calls to Supabase Edge Functions
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY
-
-// Temporary client-side usage - MUST migrate to Edge Functions before production!
 
 // ─── Groq API call ────────────────────────────────────────────────────────────
 async function callGroq(prompt, maxTokens = 500) {
     if (!GROQ_KEY) {
-        console.error('[Groq] API key not found')
+        // Key not configured — caller will use keyword fallback
         return null
     }
 
@@ -363,11 +362,17 @@ export async function generateMeetingQuestions(myProfile = {}, theirProfile = {}
             ? 'Write all questions in Russian only.'
             : 'Write all questions in English.'
 
-    const prompt = `Generate 3 conversation starter questions for a coffee meeting.
+    const prompt = `Generate 3 conversation starter questions that Person A can ask Person B during a coffee meeting.
+The questions should be directed FROM Person A TO Person B — about Person B's experience, work, and goals.
 ${langInstruction}
 
-Person A: ${(myProfile.about || '').slice(0, 100)} | Offers: ${(myProfile.gives || '').slice(0, 100)} | Needs: ${(myProfile.wants || '').slice(0, 100)}
-Person B: ${(theirProfile.about || '').slice(0, 100)} | Offers: ${(theirProfile.gives || '').slice(0, 100)} | Needs: ${(theirProfile.wants || '').slice(0, 100)}
+Person A (asking): Offers: ${(myProfile.gives || '').slice(0, 100)} | Needs: ${(myProfile.wants || '').slice(0, 100)}
+Person B (being asked): About: ${(theirProfile.about || '').slice(0, 100)} | Offers: ${(theirProfile.gives || '').slice(0, 100)} | Needs: ${(theirProfile.wants || '').slice(0, 100)}
+
+Rules:
+- Questions must be directed at Person B (e.g. "What inspired you to...", "How did you get into...", "What are you currently working on...")
+- Questions should be open-ended and spark genuine conversation
+- Do NOT generate questions Person B would ask Person A
 
 Return ONLY a JSON array of 3 question strings. No markdown, no explanation.
 Example: ["Question 1?", "Question 2?", "Question 3?"]`

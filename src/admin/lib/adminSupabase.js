@@ -11,8 +11,6 @@ export { supabase }
 export const getDashboardStats = async (incomeTab = 'week') => {
     const now = new Date()
     const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
-    const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
-    const twoMonthsAgo = new Date(now - 60 * 24 * 60 * 60 * 1000)
 
     // Period start for revenue tab
     const periodStart = (() => {
@@ -291,7 +289,7 @@ export const getNews = async () => {
 export const createNews = async ({ text, text_zh, text_ru, image_url, pinned = false }) => {
     const { data, error } = await supabase
         .from('news')
-        .insert({ text, text_zh, text_ru, image_url, pinned })
+        .insert({ text, text_en: text, text_zh, text_ru, image_url, pinned })
         .select()
         .single()
     if (error) return { success: false, error: error.message }

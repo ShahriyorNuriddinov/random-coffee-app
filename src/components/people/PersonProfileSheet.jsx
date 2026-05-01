@@ -2,11 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Pagination, Navigation } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/pagination'
-import 'swiper/css/navigation'
 import { translateProfile } from '@/lib/aiUtils'
 import { blockUser, reportUser } from '@/lib/supabaseClient'
 import { useApp } from '@/store/useAppStore'
@@ -263,44 +258,43 @@ export default function PersonProfileSheet({ person, liked, matched, onLike, onC
                     animation: 'slideUp 0.3s cubic-bezier(0.4,0,0.2,1)',
                 }}
             >
-                {/* Hero photo with Swiper */}
+                {/* Photos — 2×2 square grid */}
                 <div style={{ position: 'relative', borderRadius: '24px 24px 0 0', overflow: 'hidden' }}>
                     {allPhotos.length > 0 ? (
-                        <Swiper
-                            modules={[Pagination, Navigation]}
-                            pagination={{ clickable: true }}
-                            navigation
-                            style={{ height: 320 }}
-                        >
-                            {allPhotos.map((photo, i) => (
-                                <SwiperSlide key={i}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: allPhotos.length === 1 ? '1fr' : '1fr 1fr',
+                            gridTemplateRows: allPhotos.length <= 2 ? '200px' : '160px 160px',
+                            gap: 2,
+                        }}>
+                            {allPhotos.slice(0, 4).map((photo, i) => (
+                                <div
+                                    key={i}
+                                    style={{
+                                        // First photo spans full width if only 1 photo, or spans 2 cols if odd total
+                                        gridColumn: allPhotos.length === 1 ? '1 / -1'
+                                            : allPhotos.length === 3 && i === 0 ? '1 / -1'
+                                                : 'auto',
+                                        overflow: 'hidden',
+                                    }}
+                                >
                                     <img
                                         src={photo}
                                         alt={`Photo ${i + 1} of ${person.name}`}
-                                        style={{
-                                            width: '100%',
-                                            height: 320,
-                                            objectFit: 'cover',
-                                            display: 'block',
-                                        }}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                     />
-                                </SwiperSlide>
+                                </div>
                             ))}
-                        </Swiper>
+                        </div>
                     ) : (
                         <div style={{
-                            width: '100%', height: 320,
+                            width: '100%', height: 200,
                             backgroundColor: 'rgba(120,120,128,0.1)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                             <span style={{ fontSize: 72 }}>👤</span>
                         </div>
                     )}
-                    <div style={{
-                        position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)',
-                        pointerEvents: 'none', zIndex: 10,
-                    }} />
                     <button onClick={onClose} aria-label="Close profile" style={{
                         position: 'absolute', top: 16, right: 16, zIndex: 20,
                         width: 34, height: 34, borderRadius: '50%',

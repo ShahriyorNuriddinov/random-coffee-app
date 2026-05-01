@@ -17,6 +17,16 @@ export default function LangSelectScreen() {
     const [langs, setLangs] = useState(ALL_LANGS) // show all by default
 
     useEffect(() => {
+        // Preserve referral code from URL across navigation
+        try {
+            const path = window.location.pathname
+            const refMatch = path.match(/\/ref\/([A-Z0-9]+)/i)
+            const params = new URLSearchParams(window.location.search)
+            const refParam = params.get('ref')
+            const code = refMatch?.[1] || refParam
+            if (code) localStorage.setItem('rc_pending_ref', code.toUpperCase())
+        } catch { }
+
         supabase
             .from('app_settings')
             .select('lang_en, lang_zh, lang_ru')

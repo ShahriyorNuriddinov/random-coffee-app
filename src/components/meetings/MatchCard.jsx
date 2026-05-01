@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '@/store/useAppStore'
 import { useTranslation } from 'react-i18next'
 import { explainMatch, generateMeetingQuestions, translateProfile } from '@/lib/aiUtils'
+import PersonProfileSheet from '@/components/people/PersonProfileSheet'
 import toast from 'react-hot-toast'
 
 export default function MatchCard({ match, onFeedback }) {
@@ -17,7 +18,8 @@ export default function MatchCard({ match, onFeedback }) {
     const [showQuestions, setShowQuestions] = useState(false)
     const [loadingAI, setLoadingAI] = useState(false)
     const [aiTranslated, setAiTranslated] = useState(null)
-    
+    const [showProfile, setShowProfile] = useState(false)
+
     const displayPartner = useMemo(() => {
         if (!partner) return partner
         if (lang === 'zh') {
@@ -87,7 +89,7 @@ export default function MatchCard({ match, onFeedback }) {
 
     const regionFlag = partner.region === 'Macau' ? '🇲🇴'
         : partner.region === 'Mainland' ? '🇨🇳'
-            : partner.region === 'Other' ? '�'
+            : partner.region === 'Other' ? '🌍'
                 : '🇭🇰'
 
     const dateStr = new Date(createdAt).toLocaleDateString('en-GB', {
@@ -108,192 +110,213 @@ export default function MatchCard({ match, onFeedback }) {
     }
 
     return (
-        <div style={{
-            background: 'var(--app-card)', borderRadius: 20,
-            border: '0.5px solid var(--app-border)', padding: 20,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
-        }}>
-            {/* Match header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
-                    <div style={{
-                        position: 'absolute', inset: 0, borderRadius: '50%',
-                        background: 'linear-gradient(45deg, #007aff, #00c6ff)',
-                        opacity: 0.15, filter: 'blur(6px)',
-                    }} />
-                    <div style={{
-                        width: 64, height: 64, borderRadius: '50%',
-                        backgroundImage: partner.avatar_url ? `url(${partner.avatar_url})` : 'none',
-                        backgroundSize: 'cover', backgroundPosition: 'center',
-                        backgroundColor: 'rgba(120,120,128,0.1)',
-                        border: '2px solid white',
-                        boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-                        position: 'relative', zIndex: 1,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        {!partner.avatar_url && <span style={{ fontSize: 26 }}>👤</span>}
+        <>
+            {showProfile && (
+                <PersonProfileSheet
+                    person={partner}
+                    liked={false}
+                    matched={true}
+                    onLike={() => { }}
+                    onClose={() => setShowProfile(false)}
+                />
+            )}
+
+            <div style={{
+                background: 'var(--app-card)', borderRadius: 20,
+                border: '0.5px solid var(--app-border)', padding: 20,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+            }}>
+                {/* Match header — click to open full profile */}
+                <div
+                    onClick={() => setShowProfile(true)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, cursor: 'pointer' }}
+                >
+                    <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
+                        <div style={{
+                            position: 'absolute', inset: 0, borderRadius: '50%',
+                            background: 'linear-gradient(45deg, #007aff, #00c6ff)',
+                            opacity: 0.15, filter: 'blur(6px)',
+                        }} />
+                        <div style={{
+                            width: 64, height: 64, borderRadius: '50%',
+                            backgroundImage: partner.avatar_url ? `url(${partner.avatar_url})` : 'none',
+                            backgroundSize: 'cover', backgroundPosition: 'center',
+                            backgroundColor: 'rgba(120,120,128,0.1)',
+                            border: '2px solid white',
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+                            position: 'relative', zIndex: 1,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            {!partner.avatar_url && <span style={{ fontSize: 26 }}>👤</span>}
+                        </div>
                     </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', letterSpacing: -0.2, marginBottom: 4 }}>
+                            {partner.name}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--app-hint)', marginBottom: 6 }}>
+                            <span>{regionFlag}</span>
+                            <span>{partner.region}</span>
+                        </div>
+                        {partner.languages?.length > 0 && (
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {partner.languages.map(l => (
+                                    <span key={l} style={{
+                                        background: 'rgba(0,0,0,0.03)', padding: '3px 8px',
+                                        borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#555',
+                                    }}>{l}</span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <span style={{ fontSize: 12, color: 'var(--app-primary)', fontWeight: 600, flexShrink: 0 }}>
+                        {lang === 'zh' ? '查看 →' : lang === 'ru' ? 'Профиль →' : 'Profile →'}
+                    </span>
                 </div>
 
-                <div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--app-text)', letterSpacing: -0.2, marginBottom: 4 }}>
-                        {partner.name}
+                {/* AI Match Reason */}
+                {matchReason && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, rgba(0,122,255,0.06), rgba(88,86,214,0.06))',
+                        border: '0.5px solid rgba(0,122,255,0.15)',
+                        borderRadius: 12, padding: '10px 14px', marginBottom: 16,
+                        display: 'flex', gap: 8, alignItems: 'flex-start',
+                    }}>
+                        <span style={{ fontSize: 16, flexShrink: 0 }}>🤝</span>
+                        <div style={{ fontSize: 13, color: 'var(--app-text)', lineHeight: 1.5 }}>
+                            <span style={{ fontWeight: 700, color: 'var(--app-primary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                {lang === 'zh' ? '为什么你们匹配' : lang === 'ru' ? 'ПОЧЕМУ ВЫ СОВПАЛИ' : 'Why you match'}
+                            </span>
+                            <br />
+                            {matchReason}
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--app-hint)', marginBottom: 6 }}>
-                        <span>{regionFlag}</span>
-                        <span>{partner.region}</span>
+                )}
+
+                {/* About */}
+                {displayPartner.about && (
+                    <InfoSection
+                        label={lang === 'zh' ? '关于我' : lang === 'ru' ? 'О себе' : 'About me'}
+                        text={displayPartner.about}
+                        borderColor="rgba(0,122,255,0.2)"
+                        expanded={showAbout}
+                        onToggle={() => setShowAbout(v => !v)}
+                        lang={lang}
+                    />
+                )}
+
+                {/* Gives */}
+                {displayPartner.gives && (
+                    <InfoSection
+                        label={lang === 'zh' ? '能提供' : lang === 'ru' ? 'Могу дать' : 'Can give'}
+                        text={displayPartner.gives}
+                        borderColor="rgba(52,199,89,0.2)"
+                        expanded={showGives}
+                        onToggle={() => setShowGives(v => !v)}
+                        lang={lang}
+                    />
+                )}
+
+                {/* Wants */}
+                {displayPartner.wants && (
+                    <InfoSection
+                        label={lang === 'zh' ? '想获得' : lang === 'ru' ? 'Хочу получить' : 'Wants to get'}
+                        text={displayPartner.wants}
+                        borderColor="rgba(255,149,0,0.2)"
+                        expanded={showWants}
+                        onToggle={() => setShowWants(v => !v)}
+                        lang={lang}
+                    />
+                )}
+
+                {/* Balance */}
+                {partner.balance && <BalanceBar balance={partner.balance} />}
+
+                {/* AI Conversation Starters */}
+                <button
+                    onClick={handleLoadQuestions}
+                    disabled={loadingAI}
+                    style={{
+                        width: '100%', padding: '11px 0', borderRadius: 12,
+                        border: '0.5px solid rgba(0,122,255,0.2)',
+                        background: 'rgba(0,122,255,0.04)',
+                        color: 'var(--app-primary)', fontSize: 13, fontWeight: 700,
+                        cursor: 'pointer', fontFamily: 'inherit', marginBottom: 14,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        opacity: loadingAI ? 0.6 : 1,
+                    }}
+                >
+                    {loadingAI
+                        ? '⏳ ...'
+                        : showQuestions
+                            ? (lang === 'zh' ? '▲ 隐藏问题' : lang === 'ru' ? '▲ Скрыть вопросы' : '▲ Hide Questions')
+                            : (lang === 'zh' ? '💬 会面对话开场白' : lang === 'ru' ? '💬 Темы для разговора' : '💬 Conversation Starters')}
+                </button>
+
+                {showQuestions && questions.length > 0 && (
+                    <div style={{
+                        background: 'rgba(0,0,0,0.03)', borderRadius: 12,
+                        padding: '12px 14px', marginBottom: 14,
+                    }}>
+                        {questions.map((q, i) => (
+                            <div key={i} style={{
+                                fontSize: 13, color: 'var(--app-text)', lineHeight: 1.5,
+                                paddingBottom: i < questions.length - 1 ? 8 : 0,
+                                marginBottom: i < questions.length - 1 ? 8 : 0,
+                                borderBottom: i < questions.length - 1 ? '0.5px solid var(--app-border)' : 'none',
+                            }}>
+                                <span style={{ color: 'var(--app-primary)', fontWeight: 700 }}>{i + 1}.</span> {q}
+                            </div>
+                        ))}
                     </div>
-                    {partner.languages?.length > 0 && (
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                            {partner.languages.map(l => (
-                                <span key={l} style={{
-                                    background: 'rgba(0,0,0,0.03)', padding: '3px 8px',
-                                    borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#555',
-                                }}>{l}</span>
-                            ))}
+                )}
+
+                {/* Contact buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                    {partner.whatsapp && (
+                        <button onClick={handleWhatsApp} style={{
+                            padding: 14, borderRadius: 12, border: 'none',
+                            background: 'rgba(37,211,102,0.12)', color: '#25d366',
+                            fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                        }}>
+                            WhatsApp
+                        </button>
+                    )}
+                    {partner.wechat && (
+                        <button onClick={handleWeChat} style={{
+                            padding: 14, borderRadius: 12, border: 'none',
+                            background: 'rgba(7,193,96,0.12)', color: '#07c160',
+                            fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                        }}>
+                            Copy WeChat ID
+                        </button>
+                    )}
+                    {!partner.whatsapp && !partner.wechat && (
+                        <div style={{ fontSize: 13, color: 'var(--app-hint)', textAlign: 'center', padding: '8px 0' }}>
+                            {lang === 'zh' ? '联系方式暂未提供' : lang === 'ru' ? 'Контакты пока недоступны' : 'Contact info not available yet'}
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* AI Match Reason */}
-            {matchReason && (
-                <div style={{
-                    background: 'linear-gradient(135deg, rgba(0,122,255,0.06), rgba(88,86,214,0.06))',
-                    border: '0.5px solid rgba(0,122,255,0.15)',
-                    borderRadius: 12, padding: '10px 14px', marginBottom: 16,
-                    display: 'flex', gap: 8, alignItems: 'flex-start',
-                }}>
-                    <span style={{ fontSize: 16, flexShrink: 0 }}>🤝</span>
-                    <div style={{ fontSize: 13, color: 'var(--app-text)', lineHeight: 1.5 }}>
-                        <span style={{ fontWeight: 700, color: 'var(--app-primary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            {lang === 'zh' ? '为什么你们匹配' : lang === 'ru' ? 'ПОЧЕМУ ВЫ СОВПАЛИ' : 'Why you match'}
-                        </span>
-                        <br />
-                        {matchReason}
-                    </div>
-                </div>
-            )}
-
-            {/* About */}
-            {displayPartner.about && (
-                <InfoSection
-                    label={lang === 'zh' ? '关于我' : lang === 'ru' ? 'О себе' : 'About me'}
-                    text={displayPartner.about}
-                    borderColor="rgba(0,122,255,0.2)"
-                    expanded={showAbout}
-                    onToggle={() => setShowAbout(v => !v)}
-                    lang={lang}
-                />
-            )}
-
-            {/* Gives */}
-            {displayPartner.gives && (
-                <InfoSection
-                    label={lang === 'zh' ? '能提供' : lang === 'ru' ? 'Могу дать' : 'Can give'}
-                    text={displayPartner.gives}
-                    borderColor="rgba(52,199,89,0.2)"
-                    expanded={showGives}
-                    onToggle={() => setShowGives(v => !v)}
-                    lang={lang}
-                />
-            )}
-
-            {/* Wants */}
-            {displayPartner.wants && (
-                <InfoSection
-                    label={lang === 'zh' ? '想获得' : lang === 'ru' ? 'Хочу получить' : 'Wants to get'}
-                    text={displayPartner.wants}
-                    borderColor="rgba(255,149,0,0.2)"
-                    expanded={showWants}
-                    onToggle={() => setShowWants(v => !v)}
-                    lang={lang}
-                />
-            )}
-
-            {/* Balance */}
-            {partner.balance && <BalanceBar balance={partner.balance} />}
-
-            {/* AI Conversation Starters */}
-            <button
-                onClick={handleLoadQuestions}
-                disabled={loadingAI}
-                style={{
-                    width: '100%', padding: '11px 0', borderRadius: 12,
-                    border: '0.5px solid rgba(0,122,255,0.2)',
-                    background: 'rgba(0,122,255,0.04)',
-                    color: 'var(--app-primary)', fontSize: 13, fontWeight: 700,
-                    cursor: 'pointer', fontFamily: 'inherit', marginBottom: 14,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    opacity: loadingAI ? 0.6 : 1,
-                }}
-            >
-                {loadingAI ? '⏳ Loading...' : showQuestions
-                    ? (lang === 'zh' ? '▲ 隐藏问题' : lang === 'ru' ? '▲ Скрыть вопросы' : '▲ Hide Questions')
-                    : (lang === 'zh' ? '💬 会面对话开场白' : lang === 'ru' ? '💬 Темы для разговора' : '💬 Meeting Conversation Starters')}
-            </button>
-
-            {showQuestions && questions.length > 0 && (
-                <div style={{
-                    background: 'rgba(0,0,0,0.03)', borderRadius: 12,
-                    padding: '12px 14px', marginBottom: 14,
-                }}>
-                    {questions.map((q, i) => (
-                        <div key={i} style={{
-                            fontSize: 13, color: 'var(--app-text)', lineHeight: 1.5,
-                            paddingBottom: i < questions.length - 1 ? 8 : 0,
-                            marginBottom: i < questions.length - 1 ? 8 : 0,
-                            borderBottom: i < questions.length - 1 ? '0.5px solid var(--app-border)' : 'none',
-                        }}>
-                            <span style={{ color: 'var(--app-primary)', fontWeight: 700 }}>{i + 1}.</span> {q}
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Contact buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-                {partner.whatsapp && (
-                    <button onClick={handleWhatsApp} style={{
-                        padding: 14, borderRadius: 12, border: 'none',
-                        background: 'rgba(37,211,102,0.12)', color: '#25d366',
+                {/* Complete Meeting */}
+                {onFeedback && (
+                    <button onClick={onFeedback} style={{
+                        width: '100%', padding: 14, borderRadius: 14, border: 'none',
+                        background: 'rgba(120,120,128,0.08)', color: 'var(--app-text)',
                         fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                        marginBottom: 10,
                     }}>
-                        WhatsApp
+                        {lang === 'zh' ? '完成会面' : lang === 'ru' ? 'Завершить встречу' : 'Complete Meeting'}
                     </button>
                 )}
-                {partner.wechat && (
-                    <button onClick={handleWeChat} style={{
-                        padding: 14, borderRadius: 12, border: 'none',
-                        background: 'rgba(7,193,96,0.12)', color: '#07c160',
-                        fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                    }}>
-                        Copy WeChat ID
-                    </button>
-                )}
-                {!partner.whatsapp && !partner.wechat && (
-                    <div style={{ fontSize: 13, color: 'var(--app-hint)', textAlign: 'center', padding: '8px 0' }}>
-                        {lang === 'zh' ? '联系方式暂未提供' : lang === 'ru' ? 'Контакты пока недоступны' : 'Contact info not available yet'}
-                    </div>
-                )}
-            </div>
 
-            {/* Complete Meeting */}
-            {onFeedback && (
-                <button onClick={onFeedback} style={{
-                    width: '100%', padding: 14, borderRadius: 14, border: 'none',
-                    background: 'rgba(120,120,128,0.08)', color: 'var(--app-text)',
-                    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                    marginBottom: 10,
-                }}>
-                    {lang === 'zh' ? '完成会面' : lang === 'ru' ? 'Завершить встречу' : 'Complete Meeting'}
-                </button>
-            )}
-
-            <div style={{ fontSize: 12, color: 'var(--app-hint)' }}>
-                {lang === 'zh' ? `匹配于 ${dateStr}` : lang === 'ru' ? `Совпадение ${dateStr}` : `Matched on ${dateStr}`}
+                <div style={{ fontSize: 12, color: 'var(--app-hint)' }}>
+                    {lang === 'zh' ? `匹配于 ${dateStr}` : lang === 'ru' ? `Совпадение ${dateStr}` : `Matched on ${dateStr}`}
+                </div>
             </div>
-        </div>
+        </>
     )
 }
 
@@ -317,7 +340,9 @@ function InfoSection({ label, text, borderColor, expanded, onToggle, lang = 'en'
                     background: 'none', border: 'none', padding: '4px 0 0',
                     cursor: 'pointer', fontFamily: 'inherit',
                 }}>
-                    {expanded ? (lang === 'zh' ? '收起' : lang === 'ru' ? 'Свернуть' : 'Show less') : (lang === 'zh' ? '展开' : lang === 'ru' ? 'Читать далее' : 'Read more')}
+                    {expanded
+                        ? (lang === 'zh' ? '收起' : lang === 'ru' ? 'Свернуть' : 'Show less')
+                        : (lang === 'zh' ? '展开' : lang === 'ru' ? 'Читать далее' : 'Read more')}
                 </button>
             )}
         </div>

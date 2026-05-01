@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
+import { differenceInYears } from 'date-fns'
 import { useApp } from '@/store/useAppStore'
-import LangSwitcher from '@/components/LangSwitcher'
 import DarkToggle from '@/components/DarkToggle'
 import { Button } from '@/components/ui/button'
 import { InputCard, Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
-import { saveProfile } from '@/lib/supabaseClient'
+import { saveProfile, applyReferralCode } from '@/lib/supabaseClient'
 
 export default function PersonalScreen() {
     const { t, i18n } = useTranslation()
@@ -24,26 +24,58 @@ export default function PersonalScreen() {
     const [dob, setDob] = useState(profile.dob ? new Date(profile.dob) : null)
     const [gender, setGender] = useState(profile.gender)
     const [region, setRegion] = useState(profile.region || 'Hong Kong')
-    const [city, setCity] = useState(profile.city || '')
+    const [province, setProvince] = useState(profile.city || '')
+    const [city, setCity] = useState('')
+    const [country, setCountry] = useState('')
+    const [referralCode, setReferralCode] = useState(() => {
+        // Auto-fill from URL: /ref/CODE or ?ref=CODE, or from localStorage (set during lang select)
+        try {
+            // Check localStorage first (set by LangSelectScreen)
+            const stored = localStorage.getItem('rc_pending_ref')
+            if (stored) return stored
+
+            const path = window.location.pathname
+            const refMatch = path.match(/\/ref\/([A-Z0-9]+)/i)
+            if (refMatch) return refMatch[1].toUpperCase()
+            const params = new URLSearchParams(window.location.search)
+            const refParam = params.get('ref')
+            if (refParam) return refParam.toUpperCase()
+        } catch { }
+        return ''
+    })
     const [loading, setLoading] = useState(false)
 
     const handleNext = async () => {
         if (name.trim().length < 2) { toast.error(t('err_name')); return }
         if (!dob) { toast.error(t('err_dob')); return }
-        const age = (new Date() - dob) / (1000 * 60 * 60 * 24 * 365.25)
+        const age = differenceInYears(new Date(), dob)
         if (age < 16) { toast.error(t('err_age')); return }
 
+        // Build city string to save
+        let cityValue = ''
+        if (region === 'Mainland') {
+            cityValue = [province.trim(), city.trim()].filter(Boolean).join(', ')
+        } else if (region === 'Other') {
+            cityValue = [country.trim(), city.trim()].filter(Boolean).join(', ')
+        }
+
         setLoading(true)
-        setProfile(p => ({ ...p, name: name.trim(), dob: dob.toISOString(), gender, region, city }))
+        setProfile(p => ({ ...p, name: name.trim(), dob: dob.toISOString(), gender, region, city: cityValue }))
 
         await saveProfile(user?.id, {
             name: name.trim(),
             dob: dob.toISOString(),
             gender,
             region,
-            city,
+            city: cityValue,
             email: user?.email || '',
         })
+
+        // Apply referral code if entered (non-blocking)
+        if (referralCode.trim()) {
+            localStorage.removeItem('rc_pending_ref') // clear after use
+            applyReferralCode(referralCode.trim(), user?.id).catch(() => { })
+        }
 
         setLoading(false)
         toast.success(t('toast_welcome'))
@@ -126,13 +158,62 @@ export default function PersonalScreen() {
                         </div>
                     </div>
 
-                    <InputCard label={t('city_label')} inputId="city-input">
+                    {/* Mainland: Province + City */}
+                    {region === 'Mainland' && (
+                        <div className="w-full flex flex-col gap-3 mb-4">
+                            <InputCard label={t('province_label')} inputId="province-input">
+                                <Input
+                                    id="province-input"
+                                    type="text"
+                                    value={province}
+                                    onChange={e => setProvince(e.target.value)}
+                                    placeholder={t('province_placeholder')}
+                                />
+                            </InputCard>
+                            <InputCard label={t('city_label')} inputId="city-input">
+                                <Input
+                                    id="city-input"
+                                    type="text"
+                                    value={city}
+                                    onChange={e => setCity(e.target.value)}
+                                    placeholder={t('city_placeholder')}
+                                />
+                            </InputCard>
+                        </div>
+                    )}
+
+                    {/* Other: Country + City */}
+                    {region === 'Other' && (
+                        <div className="w-full flex flex-col gap-3 mb-4">
+                            <InputCard label={t('country_label')} inputId="country-input">
+                                <Input
+                                    id="country-input"
+                                    type="text"
+                                    value={country}
+                                    onChange={e => setCountry(e.target.value)}
+                                    placeholder={t('country_placeholder')}
+                                />
+                            </InputCard>
+                            <InputCard label={t('city_label')} inputId="city-input">
+                                <Input
+                                    id="city-input"
+                                    type="text"
+                                    value={city}
+                                    onChange={e => setCity(e.target.value)}
+                                    placeholder={t('city_placeholder')}
+                                />
+                            </InputCard>
+                        </div>
+                    )}
+
+                    {/* Referral code — optional */}
+                    <InputCard label={t('referral_code_label')} inputId="ref-input">
                         <Input
-                            id="city-input"
+                            id="ref-input"
                             type="text"
-                            value={city}
-                            onChange={e => setCity(e.target.value)}
-                            placeholder={t('city_placeholder')}
+                            value={referralCode}
+                            onChange={e => setReferralCode(e.target.value.toUpperCase())}
+                            placeholder={t('referral_code_placeholder')}
                         />
                     </InputCard>
 

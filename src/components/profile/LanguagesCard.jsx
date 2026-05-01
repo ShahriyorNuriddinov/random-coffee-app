@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/ui/Card'
 
+// All languages always shown in profile — admin setting only affects UI language switcher
 const LANGS = [
     { code: 'EN', key: 'lang_en' },
     { code: 'ZH', key: 'lang_zh' },

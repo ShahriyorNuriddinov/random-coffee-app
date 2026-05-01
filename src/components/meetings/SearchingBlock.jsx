@@ -1,7 +1,7 @@
 // HTML: meetings.html → #searching-content
 import { useTranslation } from 'react-i18next'
 
-export default function SearchingBlock({ onPeople, onBoost, boosting, filters }) {
+export default function SearchingBlock({ onPeople, onBoost, boosting, boostActive, filters }) {
     const { t } = useTranslation()
     const hasFilters = filters && (
         (filters.regions?.length > 0) ||
@@ -12,12 +12,12 @@ export default function SearchingBlock({ onPeople, onBoost, boosting, filters })
     return (
         <div style={{
             background: 'var(--app-card)', borderRadius: 20,
-            padding: '30px 16px', border: '0.5px solid var(--app-border)',
-            textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+            padding: '30px 16px', border: boostActive ? '1.5px solid rgba(0,122,255,0.4)' : '0.5px solid var(--app-border)',
+            textAlign: 'center', boxShadow: boostActive ? '0 4px 20px rgba(0,122,255,0.1)' : '0 4px 12px rgba(0,0,0,0.02)',
         }}>
             <div style={{
                 width: 40, height: 40,
-                border: '3px solid rgba(0,122,255,0.1)',
+                border: `3px solid ${boostActive ? 'rgba(0,122,255,0.2)' : 'rgba(0,122,255,0.1)'}`,
                 borderTop: '3px solid var(--app-primary)',
                 borderRadius: '50%', margin: '0 auto 16px',
                 animation: 'spin 1s linear infinite',
@@ -29,7 +29,21 @@ export default function SearchingBlock({ onPeople, onBoost, boosting, filters })
                 {t('searching_hint')}
             </div>
 
-            {/* Active filter indicator — HTML: .prompt-indicator */}
+            {/* Boost active indicator */}
+            {boostActive && (
+                <div style={{
+                    background: 'rgba(0,122,255,0.08)',
+                    border: '1px solid rgba(0,122,255,0.2)',
+                    borderRadius: 12, padding: '10px 14px',
+                    fontSize: 13, color: 'var(--app-primary)', marginBottom: 16,
+                    display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center',
+                    fontWeight: 600,
+                }}>
+                    ⚡ {t('boost_searching', 'Boost active — searching for a mutual match...')}
+                </div>
+            )}
+
+            {/* Active filter indicator */}
             {hasFilters && (
                 <div style={{
                     background: 'rgba(0,122,255,0.05)',
@@ -52,17 +66,28 @@ export default function SearchingBlock({ onPeople, onBoost, boosting, filters })
 
             <button
                 onClick={onBoost}
-                disabled={boosting}
+                disabled={boosting && !boostActive}
                 style={{
                     width: '100%', padding: 14, borderRadius: 14, border: 'none',
-                    background: boosting ? 'rgba(0,122,255,0.5)' : 'linear-gradient(45deg, #007aff, #00c6ff)',
-                    color: '#fff', fontSize: 14, fontWeight: 700,
-                    cursor: boosting ? 'default' : 'pointer', fontFamily: 'inherit',
-                    boxShadow: '0 6px 16px rgba(0,122,255,0.2)', marginBottom: 16,
+                    background: boostActive
+                        ? 'rgba(255,59,48,0.1)'
+                        : boosting
+                            ? 'rgba(0,122,255,0.5)'
+                            : 'linear-gradient(45deg, #007aff, #00c6ff)',
+                    color: boostActive ? '#ff3b30' : '#fff',
+                    fontSize: 14, fontWeight: 700,
+                    cursor: (boosting && !boostActive) ? 'default' : 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: boostActive ? 'none' : '0 6px 16px rgba(0,122,255,0.2)',
+                    marginBottom: 16,
                     transition: 'all 0.2s',
                 }}
             >
-                {boosting ? t('boosting_btn') : t('boost_btn')}
+                {boostActive
+                    ? t('boost_cancel', '⏹ Cancel Boost')
+                    : boosting
+                        ? t('boosting_btn')
+                        : t('boost_btn')}
             </button>
 
             <div style={{
