@@ -27,22 +27,6 @@ export default function PersonalScreen() {
     const [province, setProvince] = useState(profile.city || '')
     const [city, setCity] = useState('')
     const [country, setCountry] = useState('')
-    const [referralCode, setReferralCode] = useState(() => {
-        // Auto-fill from URL: /ref/CODE or ?ref=CODE, or from localStorage (set during lang select)
-        try {
-            // Check localStorage first (set by LangSelectScreen)
-            const stored = localStorage.getItem('rc_pending_ref')
-            if (stored) return stored
-
-            const path = window.location.pathname
-            const refMatch = path.match(/\/ref\/([A-Z0-9]+)/i)
-            if (refMatch) return refMatch[1].toUpperCase()
-            const params = new URLSearchParams(window.location.search)
-            const refParam = params.get('ref')
-            if (refParam) return refParam.toUpperCase()
-        } catch { }
-        return ''
-    })
     const [loading, setLoading] = useState(false)
 
     const handleNext = async () => {
@@ -71,10 +55,17 @@ export default function PersonalScreen() {
             email: user?.email || '',
         })
 
-        // Apply referral code if entered (non-blocking)
-        if (referralCode.trim()) {
-            localStorage.removeItem('rc_pending_ref') // clear after use
-            applyReferralCode(referralCode.trim(), user?.id).catch(() => { })
+        // Apply referral code from URL if present (non-blocking)
+        const pendingRef = localStorage.getItem('rc_pending_ref')
+        if (pendingRef) {
+            localStorage.removeItem('rc_pending_ref')
+            applyReferralCode(pendingRef, user?.id).catch(() => { })
+        } else {
+            try {
+                const params = new URLSearchParams(window.location.search)
+                const refParam = params.get('ref')
+                if (refParam) applyReferralCode(refParam.toUpperCase(), user?.id).catch(() => { })
+            } catch { }
         }
 
         setLoading(false)
@@ -205,17 +196,6 @@ export default function PersonalScreen() {
                             </InputCard>
                         </div>
                     )}
-
-                    {/* Referral code — optional */}
-                    <InputCard label={t('referral_code_label')} inputId="ref-input">
-                        <Input
-                            id="ref-input"
-                            type="text"
-                            value={referralCode}
-                            onChange={e => setReferralCode(e.target.value.toUpperCase())}
-                            placeholder={t('referral_code_placeholder')}
-                        />
-                    </InputCard>
 
                     <Button onClick={handleNext} disabled={loading}>{loading ? '...' : t('next')}</Button>
                 </div>

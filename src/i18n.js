@@ -1073,4 +1073,7 @@ i18n.on('languageChanged', (lng) => {
 // Set initial lang attribute
 document.documentElement.lang = i18n.language || 'en'
 
+// On app start: check if current language is still enabled in admin settings
+// If not — switch to first available language — handled by LangSwitcher on mount
+
 export default i18n

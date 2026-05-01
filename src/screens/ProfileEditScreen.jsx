@@ -38,7 +38,29 @@ export default function ProfileEditScreen() {
     const [datingGender, setDatingGender] = useState(profile.datingGender)
     const [languages, setLanguages] = useState(profile.languages)
     const region = profile.region
-    const [city, setCity] = useState(profile.city || '')
+    const [city, setCity] = useState(() => {
+        // For Mainland: city part after comma; for Other: city part after comma
+        const raw = profile.city || ''
+        if (profile.region === 'Mainland' || profile.region === 'Other') {
+            const parts = raw.split(',').map(s => s.trim())
+            return parts.length > 1 ? parts[parts.length - 1] : raw
+        }
+        return raw
+    })
+    const [province, setProvince] = useState(() => {
+        if (profile.region === 'Mainland') {
+            const parts = (profile.city || '').split(',').map(s => s.trim())
+            return parts.length > 1 ? parts[0] : ''
+        }
+        return ''
+    })
+    const [country, setCountry] = useState(() => {
+        if (profile.region === 'Other') {
+            const parts = (profile.city || '').split(',').map(s => s.trim())
+            return parts.length > 1 ? parts[0] : ''
+        }
+        return ''
+    })
     const handleCloseWelcome = () => {
         setShowWelcome(false)
         setProfileWelcomeSeen(true)
@@ -87,13 +109,21 @@ export default function ProfileEditScreen() {
         setSaving(true)
 
         // Save immediately without waiting for AI
+        // Build city string: "Province, City" for Mainland, "Country, City" for Other
+        let cityValue = city
+        if (region === 'Mainland') {
+            cityValue = [province.trim(), city.trim()].filter(Boolean).join(', ')
+        } else if (region === 'Other') {
+            cityValue = [country.trim(), city.trim()].filter(Boolean).join(', ')
+        }
+
         const dbData = {
             about, gives, wants, balance,
             wechat, whatsapp,
             show_age: showAge,
             dating_mode: datingMode,
             dating_gender: datingGender,
-            languages, region, city,
+            languages, region, city: cityValue,
             avatar_url: avatar,
             phone: user?.phone,
             name: profile.name,
@@ -107,7 +137,7 @@ export default function ProfileEditScreen() {
             about, gives, wants, balance,
             wechat, whatsapp,
             showAge, datingMode, datingGender,
-            languages, region, city, avatar,
+            languages, region, city: cityValue, avatar,
         }))
 
         const result = await saveProfile(user?.id || 'mock', dbData)
@@ -222,7 +252,16 @@ export default function ProfileEditScreen() {
 
                     <AvatarUpload avatar={avatar} onFile={handleFile} />
 
-                    <BasicInfoCard profile={profile} region={region} city={city} onCityChange={setCity} />
+                    <BasicInfoCard
+                        profile={profile}
+                        region={region}
+                        city={city}
+                        province={province}
+                        country={country}
+                        onCityChange={setCity}
+                        onProvinceChange={setProvince}
+                        onCountryChange={setCountry}
+                    />
 
                     <TextSection
                         title={t('about_title')}

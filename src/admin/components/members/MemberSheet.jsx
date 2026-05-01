@@ -143,7 +143,7 @@ export default function MemberSheet({ memberId, member: memberProp, onClose, lan
             {loading ? (
                 <div className="flex items-center justify-center h-40"><Spinner size={8} /></div>
             ) : (
-                <div className="px-3 py-4 flex flex-col gap-4">
+                <div className="px-2 py-3 flex flex-col gap-4">
 
                     {/* Photos — 2×2 grid */}
                     <PhotoGrid photos={member?.photos} avatarUrl={member?.avatar_url} />

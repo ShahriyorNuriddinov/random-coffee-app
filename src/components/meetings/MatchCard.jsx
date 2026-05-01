@@ -138,7 +138,7 @@ export default function MatchCard({ match, onFeedback }) {
                             opacity: 0.15, filter: 'blur(6px)',
                         }} />
                         <div style={{
-                            width: 64, height: 64, borderRadius: '50%',
+                            width: 64, height: 64, borderRadius: 12,
                             backgroundImage: partner.avatar_url ? `url(${partner.avatar_url})` : 'none',
                             backgroundSize: 'cover', backgroundPosition: 'center',
                             backgroundColor: 'rgba(120,120,128,0.1)',

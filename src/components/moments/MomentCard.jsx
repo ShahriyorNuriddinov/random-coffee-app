@@ -42,12 +42,38 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
     const isOwn = user?.id && author.id === user.id
     const isOfficial = moment.is_admin_post === true || author.name === 'Random Coffee Team' || author.name === 'MaGollz Team'
 
-    // Show text in current UI language automatically (no button needed for DB translations)
-    const currentLang = i18n.language // 'en', 'zh', or 'ru'
+    // Show text in current UI language automatically
+    const currentLang = i18n.language
     const dbTranslation = currentLang === 'zh' ? moment.text_zh
         : currentLang === 'ru' ? moment.text_ru
             : moment.text_en
-    // Use DB translation if it exists and differs from original; otherwise show original
+
+    // Auto-translate on mount if DB translation missing
+    useEffect(() => {
+        if (currentLang === 'en') return // EN is always available
+        if (dbTranslation) return // DB translation exists — no need
+        if (translatedText) return // already translated
+        if (translating) return
+
+        // Translate in background
+        const originalText = moment.text_en || moment.text
+        if (!originalText) return
+
+        setTranslating(true)
+        translateText(originalText, currentLang)
+            .then(result => {
+                if (result) {
+                    setTranslatedText(result)
+                    setTranslated(true)
+                    // Save to DB for future use
+                    const col = currentLang === 'zh' ? 'text_zh' : 'text_ru'
+                    supabase.from('moments').update({ [col]: result }).eq('id', moment.id).catch(() => { })
+                }
+            })
+            .catch(() => { })
+            .finally(() => setTranslating(false))
+    }, [currentLang, moment.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
     const autoTranslated = dbTranslation && dbTranslation !== moment.text ? dbTranslation : null
 
     const timeAgo = (dateStr) => {
@@ -255,9 +281,11 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
             })()}
 
             <div style={{ padding: '12px 16px', fontSize: 15, lineHeight: 1.45, color: 'var(--app-text)' }}>
-                {translated && translatedText
-                    ? translatedText
-                    : autoTranslated || moment.text_en || moment.text}
+                {translating
+                    ? <span style={{ color: 'var(--app-hint)', fontSize: 13 }}>...</span>
+                    : (translated && translatedText)
+                        ? translatedText
+                        : autoTranslated || moment.text_en || moment.text}
             </div>
 
             <div
@@ -319,20 +347,35 @@ export default function MomentCard({ moment, userReaction, onReactionChange, onD
                     ))}
                 </div>
 
-                <button
-                    onClick={(e) => { e.stopPropagation(); handleTranslate() }}
-                    disabled={translating}
-                    style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        fontSize: 13, fontWeight: 600, color: 'var(--app-primary)',
-                        fontFamily: 'inherit', padding: '4px 0',
-                        opacity: translating ? 0.5 : 1, flexShrink: 0,
-                    }}
-                >
-                    {translating ? '...' : translated
-                        ? (currentLang === 'zh' ? '显示原文' : currentLang === 'ru' ? 'Оригинал' : 'Show original')
-                        : (currentLang === 'zh' ? '翻译' : currentLang === 'ru' ? 'Перевести' : 'Translate')}
-                </button>
+                {/* Translate button — only show if no auto-translation available */}
+                {!(autoTranslated || (translated && translatedText)) && currentLang !== 'en' && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); handleTranslate() }}
+                        disabled={translating}
+                        style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            fontSize: 13, fontWeight: 600, color: 'var(--app-primary)',
+                            fontFamily: 'inherit', padding: '4px 0',
+                            opacity: translating ? 0.5 : 1, flexShrink: 0,
+                        }}
+                    >
+                        {translating ? '...' : (currentLang === 'zh' ? '翻译' : 'Перевести')}
+                    </button>
+                )}
+                {(autoTranslated || (translated && translatedText)) && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setTranslated(v => !v) }}
+                        style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            fontSize: 13, fontWeight: 600, color: 'var(--app-hint)',
+                            fontFamily: 'inherit', padding: '4px 0', flexShrink: 0,
+                        }}
+                    >
+                        {translated
+                            ? (currentLang === 'zh' ? '显示原文' : currentLang === 'ru' ? 'Оригинал' : 'Original')
+                            : (currentLang === 'zh' ? '翻译' : currentLang === 'ru' ? 'Перевод' : 'Translate')}
+                    </button>
+                )}
             </div>
 
             <style>{`

@@ -242,8 +242,8 @@ export default function BuyCreditsModal({ onClose }) {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <button className="btn-gradient" style={{ borderRadius: 14 }} onClick={handlePay} disabled={loading}>
-                                {t('pay_btn')} {plan.price}
+                            <button className="btn-gradient" style={{ borderRadius: 14 }} onClick={handlePay} disabled={loading || plans === null}>
+                                {t('pay_btn')} {plans !== null ? plan.price : '...'}
                             </button>
                             <button onClick={onClose} style={{
                                 width: '100%', padding: '13px 0', borderRadius: 14,
@@ -260,7 +260,6 @@ export default function BuyCreditsModal({ onClose }) {
                         <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid rgba(0,122,255,0.15)', borderTop: '3px solid var(--app-primary)', margin: '0 auto 20px', animation: 'spin 1s linear infinite' }} />
                         <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>{t('processing')}</div>
                         <div style={{ fontSize: 14, color: 'var(--app-hint)' }}>{t('processing_hint')}</div>
-                        <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
                     </>
                 )}
 

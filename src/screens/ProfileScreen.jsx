@@ -213,13 +213,8 @@ export default function ProfileScreen() {
                         <CardRow
                             label={t('email_label_profile')}
                             value={
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ color: 'var(--app-hint)', fontSize: 13 }}>{profile.email || '—'}</span>
-                                    {profile.email && (
-                                        <span style={{ background: 'rgba(52,199,89,0.15)', color: '#34c759', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 8 }}>
-                                            {t('verified')}
-                                        </span>
-                                    )}
+                                <span style={{ color: 'var(--app-hint)', fontSize: 13 }}>
+                                    {profile.email || '—'}
                                 </span>
                             }
                             onClick={() => setModal('email')}

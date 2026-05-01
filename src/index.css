@@ -144,7 +144,7 @@ html.dark body {
 /* ── Buttons ── */
 .btn-gradient {
   width: 100%;
-  max-width: 480px;
+  box-sizing: border-box;
   margin: 0 auto;
   background: var(--app-gradient);
   color: #fff;
@@ -191,6 +191,7 @@ html.dark body {
 /* ── Input card ── */
 .input-card {
   width: 100%;
+  box-sizing: border-box;
   background: var(--app-card);
   padding: 12px 16px;
   border-radius: 14px;
@@ -220,10 +221,17 @@ html.dark body {
   background: transparent;
   font-family: inherit;
   color-scheme: light dark;
+  /* Fix browser autocomplete yellow/grey highlight */
+  -webkit-box-shadow: 0 0 0px 1000px var(--app-card) inset !important;
+  -webkit-text-fill-color: var(--app-text) !important;
+  caret-color: var(--app-primary);
 }
 
 .input-card input::placeholder {
-  color: #c7c7cc;
+  color: #b0b0b8 !important;
+  -webkit-text-fill-color: #b0b0b8 !important;
+  font-weight: 400;
+  opacity: 1;
 }
 
 /* ── SMS OTP inputs ── */
@@ -462,4 +470,19 @@ html.dark body {
 /* Hide scrollbar inside swiper */
 .swiper-wrapper {
   scrollbar-width: none;
+}
+
+/* ── Spinner (global — used in SearchingBlock, BuyCreditsModal, etc.) ── */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
 }

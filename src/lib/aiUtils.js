@@ -8,6 +8,24 @@
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY
 
+const sendDebugLog = (hypothesisId, location, message, data = {}, runId = 'pre-fix') => {
+    // #region agent log
+    fetch('http://127.0.0.1:7546/ingest/1915d07c-c702-44b3-b490-5edefe1507f0', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7767a3' },
+        body: JSON.stringify({
+            sessionId: '7767a3',
+            runId,
+            hypothesisId,
+            location,
+            message,
+            data,
+            timestamp: Date.now(),
+        }),
+    }).catch(() => { })
+    // #endregion
+}
+
 // ─── Groq API call ────────────────────────────────────────────────────────────
 async function callGroq(prompt, maxTokens = 500) {
     if (!GROQ_KEY) {
@@ -212,6 +230,12 @@ function extractTagsFallback(about, gives, wants) {
  * @returns {number[]} - scores array in same order as candidates
  */
 export async function calcMatchScoresBatch(myProfile = {}, candidates = [], customPrompt = '', systemPrompt = '') {
+    sendDebugLog('H1', 'src/lib/aiUtils.js:calcMatchScoresBatch:entry', 'AI scoring entry', {
+        candidatesCount: candidates.length,
+        hasMyProfileText: !!(myProfile?.about || myProfile?.gives || myProfile?.wants),
+        hasCustomPrompt: !!customPrompt?.trim(),
+        hasSystemPrompt: !!systemPrompt?.trim(),
+    })
     if (!candidates.length) return []
 
     const { gives: myGives = '', wants: myWants = '', about: myAbout = '' } = myProfile
@@ -259,8 +283,16 @@ No explanation, no markdown, just the array.`
 
     const maxTokens = Math.min(100 + candidates.length * 3, 300)
     const result = await callAI(prompt, maxTokens)
+    sendDebugLog('H2', 'src/lib/aiUtils.js:calcMatchScoresBatch:aiResult', 'AI raw result metadata', {
+        gotResult: !!result,
+        resultLength: result?.length || 0,
+        maxTokens,
+    })
 
     if (!result) {
+        sendDebugLog('H2', 'src/lib/aiUtils.js:calcMatchScoresBatch:fallbackNoResult', 'Fallback: no AI result', {
+            candidatesCount: candidates.length,
+        })
         console.warn('[calcMatchScoresBatch] No result from AI, using fallback')
         return candidates.map(p => calcMatchScore(myProfile, p))
     }
@@ -276,16 +308,35 @@ No explanation, no markdown, just the array.`
         }
 
         const scores = JSON.parse(match[0])
+        sendDebugLog('H3', 'src/lib/aiUtils.js:calcMatchScoresBatch:parsedScores', 'Parsed AI scores', {
+            candidatesCount: candidates.length,
+            parsedScoresCount: Array.isArray(scores) ? scores.length : -1,
+            sampleScores: Array.isArray(scores) ? scores.slice(0, 5) : [],
+        })
 
         if (!Array.isArray(scores) || scores.length === 0) {
+            sendDebugLog('H3', 'src/lib/aiUtils.js:calcMatchScoresBatch:fallbackInvalidScores', 'Fallback: invalid parsed scores', {
+                parsedType: typeof scores,
+            })
             console.warn('[calcMatchScoresBatch] Invalid scores array')
             return candidates.map(p => calcMatchScore(myProfile, p))
+        }
+
+        if (scores.length !== candidates.length) {
+            sendDebugLog('H3', 'src/lib/aiUtils.js:calcMatchScoresBatch:lengthMismatch', 'AI scores length mismatch', {
+                candidatesCount: candidates.length,
+                parsedScoresCount: scores.length,
+            })
         }
 
         return candidates.map((_, i) =>
             Math.min(100, Math.max(0, Math.round(Number(scores[i]) || 0)))
         )
     } catch (e) {
+        sendDebugLog('H4', 'src/lib/aiUtils.js:calcMatchScoresBatch:parseError', 'Fallback: parse error', {
+            errorMessage: e?.message || 'unknown',
+            candidatesCount: candidates.length,
+        })
         console.error('[calcMatchScoresBatch] Parse error:', e, 'Response:', result)
         return candidates.map(p => calcMatchScore(myProfile, p))
     }

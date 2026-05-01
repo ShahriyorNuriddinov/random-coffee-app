@@ -1,5 +1,6 @@
 // HTML: meetings.html → #searching-content
 import { useTranslation } from 'react-i18next'
+import Spinner from '@/components/ui/Spinner'
 
 export default function SearchingBlock({ onPeople, onBoost, boosting, boostActive, filters }) {
     const { t } = useTranslation()
@@ -15,13 +16,11 @@ export default function SearchingBlock({ onPeople, onBoost, boosting, boostActiv
             padding: '30px 16px', border: boostActive ? '1.5px solid rgba(0,122,255,0.4)' : '0.5px solid var(--app-border)',
             textAlign: 'center', boxShadow: boostActive ? '0 4px 20px rgba(0,122,255,0.1)' : '0 4px 12px rgba(0,0,0,0.02)',
         }}>
-            <div style={{
-                width: 40, height: 40,
-                border: `3px solid ${boostActive ? 'rgba(0,122,255,0.2)' : 'rgba(0,122,255,0.1)'}`,
-                borderTop: '3px solid var(--app-primary)',
-                borderRadius: '50%', margin: '0 auto 16px',
-                animation: 'spin 1s linear infinite',
-            }} />
+            <Spinner
+                size={40}
+                trackColor={boostActive ? 'rgba(0,122,255,0.2)' : 'rgba(0,122,255,0.1)'}
+                style={{ margin: '0 auto 16px' }}
+            />
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--app-text)', marginBottom: 8 }}>
                 {t('searching_title')}
             </div>

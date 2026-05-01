@@ -11,7 +11,7 @@ const ALL_LANGS = [
 export default function LangSwitcher() {
     const { i18n } = useTranslation()
     const current = i18n.language
-    const [enabledLangs, setEnabledLangs] = useState([ALL_LANGS[0]]) // default: EN only until loaded
+    const [enabledLangs, setEnabledLangs] = useState([ALL_LANGS[0]])
 
     useEffect(() => {
         supabase
@@ -25,13 +25,22 @@ export default function LangSwitcher() {
                     return
                 }
                 const filtered = ALL_LANGS.filter(l => {
-                    // null → treat as true for EN/ZH (legacy), false for RU
                     if (l.settingKey === 'lang_en') return data.lang_en !== false
                     if (l.settingKey === 'lang_zh') return data.lang_zh !== false
-                    if (l.settingKey === 'lang_ru') return data.lang_ru === true
+                    if (l.settingKey === 'lang_ru') return data.lang_ru !== false
                     return true
                 })
-                setEnabledLangs(filtered.length > 0 ? filtered : [ALL_LANGS[0]])
+                const available = filtered.length > 0 ? filtered : [ALL_LANGS[0]]
+                setEnabledLangs(available)
+
+                // Agar joriy til o'chirilgan bo'lsa — birinchi mavjud tilga o'tkazish
+                const currentLang = localStorage.getItem('rc_lang') || i18n.language
+                const isCurrentEnabled = available.some(l => l.code === currentLang)
+                if (!isCurrentEnabled && available.length > 0) {
+                    const fallback = available[0].code
+                    i18n.changeLanguage(fallback)
+                    localStorage.setItem('rc_lang', fallback)
+                }
             })
             .catch(() => { setEnabledLangs(ALL_LANGS) })
     }, [])
@@ -39,6 +48,19 @@ export default function LangSwitcher() {
     const set = (lang) => {
         i18n.changeLanguage(lang)
         localStorage.setItem('rc_lang', lang)
+    }
+
+    // Faqat bitta til bo'lsa — toggle ko'rsatmaslik
+    if (enabledLangs.length === 1) {
+        return (
+            <span style={{
+                fontSize: 11, fontWeight: 700,
+                color: 'var(--app-hint)',
+                padding: '4px 8px',
+            }}>
+                {enabledLangs[0].label}
+            </span>
+        )
     }
 
     return (

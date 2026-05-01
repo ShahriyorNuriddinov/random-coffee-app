@@ -168,7 +168,10 @@ export default function AdminSettings() {
                     ].map(({ key, label }, i, arr) => (
                         <div key={key} className={`flex items-center justify-between px-4 py-3 ${i < arr.length - 1 ? 'border-b border-black/5' : ''}`}>
                             <span className="text-[14px] font-medium text-gray-600">{label}</span>
-                            <Switch checked={settings[key] === true} onCheckedChange={set(key)} />
+                            <Switch
+                                checked={settings[key] !== false}
+                                onCheckedChange={val => set(key)(val)}
+                            />
                         </div>
                     ))}
                 </Card>

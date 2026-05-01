@@ -41,7 +41,7 @@ export default function PersonCard({ person, liked, onLike, onOpen }) {
                 >
                     {/* .avatar-container */}
                     <div style={{
-                        width: 54, height: 54, borderRadius: '50%', flexShrink: 0,
+                        width: 54, height: 54, borderRadius: 10, flexShrink: 0,
                         backgroundImage: person.avatar_url ? `url(${person.avatar_url})` : 'none',
                         backgroundSize: 'cover', backgroundPosition: 'center',
                         backgroundColor: 'rgba(120,120,128,0.1)',

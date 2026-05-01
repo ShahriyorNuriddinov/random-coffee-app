@@ -82,11 +82,11 @@ export default function PeopleScreen() {
     const [showBuyCredits, setShowBuyCredits] = useState(false)
 
     const { data, isLoading } = useQuery({
-        queryKey: ['people', user?.id],
+        queryKey: ['people', user?.id, i18n.language],
         queryFn: () => fetchPeople(user.id, profile),
-        enabled: !!user?.id && !!profile.name, // Only fetch when profile is loaded
-        staleTime: 2 * 60 * 1000, // 2 min
-        gcTime: 5 * 60 * 1000, // 5 min
+        enabled: !!user?.id && !!profile.name,
+        staleTime: 2 * 60 * 1000,
+        gcTime: 5 * 60 * 1000,
     })
 
     const people = data?.people ?? []

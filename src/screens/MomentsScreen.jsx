@@ -37,7 +37,7 @@ export default function MomentsScreen() {
         fetchNextPage,
         hasNextPage,
     } = useInfiniteQuery({
-        queryKey: ['moments', user?.id],
+        queryKey: ['moments', user?.id, i18n.language],
         queryFn: ({ pageParam = 0 }) => getMoments(PAGE_SIZE, user?.id, pageParam),
         getNextPageParam: (lastPage, allPages) =>
             lastPage.length === PAGE_SIZE ? allPages.flat().length : undefined,
@@ -111,10 +111,10 @@ export default function MomentsScreen() {
         const ch = supabase
             .channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'moments' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['moments', user.id] })
+                queryClient.invalidateQueries({ queryKey: ['moments', user.id, lang] })
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'moment_likes' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['moments', user.id] })
+                queryClient.invalidateQueries({ queryKey: ['moments', user.id, lang] })
             })
             .subscribe()
         channelRef.current = ch
@@ -183,7 +183,7 @@ export default function MomentsScreen() {
                                 userReaction={userReactions[m.id] || null}
                                 onReactionChange={(emoji) => handleReactionChange(m.id, emoji)}
                                 onDeleted={(id) => {
-                                    queryClient.setQueryData(['moments', user?.id], old => {
+                                    queryClient.setQueryData(['moments', user?.id, lang], old => {
                                         if (!old) return old
                                         return {
                                             ...old,
@@ -227,7 +227,7 @@ export default function MomentsScreen() {
             {showNew && (
                 <NewMomentModal
                     onClose={() => setShowNew(false)}
-                    onPosted={() => queryClient.invalidateQueries({ queryKey: ['moments', user?.id] })}
+                    onPosted={() => queryClient.invalidateQueries({ queryKey: ['moments', user?.id, lang] })}
                 />
             )}
 

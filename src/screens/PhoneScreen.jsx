@@ -232,10 +232,10 @@ export default function PhoneScreen() {
 
             <div className="flex-1 flex flex-col items-center justify-center px-4">
                 <div className="screen-content w-full">
-                    <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 10, letterSpacing: -1, color: 'var(--app-text)' }}>
+                    <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 10, letterSpacing: -1, color: 'var(--app-text)', textAlign: 'center' }}>
                         {t('auth_title')}
                     </h1>
-                    <p style={{ color: 'var(--app-hint)', fontSize: 15, marginBottom: 32, lineHeight: 1.5, fontWeight: 500 }}>
+                    <p style={{ color: 'var(--app-hint)', fontSize: 15, marginBottom: 32, lineHeight: 1.5, fontWeight: 500, textAlign: 'center' }}>
                         {t('auth_hint_email')}
                     </p>
 
@@ -248,6 +248,7 @@ export default function PhoneScreen() {
                             placeholder={t('email_placeholder')}
                             inputMode="email"
                             aria-label={t('email_label')}
+                            autoComplete="email"
                             onKeyDown={e => e.key === 'Enter' && handleNext()}
                         />
                     </InputCard>

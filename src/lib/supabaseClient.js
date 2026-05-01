@@ -241,7 +241,7 @@ export const getPeople = async (currentUserId, limit = 100) => {
             enabledLangs = []
             if (settings.lang_en !== false) enabledLangs.push('EN')
             if (settings.lang_zh !== false) enabledLangs.push('ZH', 'CAN')
-            if (settings.lang_ru === true) enabledLangs.push('RU')
+            if (settings.lang_ru !== false) enabledLangs.push('RU')
             if (enabledLangs.length === 0) enabledLangs = ['EN', 'ZH', 'CAN', 'RU']
         }
     } catch { /* on error show all */ }
@@ -547,11 +547,12 @@ export const cancelMeeting = async (matchId) => {
 // RLS enforces auth.uid() server-side, so the caller cannot spoof the actor.
 export const blockUser = async (_blockerId, blockedId) => {
     try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, error: 'Not authenticated' }
         const { error } = await supabase.from('blocked_users').insert({
-            blocker_id: (await supabase.auth.getUser()).data.user?.id,
-            blocked_id: blockedId,
+            blocker_id: user.id.toString(),
+            blocked_id: blockedId.toString(),
         })
-
         if (error) {
             if (error.code === '23505') return { success: false, error: 'unique_block' }
             return { success: false, error: error.message }
@@ -564,13 +565,14 @@ export const blockUser = async (_blockerId, blockedId) => {
 
 export const reportUser = async (_reporterId, reportedId, reason = '') => {
     try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, error: 'Not authenticated' }
         const { error } = await supabase.from('reports').insert({
-            reporter_id: (await supabase.auth.getUser()).data.user?.id,
-            reported_id: reportedId,
+            reporter_id: user.id.toString(),
+            reported_id: reportedId.toString(),
             reason,
             created_at: new Date().toISOString(),
         })
-
         if (error) {
             if (error.code === '23505') return { success: false, error: 'unique_report' }
             return { success: false, error: error.message }
@@ -583,24 +585,30 @@ export const reportUser = async (_reporterId, reportedId, reason = '') => {
 
 // ─── DELETE ACCOUNT ───────────────────────────────────────────────────────────
 export const deleteAccount = async (_userId) => {
-    // _userId kept for API compatibility; auth.uid() is used server-side via RLS
-    // Soft delete — mark as deleted, anonymize data
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'Not authenticated' }
-    const { error } = await supabase.from('profiles').update({
-        name: 'Deleted User',
-        about: '',
-        gives: '',
-        wants: '',
-        avatar_url: null,
-        photos: [],
-        email: null,
-        wechat: null,
-        whatsapp: null,
-        deleted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-    }).eq('id', user.id)
-    if (error) return { success: false, error: error.message }
-    await supabase.auth.signOut()
-    return { success: true }
+    try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return { success: false, error: 'Not authenticated' }
+
+        // Call edge function — fully deletes auth user + all data
+        const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        )
+
+        const data = await res.json()
+        if (!res.ok || !data.success) {
+            return { success: false, error: data.error || 'Delete failed' }
+        }
+
+        await supabase.auth.signOut()
+        return { success: true }
+    } catch (err) {
+        return { success: false, error: err.message }
+    }
 }
