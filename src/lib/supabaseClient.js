@@ -229,19 +229,24 @@ export const toggleBoost = async (userId, active) => {
 
 export const getPeople = async (currentUserId, limit = 100) => {
     // Fetch enabled languages from app_settings
-    const { data: settings } = await supabase
-        .from('app_settings')
-        .select('lang_en, lang_zh, lang_ru')
-        .eq('id', 1)
-        .single()
-        .catch(() => ({ data: null }))
+    let enabledLangs = ['EN', 'ZH', 'CAN', 'RU'] // default: show all
+    try {
+        const { data: settings } = await supabase
+            .from('app_settings')
+            .select('lang_en, lang_zh, lang_ru')
+            .eq('id', 1)
+            .single()
 
-    const enabledLangs = []
-    if (!settings || settings.lang_en !== false) enabledLangs.push('EN')
-    if (!settings || settings.lang_zh !== false) enabledLangs.push('ZH', 'CAN')
-    if (settings?.lang_ru === true) enabledLangs.push('RU')
+        if (settings) {
+            enabledLangs = []
+            if (settings.lang_en !== false) enabledLangs.push('EN')
+            if (settings.lang_zh !== false) enabledLangs.push('ZH', 'CAN')
+            if (settings.lang_ru === true) enabledLangs.push('RU')
+            if (enabledLangs.length === 0) enabledLangs = ['EN', 'ZH', 'CAN', 'RU']
+        }
+    } catch { /* on error show all */ }
 
-    let query = supabase
+    const { data, error } = await supabase
         .from('profiles')
         .select('id, name, dob, gender, region, city, avatar_url, photos, about, gives, wants, about_zh, gives_zh, wants_zh, about_ru, gives_ru, wants_ru, tags, languages, balance')
         .neq('id', currentUserId)
@@ -250,20 +255,18 @@ export const getPeople = async (currentUserId, limit = 100) => {
         .neq('name', '')
         .limit(limit)
 
-    const { data, error } = await query
     if (error) {
         console.error('[getPeople]', error.message)
         return []
     }
 
-    // Filter: only show users who speak at least one enabled language
-    // If no language restrictions, show everyone
     const people = data || []
-    if (enabledLangs.length === 0) return people
 
+    // Filter by enabled languages — show user if they speak at least one enabled lang
+    // If user has no languages set — show them anyway
     return people.filter(p => {
-        const userLangs = Array.isArray(p.languages) ? p.languages : []
-        if (userLangs.length === 0) return true // no language set — show anyway
+        const userLangs = Array.isArray(p.languages) && p.languages.length > 0 ? p.languages : null
+        if (!userLangs) return true // no language set — always show
         return userLangs.some(l => enabledLangs.includes(l))
     })
 }
